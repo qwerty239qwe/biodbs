@@ -6,8 +6,8 @@ import zipfile
 from io import BytesIO
 
 
-def get_rsp(host_url, query=None, safe_check=True, **kwargs):
-    rsp = requests.get(host_url, params=query, **kwargs)
+def get_rsp(host_url, query=None, safe_check=True, method="get", **kwargs):
+    rsp = getattr(requests, method)(host_url, params=query, **kwargs)
     if safe_check:
         assert rsp.status_code == 200, str(rsp.status_code) + str(query)
     return rsp

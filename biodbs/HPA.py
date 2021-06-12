@@ -6,7 +6,6 @@ from functools import partial
 from tqdm import tqdm
 
 
-
 DEFAULT_HOST = "http://www.proteinatlas.org/"
 DOWNLOADABLE_DATA = ["normal_tissue",
                      "pathology",
