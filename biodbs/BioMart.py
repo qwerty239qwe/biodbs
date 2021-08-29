@@ -8,6 +8,7 @@ from functools import lru_cache
 
 HOSTS = {"main": "www.ensembl.org",
          "apr2018": "apr2018.archive.ensembl.org",  # Ensembl version: 92.38 - used by HPA
+         "may2015": "may2015.archive.ensembl.org",  # Ensembl version: GRCh38.p2
          "plants": "plants.ensembl.org",
          "fungi": "fungi.ensembl.org",
          "protist": "protist.ensembl.org",
@@ -15,7 +16,7 @@ HOSTS = {"main": "www.ensembl.org",
 
 DEFAULT_HOST = "http://" + HOSTS["main"] + "/biomart/martservice?"
 DEFAULT_MART_NAME = "ENSEMBL_MART_ENSEMBL"
-DEFAULT_DATESET_NAME = {"human": "hsapiens_gene_ensembl", "mouse": "mmusculus_gene_ensembl"}
+DEFAULT_DATASET_NAME = {"human": "hsapiens_gene_ensembl", "mouse": "mmusculus_gene_ensembl"}
 
 
 def get_full_url_from_host(host_name):
@@ -122,7 +123,7 @@ class Mart:
 
 class Dataset:
     def __init__(self,
-                 dataset_name: str = DEFAULT_DATESET_NAME["human"],
+                 dataset_name: str = DEFAULT_DATASET_NAME["human"],
                  mart_name: str = DEFAULT_MART_NAME,
                  host: str = DEFAULT_HOST):
         self.host = host
@@ -130,33 +131,30 @@ class Dataset:
         self.dataset_name = dataset_name
         self._filters, self._attribs = self._get_config()
 
-    def _get_config(self):
-        query = {"type": "configuration", "dataset": self.dataset_name}
-        rsp = get_rsp(self.host, query)
-        tree = ET.fromstring(rsp.text)
+    def _get_filter_df(self, root_tree):
         filter_dfs = []
-        for filter in tree.iter('FilterDescription'):
+        for filter in root_tree.iter('FilterDescription'):
             filter_df = xml_to_tabular(filter, tag='Option').dropna(how="all")
             if filter_df.shape[0] == 0:
                 continue
             filter_df = filter_df.rename(columns={"internalName": "name"})
             filter_dfs.append(filter_df)
+        return pd.concat(filter_dfs, ignore_index=True)
 
-        dfs = []
-        for i, page in enumerate(tree.iter('AttributePage')):
+    def _get_attr_df(self, root_tree):
+        attr_dfs = []
+        for i, page in enumerate(root_tree.iter('AttributePage')):
             df = xml_to_tabular(page, tag='AttributeDescription')
             df["pageName"], df["outFormats"] = page.get("internalName"), page.get("outFormats")
             df = df.rename(columns={"internalName": "name"})
-            dfs.append(df)
-        return pd.concat(filter_dfs,ignore_index=True)[["name",
-                                                        "useDefault",
-                                                        "type",
-                                                        "description"]], \
-               pd.concat(dfs, ignore_index=True)[["name",
-                                                  "displayName",
-                                                  "description",
-                                                  "pageName",
-                                                  "outFormats"]]
+            attr_dfs.append(df)
+        return pd.concat(attr_dfs, ignore_index=True)
+
+    def _get_config(self):
+        query = {"type": "configuration", "dataset": self.dataset_name}
+        rsp = get_rsp(self.host, query)
+        tree = ET.fromstring(rsp.text)
+        return self._get_filter_df(tree), self._get_attr_df(tree)
 
     def _add_one_element(self, name, attr_dic, root_node=None):
         if isinstance(root_node, ET.Element):
