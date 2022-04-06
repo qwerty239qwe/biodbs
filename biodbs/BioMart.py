@@ -175,17 +175,6 @@ class Dataset:
         return node
 
     def get_data(self, attribs, unique_rows=False, **filter_dict):
-        '''http://www.ensembl.org/biomart/martservice?query=<?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE Query>
-        <Query virtualSchema Name = "default" formatter = "TSV" header = "0" uniqueRows = "0" count = "" datasetConfigVersion = "0.6" >
-            <Dataset name = "hsapiens_gene_ensembl" interface = "default" >
-                <Filter name = "ensembl_gene_id" value = "ENSG00000139618"/>
-                <Attribute name = "ensembl_gene_id" />
-                <Attribute name = "ensembl_transcript_id" />
-                <Attribute name = "hgnc_symbol" />
-                <Attribute name = "uniprotswissprot" />
-            </Dataset>
-        </Query>'''
         query_attr = {"header": "0",
                       "virtualSchemaName": "default",
                       "formatter": "TSV",
@@ -205,7 +194,7 @@ class Dataset:
         if filter_dict:
             for k, v in filter_dict.items():
                 max_len = 5000
-                max_query = max_len // (max([len(vi) for vi in v]) + 2)
+                max_query = (max([len(vi) for vi in v]) + 2) * len(v) // max_len
 
                 if not isinstance(v, list) or len(v) <= max_query:
                     filter_attrs = [{"name": k, "value": v if not isinstance(v, list) else ",".join(v)}]
@@ -236,10 +225,8 @@ class Dataset:
                     #                                             attribs=attribs,
                     #                                             filter_attrs=filter_attrs, chunk_id=c_id)
                     #     dfs.append(result)
-
+                    print("Start multithreading process")
                     with concurrent.futures.ThreadPoolExecutor() as executor:
-                        print("Start multithreading process")
-                        print(f"Jobs: {len(v) // max_query}")
                         results = [executor.submit(self._append_filter_and_get_df,
                                                    query_node=new_query_nodes[c_id],
                                                    dataset_node=new_dataset_nodes[c_id],
@@ -275,7 +262,6 @@ class Dataset:
 
         if not rsp.text == "":
             df = _rsp_to_df(rsp, columns=attribs)
-            print(f"get a df with shape: {df.shape}")
             return df
         else:
             print("weird result occured")

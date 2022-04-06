@@ -16,6 +16,7 @@ EXAMPLE_GS = [
     "ATF7", "ATP5F1"
 ]
 
+
 class Enrichr:
     def __init__(self, list_id_file_name=None, load_list_id=True, host = DEFAULT_HOST):
         self.host = host
