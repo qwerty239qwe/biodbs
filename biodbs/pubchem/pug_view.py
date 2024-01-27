@@ -29,6 +29,26 @@ class CompoundFetcher(Fetcher):
         super().__init__("compound")
 
 
+class SubstanceFetcher(Fetcher):
+    def __init__(self):
+        super().__init__("substance")
+
+
 class AssayFetcher(Fetcher):
     def __init__(self):
         super().__init__("assay")
+
+
+class GeneFetcher(Fetcher):
+    def __init__(self):
+        super().__init__("gene")
+
+
+class ProteinFetcher(Fetcher):
+    def __init__(self):
+        super().__init__("protein")
+
+
+class CellFetcher(Fetcher):
+    def __init__(self):
+        super().__init__("cell")
