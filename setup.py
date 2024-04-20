@@ -25,6 +25,8 @@ setup(
     install_requires=["pandas",
                       "tqdm",
                       "aiohttp",
-                      "requests"],
+                      "requests",
+                      "beautifulsoup4",
+                      "defusedxml"],
     entry_points={},
 )

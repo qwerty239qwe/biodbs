@@ -6,19 +6,14 @@ import zipfile
 from io import BytesIO
 
 
-def get_rsp(host_url,
-            query=None,
-            safe_check=True,
-            method="get",
-            **kwargs):
-    rsp = getattr(requests, method)(str(host_url), params=query, **kwargs)
+def get_rsp(host_url, query=None, safe_check=True, method="get", **kwargs):
+    rsp = getattr(requests, method)(host_url, params=query, **kwargs)
     if safe_check:
         assert rsp.status_code == 200, str(rsp.status_code) + str(query)
     return rsp
 
 
-def save_image_from_rsp(respond,
-                        file_name):
+def save_image_from_rsp(respond, file_name):
     with open(file_name, 'wb') as out_file:
         respond.raw.decode_content = True
         shutil.copyfileobj(respond.raw, out_file)
