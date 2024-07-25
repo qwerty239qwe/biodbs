@@ -1,6 +1,6 @@
-from fetcher._base import BaseAPI
+from biodbs.fetcher import BaseAPI
 from biodbs.utils import get_rsp
-from ChEMBL.__params import *
+from biodbs.ChEMBL.utils import *
 
 
 class PUGRestAPI(BaseAPI):

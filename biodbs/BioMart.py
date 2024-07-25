@@ -8,6 +8,7 @@ from functools import lru_cache
 
 HOSTS = {"main": "www.ensembl.org",
          "apr2018": "apr2018.archive.ensembl.org",  # Ensembl version: 92.38 - used by HPA
+         "may2015": "may2015.archive.ensembl.org",  # Ensembl version: GRCh38.p2
          "plants": "plants.ensembl.org",
          "fungi": "fungi.ensembl.org",
          "protist": "protist.ensembl.org",
@@ -15,7 +16,7 @@ HOSTS = {"main": "www.ensembl.org",
 
 DEFAULT_HOST = "http://" + HOSTS["main"] + "/biomart/martservice?"
 DEFAULT_MART_NAME = "ENSEMBL_MART_ENSEMBL"
-DEFAULT_DATESET_NAME = {"human": "hsapiens_gene_ensembl", "mouse": "mmusculus_gene_ensembl"}
+DEFAULT_DATASET_NAME = {"human": "hsapiens_gene_ensembl", "mouse": "mmusculus_gene_ensembl"}
 
 
 def get_full_url_from_host(host_name):
@@ -122,7 +123,7 @@ class Mart:
 
 class Dataset:
     def __init__(self,
-                 dataset_name: str = DEFAULT_DATESET_NAME["human"],
+                 dataset_name: str = DEFAULT_DATASET_NAME["human"],
                  mart_name: str = DEFAULT_MART_NAME,
                  host: str = DEFAULT_HOST):
         self.host = host
@@ -130,33 +131,30 @@ class Dataset:
         self.dataset_name = dataset_name
         self._filters, self._attribs = self._get_config()
 
-    def _get_config(self):
-        query = {"type": "configuration", "dataset": self.dataset_name}
-        rsp = get_rsp(self.host, query)
-        tree = ET.fromstring(rsp.text)
+    def _get_filter_df(self, root_tree):
         filter_dfs = []
-        for filter in tree.iter('FilterDescription'):
+        for filter in root_tree.iter('FilterDescription'):
             filter_df = xml_to_tabular(filter, tag='Option').dropna(how="all")
             if filter_df.shape[0] == 0:
                 continue
             filter_df = filter_df.rename(columns={"internalName": "name"})
             filter_dfs.append(filter_df)
+        return pd.concat(filter_dfs, ignore_index=True)
 
-        dfs = []
-        for i, page in enumerate(tree.iter('AttributePage')):
+    def _get_attr_df(self, root_tree):
+        attr_dfs = []
+        for i, page in enumerate(root_tree.iter('AttributePage')):
             df = xml_to_tabular(page, tag='AttributeDescription')
             df["pageName"], df["outFormats"] = page.get("internalName"), page.get("outFormats")
             df = df.rename(columns={"internalName": "name"})
-            dfs.append(df)
-        return pd.concat(filter_dfs,ignore_index=True)[["name",
-                                                        "useDefault",
-                                                        "type",
-                                                        "description"]], \
-               pd.concat(dfs, ignore_index=True)[["name",
-                                                  "displayName",
-                                                  "description",
-                                                  "pageName",
-                                                  "outFormats"]]
+            attr_dfs.append(df)
+        return pd.concat(attr_dfs, ignore_index=True)
+
+    def _get_config(self):
+        query = {"type": "configuration", "dataset": self.dataset_name}
+        rsp = get_rsp(self.host, query)
+        tree = ET.fromstring(rsp.text)
+        return self._get_filter_df(tree), self._get_attr_df(tree)
 
     def _add_one_element(self, name, attr_dic, root_node=None):
         if isinstance(root_node, ET.Element):
@@ -177,17 +175,6 @@ class Dataset:
         return node
 
     def get_data(self, attribs, unique_rows=False, **filter_dict):
-        '''http://www.ensembl.org/biomart/martservice?query=<?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE Query>
-        <Query virtualSchema Name = "default" formatter = "TSV" header = "0" uniqueRows = "0" count = "" datasetConfigVersion = "0.6" >
-            <Dataset name = "hsapiens_gene_ensembl" interface = "default" >
-                <Filter name = "ensembl_gene_id" value = "ENSG00000139618"/>
-                <Attribute name = "ensembl_gene_id" />
-                <Attribute name = "ensembl_transcript_id" />
-                <Attribute name = "hgnc_symbol" />
-                <Attribute name = "uniprotswissprot" />
-            </Dataset>
-        </Query>'''
         query_attr = {"header": "0",
                       "virtualSchemaName": "default",
                       "formatter": "TSV",
@@ -207,7 +194,7 @@ class Dataset:
         if filter_dict:
             for k, v in filter_dict.items():
                 max_len = 5000
-                max_query = max_len // (max([len(vi) for vi in v]) + 2)
+                max_query = (max([len(vi) for vi in v]) + 2) * len(v) // max_len
 
                 if not isinstance(v, list) or len(v) <= max_query:
                     filter_attrs = [{"name": k, "value": v if not isinstance(v, list) else ",".join(v)}]
@@ -238,10 +225,8 @@ class Dataset:
                     #                                             attribs=attribs,
                     #                                             filter_attrs=filter_attrs, chunk_id=c_id)
                     #     dfs.append(result)
-
+                    print("Start multithreading process")
                     with concurrent.futures.ThreadPoolExecutor() as executor:
-                        print("Start multithreading process")
-                        print(f"Jobs: {len(v) // max_query}")
                         results = [executor.submit(self._append_filter_and_get_df,
                                                    query_node=new_query_nodes[c_id],
                                                    dataset_node=new_dataset_nodes[c_id],
@@ -277,7 +262,6 @@ class Dataset:
 
         if not rsp.text == "":
             df = _rsp_to_df(rsp, columns=attribs)
-            print(f"get a df with shape: {df.shape}")
             return df
         else:
             print("weird result occured")
