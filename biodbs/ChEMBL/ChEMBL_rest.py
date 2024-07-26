@@ -47,7 +47,7 @@ class ActivityFetcher(Fetcher):
 
 class AssayFetcher(Fetcher):
     def __init__(self):
-        super().__init__(domain="CHEMBL_ASSAY")
+        super().__init__(domain="assay")
 
 
 class ATCFetcher(Fetcher):
