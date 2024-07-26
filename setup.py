@@ -7,7 +7,7 @@ README_FILE = (PARENT_DIR / "README.md").read_text()
 
 setup(
     name="biodbs",
-    version="0.0.1",
+    version="0.0.2",
     description="bioDBs is a Python package for getting data from biological databases.",
     long_description=README_FILE,
     long_description_content_type="text/markdown",
