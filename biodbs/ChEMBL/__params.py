@@ -2,7 +2,7 @@ import re
 
 
 class ChEMBLNameSpace:
-    
+
 
     NAMESPACE = {
                  "activity": ["molecule_chembl_id","assay_chembl_id","target_chembl_id"],

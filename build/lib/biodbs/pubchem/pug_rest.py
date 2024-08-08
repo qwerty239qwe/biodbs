@@ -60,6 +60,10 @@ class AssayFetcher(Fetcher):
     def __init__(self):
         super().__init__(domain="assay")
 
+class BioassayFetcher(Fetcher):
+    def __init__(self):
+        super().__init__(domain='bioassay')
+
 
 class GeneFetcher(Fetcher):
     def __init__(self):
