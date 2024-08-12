@@ -1,37 +1,28 @@
 from biodbs.fetcher import BaseAPI
 from biodbs.utils import get_rsp
-from biodbs.ChEMBL.__params import *
 
 
 class ChEMBLRestAPI(BaseAPI):
     def __init__(self):
         super().__init__()
         self._url_format = "https://www.ebi.ac.uk/chembl/api/data/{domain}"\
-                            "?{namespace}={identifier}"
+                            "/{identifier}?format={output_format}"
 
 
 class Fetcher:
     def __init__(self, domain):
         self._api = ChEMBLRestAPI()
         self._api.update_params(domain=domain)
-        self._valid_ns = ChEMBLNameSpace(domain=domain)
 
-        self._valid_params = {"namespace": self._valid_ns}
 
-    def _check_params(self, param, param_name):
-        return self._valid_params[param_name].match(param)
-
-    def fetch(self, name_space, ids, operation_options=None):
+    def fetch(self, ids, output_format="JSON", operation_options=None):
         if isinstance(ids, list):
             ids = ",".join(ids)
 
-        if not self._check_params(name_space, "namespace"):
-            raise ValueError("namespace got an invalid value. Please choose from: "
-                             f"{self._valid_params['namespace'].name_space}")
 
         operation_options = operation_options or ""
-        fetched_api = self._api.apply(namespace=name_space,
-                                      identifiers=ids,
+        fetched_api = self._api.apply(identifiers=ids,
+                                      output_format=output_format,
                                       operation_options=operation_options,
                                       )
 
