@@ -6,7 +6,7 @@ class ChEMBLRestAPI(BaseAPI):
     def __init__(self):
         super().__init__()
         self._url_format = "https://www.ebi.ac.uk/chembl/api/data/{domain}"\
-                            "/{identifiers}?format={output_format}{operation_options}{namespace}"
+                            "/{identifiers}?format={output_format}"
 
 
 class Fetcher:
@@ -14,14 +14,12 @@ class Fetcher:
         self._api = ChEMBLRestAPI()
         self._api.update_params(domain=domain)
 
-    def fetch(self, ids,  output_format="json", operation_options=None, name_space=None):
+    def fetch(self, ids,  output_format):
         if isinstance(ids, list):
             ids = ",".join(ids)
         operation_options = operation_options or ""
-        fetched_api = self._api.apply(namespace=name_space,
-                                      identifiers=ids,
+        fetched_api = self._api.apply(identifiers=ids,
                                       output_format=output_format,
-                                      operation_options=operation_options,
                                       )
 
         resp = get_rsp(fetched_api.api)
