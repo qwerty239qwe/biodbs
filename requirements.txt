@@ -1,5 +1,5 @@
-pandas~=1.2.4
-tqdm~=4.60.0
+pandas~=2.2.0
+tqdm
 requests~=2.25.1
-aiohttp~=3.7.4.post0
+aiohttp~=3.9.4
 playwright
