@@ -17,7 +17,6 @@ class Fetcher:
     def fetch(self, ids,  output_format):
         if isinstance(ids, list):
             ids = ",".join(ids)
-        operation_options = operation_options or ""
         fetched_api = self._api.apply(identifiers=ids,
                                       output_format=output_format,
                                       )
