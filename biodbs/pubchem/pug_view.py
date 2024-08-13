@@ -39,6 +39,11 @@ class AssayFetcher(Fetcher):
         super().__init__("assay")
 
 
+class BioAssayFetcher(Fetcher):
+    def __init__(self):
+        super().__init__("bioassay")
+
+
 class GeneFetcher(Fetcher):
     def __init__(self):
         super().__init__("gene")
