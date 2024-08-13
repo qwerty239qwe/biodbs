@@ -6,7 +6,7 @@ class ChEMBLRestAPI(BaseAPI):
     def __init__(self):
         super().__init__()
         self._url_format = "https://www.ebi.ac.uk/chembl/api/data/{domain}"\
-                            "/{namespace}{identifiers}?format={output_format}"
+                            "/{identifiers}?format={output_format}{operation_options}{namespace}"
 
 
 class Fetcher:
