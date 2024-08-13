@@ -61,6 +61,11 @@ class AssayFetcher(Fetcher):
         super().__init__(domain="assay")
 
 
+class BioAssayFetcher(Fetcher):
+    def __init__(self):
+        super().__init__(domain="bioassay")
+
+
 class GeneFetcher(Fetcher):
     def __init__(self):
         super().__init__(domain="gene")
