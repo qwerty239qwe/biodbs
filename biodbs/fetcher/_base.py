@@ -5,6 +5,12 @@ class BaseAPI:
         self._url_format = None
         self._params = {}
 
+    def __str__(self):
+        disp_names = [self.__class__.__name__, 
+                      f"API format: {self._url_format}", 
+                      f"Current params: {self._params}"]
+        return "\n".join(disp_names) 
+
     def update_params(self, **kwargs):
         self._params.update(kwargs)
 
