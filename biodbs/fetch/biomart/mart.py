@@ -1,6 +1,6 @@
 import pandas as pd
-from biodbs.fetcher.biomart.enum import BiomartHost, BiomartDatabase, BiomartMart
-from biodbs.fetcher.biomart.utils import *
+from biodbs.fetch.biomart.enum import BiomartHost, BiomartDatabase, BiomartMart
+from biodbs.fetch.biomart.utils import *
 from biodbs.utils import *
 
 

@@ -30,7 +30,7 @@ class SearchFetcher(QuickGOAPI):
 
 
 class SlimFetcher(QuickGOAPI):
-    def fetch(self, slims_to_Ids, slims_from_Ids=None, relations=None):
+    def fetch_slim(self, slims_to_Ids, slims_from_Ids=None, relations=None):
         if relations is None:
             relations = "is_a,part_of,occurs_in,regulates"
         elif isinstance(relations, list):
@@ -155,3 +155,5 @@ class TermFetcher(QuickGOAPI):
 
     def get_descendants(self, ids, relations):
         raise NotImplementedError
+
+

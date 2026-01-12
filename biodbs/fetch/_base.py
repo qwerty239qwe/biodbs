@@ -29,3 +29,20 @@ class BaseAPI:
         new_api = self.copy()
         new_api.update_params(**params)
         return new_api
+
+
+class BaseDataFetcher:
+    def __init__(self, api, namespace, headers):
+        self._api = api
+        self._namespace = namespace
+        self._headers = headers
+
+    def _get_data(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    def get(self, *args, **kwargs):
+        is_valid, err_msg = self._namespace.validate(*args, **kwargs)
+        if not is_valid:
+            raise ValueError(err_msg)
+        
+        return self._get_data(*args, **kwargs)

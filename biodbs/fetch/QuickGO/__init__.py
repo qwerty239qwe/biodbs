@@ -1,5 +1,5 @@
 from .api import QuickGOAPI, DEFAULT_HOST
-from .fetchers import SearchFetcher, SlimFetcher, ChartFetcher, TermFetcher
+from biodbs.fetch.QuickGO.fetchers import SearchFetcher, SlimFetcher, ChartFetcher, TermFetcher
 
 
 class QuickGODB(SearchFetcher, SlimFetcher, ChartFetcher, TermFetcher):

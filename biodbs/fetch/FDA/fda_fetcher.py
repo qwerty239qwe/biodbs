@@ -1,4 +1,4 @@
-from biodbs.fetcher import BaseAPI
+from biodbs.fetch import BaseAPI
 from typing import Tuple
 
 

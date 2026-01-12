@@ -1,6 +1,6 @@
-from biodbs.fetcher import BaseAPI
+from biodbs.fetch import BaseAPI
 from biodbs.utils import get_rsp
-from biodbs.pubchem.utils import parse_cmp, clean_value
+from biodbs.fetch.pubchem.utils import parse_cmp, clean_value
 
 
 class PUGViewAPI(BaseAPI):
