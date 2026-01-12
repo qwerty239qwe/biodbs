@@ -1,4 +1,4 @@
-from fetcher._base import BaseAPI
+from biodbs.fetcher._base import BaseAPI
 from biodbs.utils import get_rsp
 
 
