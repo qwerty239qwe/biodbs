@@ -1,9 +1,7 @@
-from biodbs.fetch import BaseAPI
-from biodbs.utils import get_rsp
-from biodbs.fetch.pubchem.utils import parse_cmp, clean_value
+from biodbs.fetch import BaseAPIConfig
 
 
-class PUGViewAPI(BaseAPI):
+class PUGViewAPI(BaseAPIConfig):
     def __init__(self):
         super().__init__()
         self._url_format = "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/{record_type}/{id}/{file_format}"

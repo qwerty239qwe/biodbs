@@ -1,6 +1,4 @@
-from biodbs.fetch import BaseAPI
-from typing import Tuple
-
+from biodbs.fetch._base import BaseAPIConfig
 
 
 class FDACategory:
@@ -34,7 +32,7 @@ class FDANameSpace:
         
 
 
-class FDA_API(BaseAPI):
+class FDA_API(BaseAPIConfig):
     def __init__(self):
         super().__init__()
         self._url_format = "https://api.fda.gov/{category}/{endpoint}.json"

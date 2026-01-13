@@ -1,8 +1,7 @@
-from biodbs.fetch._base import BaseAPI
-from biodbs.utils import get_rsp
+from biodbs.fetch._base import BaseAPIConfig
 
 
-class PUGRestAPI(BaseAPI):
+class PUGRestAPI(BaseAPIConfig):
     def __init__(self):
         super().__init__()
         self._url_format = "https://www.ebi.ac.uk/chembl/api/data/{domain}"\

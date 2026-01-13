@@ -1,6 +1,6 @@
 
 
-class BaseAPI:
+class BaseAPIConfig:
     def __init__(self):
         self._url_format = None
         self._params = {}

@@ -1,9 +1,7 @@
-from biodbs.fetch import BaseAPI
-from biodbs.utils import get_rsp
-from biodbs.fetch.pubchem._params import *
+from biodbs.fetch import BaseAPIConfig
 
 
-class PUGRestAPI(BaseAPI):
+class PUGRestAPI(BaseAPIConfig):
     def __init__(self):
         super().__init__()
         self._url_format = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/{domain}/{namespace}/" \
