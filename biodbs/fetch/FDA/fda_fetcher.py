@@ -1,47 +1,37 @@
-from biodbs.fetch._base import BaseAPIConfig
+from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
+from biodbs.fetch.FDA._data_model import FDAModel
+from biodbs.utils import get_rsp
+from typing import Tuple
 
 
-class FDACategory:
-    def __init__(self, name, endpoints):
-        self._name = name
-        self._endpoints = endpoints
-
-    @property
-    def name(self):
-        return self._name
-    
-    @property
-    def endpoints(self):
-        return self._endpoints
+class FDANameSpace(NameSpace):
+    def __init__(self):
+        model = FDAModel
+        super().__init__(model)
     
 
-class FDANameSpace:
-    all_categories = [FDACategory(name="drug", endpoints=["label", "event", "ndc"]),
-                      FDACategory(name="food", endpoints=["event", "enforcement"])]
-    
-    def validate(self, category, endpoint) -> Tuple[bool, str]:
-        if category not in [cate.name for cate in self.all_categories]:
-            return False, f"{category} is not a valid category."
-
-        for cate in self.all_categories:
-            if category == cate.name:
-                is_valid_endpoint = endpoint in cate.endpoints
-
-                return is_valid_endpoint, "" if is_valid_endpoint else f"{endpoint} is not a valid endpoint"
-        return False, f"{category} is not a valid category."
+class FDA_APIConfig(BaseAPIConfig):
+    def __init__(self):
+        super().__init__(url_format="https://api.fda.gov/{category}/{endpoint}.json")
         
 
-
-class FDA_API(BaseAPIConfig):
+class FDA_Fetcher(BaseDataFetcher):
     def __init__(self):
-        super().__init__()
-        self._url_format = "https://api.fda.gov/{category}/{endpoint}.json"
-        self.namespace = FDANameSpace()
-        
+        super().__init__(FDA_APIConfig(), FDANameSpace(), {})
+
+    def get(self, category, endpoint, **kwargs):
+        is_valid, err_msg = self._namespace.validate(category=category, endpoint=endpoint)
+        if not is_valid:
+            raise ValueError(err_msg)
+        self._api_config.update_params(**self._namespace.valid_params)
+        url = self._api_config.api_url
+
+        return get_rsp(url, **kwargs)
     
 
-class FDA_Fetcher:
-    def __init__(self):
-        self._api = FDA_API()
 
-    
+if __name__ == "__main__":
+    fetcher = FDA_Fetcher()
+    params = dict(search={"receivedate": "[20040101+TO+20081231]"}, limit=1)
+    data = fetcher.get(category="drug", endpoint="event", query=params)
+    print(data.json())

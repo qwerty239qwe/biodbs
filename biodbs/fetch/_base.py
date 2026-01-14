@@ -1,8 +1,10 @@
+from pydantic import BaseModel, ValidationError
+from typing import Tuple
 
 
 class BaseAPIConfig:
-    def __init__(self):
-        self._url_format = None
+    def __init__(self, url_format):
+        self._url_format = url_format
         self._params = {}
 
     def __str__(self):
@@ -15,7 +17,7 @@ class BaseAPIConfig:
         self._params.update(kwargs)
 
     @property
-    def api(self):
+    def api_url(self):
         if self._url_format is None:
             raise NotImplementedError("This class must be inherited")
         return self._url_format.format(**self._params)
@@ -31,18 +33,32 @@ class BaseAPIConfig:
         return new_api
 
 
+class NameSpace:
+    def __init__(self, model: type[BaseModel]):
+        self._model = model
+        self._valid_params = {}
+    
+    def validate(self, **kwargs) -> Tuple[bool, str]:
+        err_msg = "No error found"
+        try:
+            ins = self._model(**kwargs)
+            self._valid_params = ins.model_dump()
+        except ValidationError as e:
+            err_msg = str(e)
+            return False, err_msg
+        
+        return True, err_msg
+    
+    @property
+    def valid_params(self):
+        return self._valid_params
+
+
 class BaseDataFetcher:
-    def __init__(self, api, namespace, headers):
-        self._api = api
+    def __init__(self, api_config: BaseAPIConfig, namespace: NameSpace, headers):
+        self._api_config = api_config
         self._namespace = namespace
         self._headers = headers
-
-    def _get_data(self, *args, **kwargs):
-        raise NotImplementedError()
-
+    
     def get(self, *args, **kwargs):
-        is_valid, err_msg = self._namespace.validate(*args, **kwargs)
-        if not is_valid:
-            raise ValueError(err_msg)
-        
-        return self._get_data(*args, **kwargs)
+        raise NotImplementedError()
