@@ -2,7 +2,7 @@ from enum import Enum
 from pathlib import Path
 import re
 import yaml
-from pydantic import BaseModel, model_validator, ConfigDict
+from pydantic import BaseModel, model_validator, ConfigDict, ValidationError
 from typing import Dict, Any, Optional
 
 
@@ -226,6 +226,375 @@ class FDADrugEnforcementSearchField(Enum):
     voluntary_mandated = "voluntary_mandated"
 
 
+class FDADrugLabelSearchField(Enum):
+    abuse = "abuse"
+    abuse_table = "abuse_table"
+    accessories = "accessories"
+    accessories_table = "accessories_table"
+    active_ingredient = "active_ingredient"
+    active_ingredient_table = "active_ingredient_table"
+    adverse_reactions = "adverse_reactions"
+    adverse_reactions_table = "adverse_reactions_table"
+    alarms = "alarms"
+    alarms_table = "alarms_table"
+    animal_pharmacology_and_or_toxicology = "animal_pharmacology_and_or_toxicology"
+    animal_pharmacology_and_or_toxicology_table = (
+        "animal_pharmacology_and_or_toxicology_table"
+    )
+    ask_doctor = "ask_doctor"
+    ask_doctor_table = "ask_doctor_table"
+    ask_doctor_or_pharmacist = "ask_doctor_or_pharmacist"
+    ask_doctor_or_pharmacist_table = "ask_doctor_or_pharmacist_table"
+    assembly_or_installation_instructions = "assembly_or_installation_instructions"
+    assembly_or_installation_instructions_table = (
+        "assembly_or_installation_instructions_table"
+    )
+    boxed_warning = "boxed_warning"
+    boxed_warning_table = "boxed_warning_table"
+    calibration_instructions = "calibration_instructions"
+    calibration_instructions_table = "calibration_instructions_table"
+    carcinogenesis_and_mutagenesis_and_impairment_of_fertility = (
+        "carcinogenesis_and_mutagenesis_and_impairment_of_fertility"
+    )
+    carcinogenesis_and_mutagenesis_and_impairment_of_fertility_table = (
+        "carcinogenesis_and_mutagenesis_and_impairment_of_fertility_table"
+    )
+    cleaning = "cleaning"
+    cleaning_table = "cleaning_table"
+    clinical_pharmacology = "clinical_pharmacology"
+    clinical_pharmacology_table = "clinical_pharmacology_table"
+    clinical_studies = "clinical_studies"
+    clinical_studies_table = "clinical_studies_table"
+    compatible_accessories = "compatible_accessories"
+    compatible_accessories_table = "compatible_accessories_table"
+    components = "components"
+    components_table = "components_table"
+    contraindications = "contraindications"
+    contraindications_table = "contraindications_table"
+    controlled_substance = "controlled_substance"
+    controlled_substance_table = "controlled_substance_table"
+    dependence = "dependence"
+    dependence_table = "dependence_table"
+    description = "description"
+    description_table = "description_table"
+    diagram_of_device = "diagram_of_device"
+    diagram_of_device_table = "diagram_of_device_table"
+    disposal_and_waste_handling = "disposal_and_waste_handling"
+    disposal_and_waste_handling_table = "disposal_and_waste_handling_table"
+    do_not_use = "do_not_use"
+    do_not_use_table = "do_not_use_table"
+    dosage_and_administration = "dosage_and_administration"
+    dosage_and_administration_table = "dosage_and_administration_table"
+    dosage_forms_and_strengths = "dosage_forms_and_strengths"
+    dosage_forms_and_strengths_table = "dosage_forms_and_strengths_table"
+    drug_abuse_and_dependence = "drug_abuse_and_dependence"
+    drug_abuse_and_dependence_table = "drug_abuse_and_dependence_table"
+    drug_and_or_laboratory_test_interactions = (
+        "drug_and_or_laboratory_test_interactions"
+    )
+    drug_and_or_laboratory_test_interactions_table = (
+        "drug_and_or_laboratory_test_interactions_table"
+    )
+    drug_interactions = "drug_interactions"
+    drug_interactions_table = "drug_interactions_table"
+    effective_time = "effective_time"
+    environmental_warning = "environmental_warning"
+    environmental_warning_table = "environmental_warning_table"
+    food_safety_warning = "food_safety_warning"
+    food_safety_warning_table = "food_safety_warning_table"
+    general_precautions = "general_precautions"
+    general_precautions_table = "general_precautions_table"
+    geriatric_use = "geriatric_use"
+    geriatric_use_table = "geriatric_use_table"
+    guaranteed_analysis_of_feed = "guaranteed_analysis_of_feed"
+    guaranteed_analysis_of_feed_table = "guaranteed_analysis_of_feed_table"
+    health_care_provider_letter = "health_care_provider_letter"
+    health_care_provider_letter_table = "health_care_provider_letter_table"
+    health_claim = "health_claim"
+    health_claim_table = "health_claim_table"
+    how_supplied = "how_supplied"
+    how_supplied_table = "how_supplied_table"
+    id = "id"
+    inactive_ingredient = "inactive_ingredient"
+    inactive_ingredient_table = "inactive_ingredient_table"
+    indications_and_usage = "indications_and_usage"
+    indications_and_usage_table = "indications_and_usage_table"
+    information_for_owners_or_caregivers = "information_for_owners_or_caregivers"
+    information_for_owners_or_caregivers_table = (
+        "information_for_owners_or_caregivers_table"
+    )
+    information_for_patients = "information_for_patients"
+    information_for_patients_table = "information_for_patients_table"
+    instructions_for_use = "instructions_for_use"
+    instructions_for_use_table = "instructions_for_use_table"
+    intended_use_of_the_device = "intended_use_of_the_device"
+    intended_use_of_the_device_table = "intended_use_of_the_device_table"
+    keep_out_of_reach_of_children = "keep_out_of_reach_of_children"
+    keep_out_of_reach_of_children_table = "keep_out_of_reach_of_children_table"
+    labor_and_delivery = "labor_and_delivery"
+    labor_and_delivery_table = "labor_and_delivery_table"
+    laboratory_tests = "laboratory_tests"
+    laboratory_tests_table = "laboratory_tests_table"
+    mechanism_of_action = "mechanism_of_action"
+    mechanism_of_action_table = "mechanism_of_action_table"
+    microbiology = "microbiology"
+    microbiology_table = "microbiology_table"
+    nonclinical_toxicology = "nonclinical_toxicology"
+    nonclinical_toxicology_table = "nonclinical_toxicology_table"
+    nonteratogenic_effects = "nonteratogenic_effects"
+    nonteratogenic_effects_table = "nonteratogenic_effects_table"
+    nursing_mothers = "nursing_mothers"
+    nursing_mothers_table = "nursing_mothers_table"
+    openfda_application_number = "openfda.application_number"
+    openfda_brand_name = "openfda.brand_name"
+    openfda_generic_name = "openfda.generic_name"
+    openfda_is_original_packager = "openfda.is_original_packager"
+    openfda_manufacturer_name = "openfda.manufacturer_name"
+    openfda_nui = "openfda.nui"
+    openfda_original_packager_product_ndc = "openfda.original_packager_product_ndc"
+    openfda_package_ndc = "openfda.package_ndc"
+    openfda_pharm_class_cs = "openfda.pharm_class_cs"
+    openfda_pharm_class_epc = "openfda.pharm_class_epc"
+    openfda_pharm_class_pe = "openfda.pharm_class_pe"
+    openfda_pharm_class_moa = "openfda.pharm_class_moa"
+    openfda_product_ndc = "openfda.product_ndc"
+    openfda_product_type = "openfda.product_type"
+    openfda_route = "openfda.route"
+    openfda_rxcui = "openfda.rxcui"
+    openfda_spl_id = "openfda.spl_id"
+    openfda_spl_set_id = "openfda.spl_set_id"
+    openfda_substance_name = "openfda.substance_name"
+    openfda_unii = "openfda.unii"
+    openfda_upc = "openfda.upc"
+    other_safety_information = "other_safety_information"
+    other_safety_information_table = "other_safety_information_table"
+    overdosage = "overdosage"
+    overdosage_table = "overdosage_table"
+    package_label_principal_display_panel = "package_label_principal_display_panel"
+    package_label_principal_display_panel_table = (
+        "package_label_principal_display_panel_table"
+    )
+    patient_medication_information = "patient_medication_information"
+    patient_medication_information_table = "patient_medication_information_table"
+    pediatric_use = "pediatric_use"
+    pediatric_use_table = "pediatric_use_table"
+    pharmacodynamics = "pharmacodynamics"
+    pharmacodynamics_table = "pharmacodynamics_table"
+    pharmacogenomics = "pharmacogenomics"
+    pharmacogenomics_table = "pharmacogenomics_table"
+    pharmacokinetics = "pharmacokinetics"
+    pharmacokinetics_table = "pharmacokinetics_table"
+    precautions = "precautions"
+    precautions_table = "precautions_table"
+    pregnancy = "pregnancy"
+    pregnancy_table = "pregnancy_table"
+    pregnancy_or_breast_feeding = "pregnancy_or_breast_feeding"
+    pregnancy_or_breast_feeding_table = "pregnancy_or_breast_feeding_table"
+    purpose = "purpose"
+    purpose_table = "purpose_table"
+    questions = "questions"
+    questions_table = "questions_table"
+    recent_major_changes = "recent_major_changes"
+    recent_major_changes_table = "recent_major_changes_table"
+    reference = "reference"
+    reference_table = "reference_table"
+    retained_splash_statement = "retained_splash_statement"
+    retained_splash_statement_table = "retained_splash_statement_table"
+    route_of_administration = "route_of_administration"
+    route_of_administration_table = "route_of_administration_table"
+    safe_sleeping_guidelines = "safe_sleeping_guidelines"
+    safe_sleeping_guidelines_table = "safe_sleeping_guidelines_table"
+    safety_and_handling = "safety_and_handling"
+    safety_and_handling_table = "safety_and_handling_table"
+    search_key = "search_key"
+    search_key_table = "search_key_table"
+    sectional_information = "sectional_information"
+    sectional_information_table = "sectional_information_table"
+    set_id = "set_id"
+    splash_statements = "splash_statements"
+    splash_statements_table = "splash_statements_table"
+    storage_and_handling = "storage_and_handling"
+    storage_and_handling_table = "storage_and_handling_table"
+    strength = "strength"
+    strength_table = "strength_table"
+    substance = "substance"
+    substance_table = "substance_table"
+    summary_of_safety_and_effectiveness = "summary_of_safety_and_effectiveness"
+    summary_of_safety_and_effectiveness_table = (
+        "summary_of_safety_and_effectiveness_table"
+    )
+    supplemental_american_core_data = "supplemental_american_core_data"
+    supplemental_american_core_data_table = "supplemental_american_core_data_table"
+    suppression_of_data = "suppression_of_data"
+    suppression_of_data_table = "suppression_of_data_table"
+    table_of_contents = "table_of_contents"
+    table_of_contents_table = "table_of_contents_table"
+    teratogenic_effects = "teratogenic_effects"
+    teratogenic_effects_table = "teratogenic_effects_table"
+    unapproved_drug_section = "unapproved_drug_section"
+    unapproved_drug_section_table = "unapproved_drug_section_table"
+    usage_in_specific_populations = "usage_in_specific_populations"
+    usage_in_specific_populations_table = "usage_in_specific_populations_table"
+    user_warnings = "user_warnings"
+    user_warnings_table = "user_warnings_table"
+    version_number = "version_number"
+    warning = "warning"
+    warnings = "warnings"
+    warnings_and_cautions = "warnings_and_cautions"
+    warnings_and_cautions_table = "warnings_and_cautions_table"
+    warnings_table = "warnings_table"
+    what_doctors_need_to_know = "what_doctors_need_to_know"
+    what_doctors_need_to_know_table = "what_doctors_need_to_know_table"
+    what_is_the_most_important_information_i_should_know_about = (
+        "what_is_the_most_important_information_i_should_know_about"
+    )
+    what_is_the_most_important_information_i_should_know_about_table = (
+        "what_is_the_most_important_information_i_should_know_about_table"
+    )
+    when_not_to_use = "when_not_to_use"
+    when_not_to_use_table = "when_not_to_use_table"
+    when_should_i_not_take_this_drug = "when_should_i_not_take_this_drug"
+    when_should_i_not_take_this_drug_table = "when_should_i_not_take_this_drug_table"
+    who_should_not_take_this_drug = "who_should_not_take_this_drug"
+    who_should_not_take_this_drug_table = "who_should_not_take_this_drug_table"
+    window_of_tolerance_for_laser_radiation = "window_of_tolerance_for_laser_radiation"
+    window_of_tolerance_for_laser_radiation_table = (
+        "window_of_tolerance_for_laser_radiation_table"
+    )
+
+
+class FDADrugNDCSearchField(Enum):
+    product_id = "product_id"
+    product_ndc = "product_ndc"
+    spl_id = "spl_id"
+    product_type = "product_type"
+    finished = "finished"
+    brand_name = "brand_name"
+    brand_name_base = "brand_name_base"
+    brand_name_suffix = "brand_name_suffix"
+    generic_name = "generic_name"
+    dosage_form = "dosage_form"
+    route = "route"
+    marketing_start_date = "marketing_start_date"
+    marketing_end_date = "marketing_end_date"
+    marketing_category = "marketing_category"
+    application_number = "application_number"
+    pharm_class = "pharm_class"
+    dea_schedule = "dea_schedule"
+    listing_expiration_date = "listing_expiration_date"
+    active_ingredients_name = "active_ingredients.name"
+    active_ingredients_strength = "active_ingredients.strength"
+    packaging_package_ndc = "packaging.package_ndc"
+    packaging_description = "packaging.description"
+    packaging_marketing_start_date = "packaging.marketing_start_date"
+    packaging_marketing_end_date = "packaging.marketing_end_date"
+    packaging_sample = "packaging.sample"
+    openfda_is_original_packager = "openfda.is_original_packager"
+    openfda_manufacturer_name = "openfda.manufacturer_name"
+    openfda_nui = "openfda.nui"
+    openfda_pharm_class_cs = "openfda.pharm_class_cs"
+    openfda_pharm_class_epc = "openfda.pharm_class_epc"
+    openfda_pharm_class_moa = "openfda.pharm_class_moa"
+    openfda_pharm_class_pe = "openfda.pharm_class_pe"
+    openfda_rxcui = "openfda.rxcui"
+    openfda_spl_set_id = "openfda.spl_set_id"
+    openfda_unii = "openfda.unii"
+    openfda_upc = "openfda.upc"
+
+
+class FDADrugDrugsFDASearchField(Enum):
+    application_number = "application_number"
+    openfda_application_number = "openfda.application_number"
+    openfda_brand_name = "openfda.brand_name"
+    openfda_generic_name = "openfda.generic_name"
+    openfda_manufacturer_name = "openfda.manufacturer_name"
+    openfda_nui = "openfda.nui"
+    openfda_package_ndc = "openfda.package_ndc"
+    openfda_pharm_class_cs = "openfda.pharm_class_cs"
+    openfda_pharm_class_epc = "openfda.pharm_class_epc"
+    openfda_pharm_class_pe = "openfda.pharm_class_pe"
+    openfda_pharm_class_moa = "openfda.pharm_class_moa"
+    openfda_product_ndc = "openfda.product_ndc"
+    openfda_route = "openfda.route"
+    openfda_rxcui = "openfda.rxcui"
+    openfda_spl_id = "openfda.spl_id"
+    openfda_spl_set_id = "openfda.spl_set_id"
+    openfda_substance_name = "openfda.substance_name"
+    openfda_unii = "openfda.unii"
+    products_active_ingredients_name = "products.active_ingredients.name"
+    products_active_ingredients_strength = "products.active_ingredients.strength"
+    products_brand_name = "products.brand_name"
+    products_dosage_form = "products.dosage_form"
+    products_marketing_status = "products.marketing_status"
+    products_product_number = "products.product_number"
+    products_reference_drug = "products.reference_drug"
+    products_reference_standard = "products.reference_standard"
+    products_route = "products.route"
+    products_te_code = "products.te_code"
+    sponsor_name = "sponsor_name"
+    submissions_submission_property_type_code = (
+        "submissions.submission_property_type.code"
+    )
+    submissions_application_docs_id = "submissions.application_docs.id"
+    submissions_application_docs_date = "submissions.application_docs.date"
+    submissions_application_docs_title = "submissions.application_docs.title"
+    submissions_application_docs_type = "submissions.application_docs.type"
+    submissions_application_docs_url = "submissions.application_docs.url"
+    submissions_review_priority = "submissions.review_priority"
+    submissions_submission_class_code = "submissions.submission_class_code"
+    submissions_submission_class_code_description = (
+        "submissions.submission_class_code_description"
+    )
+    submissions_submission_number = "submissions.submission_number"
+    submissions_submission_public_notes = "submissions.submission_public_notes"
+    submissions_submission_status = "submissions.submission_status"
+    submissions_submission_status_date = "submissions.submission_status_date"
+    submissions_submission_type = "submissions.submission_type"
+
+
+class FDADrugShortagesSearchField(Enum):
+    package_ndc = "package_ndc"
+    generic_name = "generic_name"
+    proprietary_name = "proprietary_name"
+    company_name = "company_name"
+    contact_info = "contact_info"
+    presentation = "presentation"
+    update_type = "update_type"
+    availability = "availability"
+    related_info = "related_info"
+    related_info_link = "related_info_link"
+    resolved_note = "resolved_note"
+    shortage_reason = "shortage_reason"
+    therapeutic_category = "therapeutic_category"
+    dosage_form = "dosage_form"
+    strength = "strength"
+    status = "status"
+    update_date = "update_date"
+    change_date = "change_date"
+    discontinued_date = "discontinued_date"
+    initial_posting_date = "initial_posting_date"
+    openfda_brand_name = "openfda.brand_name"
+    openfda_dosage_form = "openfda.dosage_form"
+    openfda_is_original_packager = "openfda.is_original_packager"
+    openfda_manufacturer_name = "openfda.manufacturer_name"
+    openfda_nui = "openfda.nui"
+    openfda_original_packager_product_ndc = "openfda.original_packager_product_ndc"
+    openfda_package_ndc = "openfda.package_ndc"
+    openfda_pharm_class_cs = "openfda.pharm_class_cs"
+    openfda_pharm_class_epc = "openfda.pharm_class_epc"
+    openfda_pharm_class_moa = "openfda.pharm_class_moa"
+    openfda_pharm_class_pe = "openfda.pharm_class_pe"
+    openfda_product_ndc = "openfda.product_ndc"
+    openfda_product_type = "openfda.product_type"
+    openfda_route = "openfda.route"
+    openfda_rxcui = "openfda.rxcui"
+    openfda_spl_id = "openfda.spl_id"
+    openfda_spl_set_id = "openfda.spl_set_id"
+    openfda_substance_name = "openfda.substance_name"
+    openfda_unii = "openfda.unii"
+    openfda_upc = "openfda.upc"
+
+
 SEARCH_FIELD_VALIDATION_RULES = {
     FDADrugEndpoint.event: _load_field_rules("drug_event_fields.yaml"),
     FDADrugEndpoint.enforcement: _load_field_rules("drug_enforcement_fields.yaml"),
@@ -239,6 +608,10 @@ SEARCH_FIELD_VALIDATION_RULES = {
 SEARCH_FIELD_ENUMS = {
     FDADrugEndpoint.event: FDADrugEventSearchField,
     FDADrugEndpoint.enforcement: FDADrugEnforcementSearchField,
+    FDADrugEndpoint.label: FDADrugLabelSearchField,
+    FDADrugEndpoint.ndc: FDADrugNDCSearchField,
+    FDADrugEndpoint.drugsfda: FDADrugDrugsFDASearchField,
+    FDADrugEndpoint.shortages: FDADrugShortagesSearchField,
 }
 
 
@@ -266,13 +639,16 @@ class FDAModel(BaseModel):
 
     @model_validator(mode="after")
     def check_valid_search_values(self):
-        if self.endpoint not in SEARCH_FIELD_ENUMS:
-            return self
+        search_field_enum_value_dic = {k.value: v for k, v in SEARCH_FIELD_ENUMS.items()}
+        search_field_validation_rules = {k.value: v for k, v in SEARCH_FIELD_VALIDATION_RULES.items()}
+
+        if self.endpoint not in search_field_enum_value_dic:
+            raise ValueError(f"Invalid endpoint '{self.endpoint}'")
 
         valid_field_values = {
-            field.value for field in SEARCH_FIELD_ENUMS[self.endpoint]
+            field.value for field in search_field_enum_value_dic[self.endpoint]
         }
-        rules_map = SEARCH_FIELD_VALIDATION_RULES[FDADrugEndpoint.event]
+        rules_map = search_field_validation_rules[self.endpoint]
         for field_path, value in self.search.items():
             if field_path not in valid_field_values:
                 raise ValueError(
@@ -305,6 +681,15 @@ if __name__ == "__main__":
         endpoint="event",
         search={"patient.patientsex": "1"},
     )
+
+    try:
+        invalid_model = FDAModel(
+            category="drug",
+            endpoint="event",
+            search={"strength": "10"}
+        )
+    except ValidationError as e:
+        print(e)
 
     print(valid_model)
     print(valid_model.model_dump())
