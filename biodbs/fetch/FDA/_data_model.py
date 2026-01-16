@@ -1208,7 +1208,11 @@ class FDAModel(BaseModel):
     model_config = ConfigDict(use_enum_values=True)
     category: FDACategory
     endpoint: FDADrugEndpoint | FDAFoodEndpoint
-    search: Dict[str, Any]
+    search: Optional[Dict[str, Any]]
+    count: Optional[str]
+    skip: Optional[int]
+    sort: Optional[str]
+    limit: Optional[int]
 
     @model_validator(mode="after")
     def check_valid_endpoint(self):
@@ -1218,6 +1222,13 @@ class FDAModel(BaseModel):
             raise ValueError(
                 f"{self.endpoint} is not a valid endpoint for {self.category}. Please choose from {valid_values}"
             )
+        return self
+    
+    @model_validator(mode="after")
+    def check_valid_limit_value(self):
+        if self.limit is not None:
+            if not (1 <= self.limit <= 1000):
+                raise ValueError("limit must be between 1 and 1000")
         return self
 
     @model_validator(mode="after")

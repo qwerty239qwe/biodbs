@@ -22,9 +22,16 @@ class FDA_Fetcher(BaseDataFetcher):
         self._limit = limit
 
     def get(self, category, endpoint, **kwargs):
+        kwargs["api_key"] = self._api_key if kwargs.get("api_key") is None else kwargs.get("api_key")
+        kwargs["limit"] = self._limit if kwargs.get("limit") is None else kwargs.get("limit")
+
         is_valid, err_msg = self._namespace.validate(category=category, 
                                                      endpoint=endpoint, 
-                                                     search=kwargs.get("search"))
+                                                     search=kwargs.get("search"),
+                                                     limit=kwargs.get("limit"),
+                                                     sort=kwargs.get("sort"),
+                                                     count=kwargs.get("count"),
+                                                     skip=kwargs.get("skip"))
         if not is_valid:
             raise ValueError(err_msg)
         self._api_config.update_params(**self._namespace.valid_params)
