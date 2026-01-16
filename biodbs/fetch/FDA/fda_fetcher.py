@@ -16,11 +16,15 @@ class FDA_APIConfig(BaseAPIConfig):
         
 
 class FDA_Fetcher(BaseDataFetcher):
-    def __init__(self):
+    def __init__(self, api_key: str = None, limit: int = None):
         super().__init__(FDA_APIConfig(), FDANameSpace(), {})
+        self._api_key = api_key
+        self._limit = limit
 
     def get(self, category, endpoint, **kwargs):
-        is_valid, err_msg = self._namespace.validate(category=category, endpoint=endpoint, search=kwargs.get("search"))
+        is_valid, err_msg = self._namespace.validate(category=category, 
+                                                     endpoint=endpoint, 
+                                                     search=kwargs.get("search"))
         if not is_valid:
             raise ValueError(err_msg)
         self._api_config.update_params(**self._namespace.valid_params)

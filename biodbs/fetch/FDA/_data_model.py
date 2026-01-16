@@ -55,10 +55,18 @@ def _load_field_rules(field_rule_file_name) -> Dict[str, Dict[str, Any]]:
 
 
 class FDACategory(Enum):
+    animalandveterinary = "animalandveterinary"
     drug = "drug"
+    device = "device"
     food = "food"
     cosmetic = "cosmetic"
-    animalandveterinary = "animalandveterinary"
+    other = "other"
+    tobacco = "tobacco"
+    transparency = "transparency"
+
+
+class FDAAnimalVeterinaryEndpoint(Enum):
+    event = "event"
 
 
 class FDADrugEndpoint(Enum):
@@ -68,6 +76,18 @@ class FDADrugEndpoint(Enum):
     enforcement = "enforcement"
     drugsfda = "drugsfda"
     shortages = "shortages"
+
+
+class FDADeviceEndpoint(Enum):
+    _510k = "510k"
+    classification = "classification"
+    enforcement = "enforcement"
+    event = "event"
+    pma = "pma"
+    recall = "recall"
+    registrationlisting = "registrationlisting"
+    covid19serology = "covid19serology"
+    udi = "udi"
 
 
 class FDAFoodEndpoint(Enum):
@@ -595,7 +615,558 @@ class FDADrugShortagesSearchField(Enum):
     openfda_upc = "openfda.upc"
 
 
+class FDAAnimalVeterinaryEventSearchField(Enum):
+    animal_age_max = "animal.age.max"
+    animal_age_min = "animal.age.min"
+    animal_age_qualifier = "animal.age.qualifier"
+    animal_age_unit = "animal.age.unit"
+    animal_breed_breed_component = "animal.breed.breed_component"
+    animal_breed_is_crossbred = "animal.breed.is_crossbred"
+    animal_female_animal_physiological_status = (
+        "animal.female_animal_physiological_status"
+    )
+    animal_gender = "animal.gender"
+    animal_reproductive_status = "animal.reproductive_status"
+    animal_species = "animal.species"
+    animal_weight_max = "animal.weight.max"
+    animal_weight_min = "animal.weight.min"
+    animal_weight_qualifier = "animal.weight.qualifier"
+    animal_weight_unit = "animal.weight.unit"
+    drug_active_ingredients_name = "drug.active_ingredients.name"
+    drug_administered_by = "drug.administered_by"
+    drug_ae_abated_after_stopping_drug = "drug.ae_abated_after_stopping_drug"
+    drug_ae_reappeared_after_resuming_drug = "drug.ae_reappeared_after_resuming_drug"
+    drug_atc_vet_code = "drug.atc_vet_code"
+    drug_brand_name = "drug.brand_name"
+    drug_dosage_form = "drug.dosage_form"
+    drug_first_exposure_date = "drug.first_exposure_date"
+    drug_frequency_of_administration_unit = "drug.frequency_of_administration.unit"
+    drug_frequency_of_administration_value = "drug.frequency_of_administration.value"
+    drug_last_exposure_date = "drug.last_exposure_date"
+    drug_lot_expiration = "drug.lot_expiration"
+    drug_lot_number = "drug.lot_number"
+    drug_manufacturer_name = "drug.manufacturer.name"
+    drug_manufacturer_registration_number = "drug.manufacturer.registration_number"
+    drug_manufacturing_date = "drug.manufacturing_date"
+    drug_number_of_defective_items = "drug.number_of_defective_items"
+    drug_number_of_items_returned = "drug.number_of_items_returned"
+    drug_off_label_use = "drug.off_label_use"
+    drug_previous_ae_to_drug = "drug.previous_ae_to_drug"
+    drug_previous_exposure_to_drug = "drug.previous_exposure_to_drug"
+    drug_product_ndc = "drug.product_ndc"
+    drug_route = "drug.route"
+    drug_used_according_to_label = "drug.used_according_to_label"
+    duration_unit = "duration.unit"
+    duration_value = "duration.value"
+    health_assessment_prior_to_exposure_assessed_by = (
+        "health_assessment_prior_to_exposure.assessed_by"
+    )
+    health_assessment_prior_to_exposure_condition = (
+        "health_assessment_prior_to_exposure.condition"
+    )
+    number_of_animals_affected = "number_of_animals_affected"
+    number_of_animals_treated = "number_of_animals_treated"
+    onset_date = "onset_date"
+    original_receive_date = "original_receive_date"
+    outcome_medical_status = "outcome.medical_status"
+    outcome_number_of_animals_affected = "outcome.number_of_animals_affected"
+    primary_reporter = "primary_reporter"
+    reaction_accuracy = "reaction.accuracy"
+    reaction_number_of_animals_affected = "reaction.number_of_animals_affected"
+    reaction_veddra_term_code = "reaction.veddra_term_code"
+    reaction_veddra_term_name = "reaction.veddra_term_name"
+    reaction_veddra_version = "reaction.veddra_version"
+    receiver_city = "receiver.city"
+    receiver_country = "receiver.country"
+    receiver_organization = "receiver.organization"
+    receiver_postal_code = "receiver.postal_code"
+    receiver_state = "receiver.state"
+    receiver_street_address = "receiver.street_address"
+    report_id = "report_id"
+    secondary_reporter = "secondary_reporter"
+    serious_ae = "serious_ae"
+    time_between_exposure_and_onset = "time_between_exposure_and_onset"
+    treated_for_ae = "treated_for_ae"
+    type_of_information = "type_of_information"
+    unique_aer_id_number = "unique_aer_id_number"
+
+
+class FDADevice510kSearchField(Enum):
+    address_1 = "address_1"
+    address_2 = "address_2"
+    advisory_committee = "advisory_committee"
+    advisory_committee_description = "advisory_committee_description"
+    applicant = "applicant"
+    city = "city"
+    clearance_type = "clearance_type"
+    contact = "contact"
+    country_code = "country_code"
+    date_received = "date_received"
+    decision_code = "decision_code"
+    decision_date = "decision_date"
+    decision_description = "decision_description"
+    device_name = "device_name"
+    expedited_review_flag = "expedited_review_flag"
+    k_number = "k_number"
+    meta_disclaimer = "meta.disclaimer"
+    meta_last_updated = "meta.last_updated"
+    meta_license = "meta.license"
+    meta_results_limit = "meta.results.limit"
+    meta_results_skip = "meta.results.skip"
+    meta_results_total = "meta.results.total"
+    openfda_device_class = "openfda.device_class"
+    openfda_device_name = "openfda.device_name"
+    openfda_medical_specialty_description = "openfda.medical_specialty_description"
+    postal_code = "postal_code"
+    product_code = "product_code"
+    review_advisory_committee = "review_advisory_committee"
+    state = "state"
+    statement_or_summary = "statement_or_summary"
+    third_party_flag = "third_party_flag"
+    zip_code = "zip_code"
+
+
+class FDADeviceClassificationSearchField(Enum):
+    definition = "definition"
+    device_class = "device_class"
+    device_name = "device_name"
+    gmp_exempt_flag = "gmp_exempt_flag"
+    implant_flag = "implant_flag"
+    life_sustain_support_flag = "life_sustain_support_flag"
+    medical_specialty = "medical_specialty"
+    medical_specialty_description = "medical_specialty_description"
+    product_code = "product_code"
+    regulation_number = "regulation_number"
+    review_code = "review_code"
+    review_panel = "review_panel"
+    submission_type_id = "submission_type_id"
+    summary_malfunction_reporting = "summary_malfunction_reporting"
+    third_party_flag = "third_party_flag"
+    unclassified_reason = "unclassified_reason"
+
+
+class FDADeviceEnforcementSearchField(Enum):
+    address_1 = "address_1"
+    address_2 = "address_2"
+    center_classification_date = "center_classification_date"
+    city = "city"
+    classification = "classification"
+    code_info = "code_info"
+    country = "country"
+    distribution_pattern = "distribution_pattern"
+    event_id = "event_id"
+    initial_firm_notification = "initial_firm_notification"
+    meta_disclaimer = "meta.disclaimer"
+    meta_last_updated = "meta.last_updated"
+    meta_license = "meta.license"
+    meta_results_limit = "meta.results.limit"
+    meta_results_skip = "meta.results.skip"
+    meta_results_total = "meta.results.total"
+    more_code_info = "more_code_info"
+    openfda_is_original_packager = "openfda.is_original_packager"
+    product_code = "product_code"
+    product_description = "product_description"
+    product_quantity = "product_quantity"
+    product_type = "product_type"
+    reason_for_recall = "reason_for_recall"
+    recall_initiation_date = "recall_initiation_date"
+    recall_number = "recall_number"
+    recalling_firm = "recalling_firm"
+    report_date = "report_date"
+    state = "state"
+    status = "status"
+    termination_date = "termination_date"
+    voluntary_mandated = "voluntary_mandated"
+
+
+class FDADeviceEventSearchField(Enum):
+    adverse_event_flag = "adverse_event_flag"
+    date_facility_aware = "date_facility_aware"
+    date_manufacturer_received = "date_manufacturer_received"
+    date_of_event = "date_of_event"
+    date_received = "date_received"
+    date_report = "date_report"
+    date_report_to_fda = "date_report_to_fda"
+    date_report_to_manufacturer = "date_report_to_manufacturer"
+    device_brand_name = "device.brand_name"
+    device_catalog_number = "device.catalog_number"
+    device_date_received = "device.date_received"
+    device_date_removed_flag = "device.date_removed_flag"
+    device_date_returned_to_manufacturer = "device.date_returned_to_manufacturer"
+    device_device_age_text = "device.device_age_text"
+    device_device_availability = "device.device_availability"
+    device_device_evaluated_by_manufacturer = "device.device_evaluated_by_manufacturer"
+    device_device_event_key = "device.device_event_key"
+    device_device_operator = "device.device_operator"
+    device_device_report_product_code = "device.device_report_product_code"
+    device_device_sequence_number = "device.device_sequence_number"
+    device_expiration_date_of_device = "device.expiration_date_of_device"
+    device_generic_name = "device.generic_name"
+    device_implant_flag = "device.implant_flag"
+    device_lot_number = "device.lot_number"
+    device_manufacturer_d_address_1 = "device.manufacturer_d_address_1"
+    device_manufacturer_d_address_2 = "device.manufacturer_d_address_2"
+    device_manufacturer_d_city = "device.manufacturer_d_city"
+    device_manufacturer_d_country = "device.manufacturer_d_country"
+    device_manufacturer_d_name = "device.manufacturer_d_name"
+    device_manufacturer_d_postal_code = "device.manufacturer_d_postal_code"
+    device_manufacturer_d_state = "device.manufacturer_d_state"
+    device_manufacturer_d_zip_code = "device.manufacturer_d_zip_code"
+    device_manufacturer_d_zip_code_ext = "device.manufacturer_d_zip_code_ext"
+    device_model_number = "device.model_number"
+    device_openfda_device_class = "device.openfda.device_class"
+    device_openfda_device_name = "device.openfda.device_name"
+    device_openfda_medical_specialty_description = (
+        "device.openfda.medical_specialty_description"
+    )
+    device_openfda_regulation_number = "device.openfda.regulation_number"
+    device_other_id_number = "device.other_id_number"
+    device_udi_di = "device.udi_di"
+    device_udi_public = "device.udi_public"
+    device_date_of_manufacturer = "device_date_of_manufacturer"
+    distributor_address_1 = "distributor_address_1"
+    distributor_address_2 = "distributor_address_2"
+    distributor_city = "distributor_city"
+    distributor_name = "distributor_name"
+    distributor_state = "distributor_state"
+    distributor_zip_code = "distributor_zip_code"
+    distributor_zip_code_ext = "distributor_zip_code_ext"
+    event_key = "event_key"
+    event_location = "event_location"
+    event_type = "event_type"
+    expiration_date_of_device = "expiration_date_of_device"
+    health_professional = "health_professional"
+    initial_report_to_fda = "initial_report_to_fda"
+    manufacturer_address_1 = "manufacturer_address_1"
+    manufacturer_address_2 = "manufacturer_address_2"
+    manufacturer_city = "manufacturer_city"
+    manufacturer_contact_address_1 = "manufacturer_contact_address_1"
+    manufacturer_contact_address_2 = "manufacturer_contact_address_2"
+    manufacturer_contact_area_code = "manufacturer_contact_area_code"
+    manufacturer_contact_city = "manufacturer_contact_city"
+    manufacturer_contact_country = "manufacturer_contact_country"
+    manufacturer_contact_exchange = "manufacturer_contact_exchange"
+    manufacturer_contact_extension = "manufacturer_contact_extension"
+    manufacturer_contact_f_name = "manufacturer_contact_f_name"
+    manufacturer_contact_l_name = "manufacturer_contact_l_name"
+    manufacturer_contact_pcity = "manufacturer_contact_pcity"
+    manufacturer_contact_pcountry = "manufacturer_contact_pcountry"
+    manufacturer_contact_phone_number = "manufacturer_contact_phone_number"
+    manufacturer_contact_plocal = "manufacturer_contact_plocal"
+    manufacturer_contact_postal_code = "manufacturer_contact_postal_code"
+    manufacturer_contact_state = "manufacturer_contact_state"
+    manufacturer_contact_t_name = "manufacturer_contact_t_name"
+    manufacturer_contact_zip_code = "manufacturer_contact_zip_code"
+    manufacturer_contact_zip_ext = "manufacturer_contact_zip_ext"
+    manufacturer_country = "manufacturer_country"
+    manufacturer_g1_address_1 = "manufacturer_g1_address_1"
+    manufacturer_g1_address_2 = "manufacturer_g1_address_2"
+    manufacturer_g1_city = "manufacturer_g1_city"
+    manufacturer_g1_country = "manufacturer_g1_country"
+    manufacturer_g1_name = "manufacturer_g1_name"
+    manufacturer_g1_postal_code = "manufacturer_g1_postal_code"
+    manufacturer_g1_state = "manufacturer_g1_state"
+    manufacturer_g1_zip_code = "manufacturer_g1_zip_code"
+    manufacturer_g1_zip_code_ext = "manufacturer_g1_zip_code_ext"
+    manufacturer_link_flag = "manufacturer_link_flag"
+    manufacturer_name = "manufacturer_name"
+    manufacturer_postal_code = "manufacturer_postal_code"
+    manufacturer_state = "manufacturer_state"
+    manufacturer_zip_code = "manufacturer_zip_code"
+    manufacturer_zip_code_ext = "manufacturer_zip_code_ext"
+    mdr_report_key = "mdr_report_key"
+    mdr_text_date_report = "mdr_text.date_report"
+    mdr_text_mdr_text_key = "mdr_text.mdr_text_key"
+    mdr_text_patient_sequence_number = "mdr_text.patient_sequence_number"
+    mdr_text_text = "mdr_text.text"
+    mdr_text_text_type_code = "mdr_text.text_type_code"
+    number_devices_in_event = "number_devices_in_event"
+    number_patients_in_event = "number_patients_in_event"
+    patient_date_received = "patient.date_received"
+    patient_patient_age = "patient.patient_age"
+    patient_patient_ethnicity = "patient.patient_ethnicity"
+    patient_patient_race = "patient.patient_race"
+    patient_patient_sequence_number = "patient.patient_sequence_number"
+    patient_patient_sex = "patient.patient_sex"
+    patient_patient_weight = "patient.patient_weight"
+    previous_use_code = "previous_use_code"
+    product_problem_flag = "product_problem_flag"
+    removal_correction_number = "removal_correction_number"
+    report_date = "report_date"
+    report_number = "report_number"
+    report_source_code = "report_source_code"
+    report_to_fda = "report_to_fda"
+    report_to_manufacturer = "report_to_manufacturer"
+    reporter_occupation_code = "reporter_occupation_code"
+    reprocessed_and_reused_flag = "reprocessed_and_reused_flag"
+    single_use_flag = "single_use_flag"
+
+
+class FDADevicePMASearchField(Enum):
+    advisory_committee = "advisory_committee"
+    advisory_committee_description = "advisory_committee_description"
+    ao_statement = "ao_statement"
+    applicant = "applicant"
+    city = "city"
+    date_received = "date_received"
+    decision_code = "decision_code"
+    decision_date = "decision_date"
+    docket_number = "docket_number"
+    expedited_review_flag = "expedited_review_flag"
+    fed_reg_notice_date = "fed_reg_notice_date"
+    generic_name = "generic_name"
+    openfda_device_class = "openfda.device_class"
+    openfda_device_name = "openfda.device_name"
+    openfda_medical_specialty_description = "openfda.medical_specialty_description"
+    pma_number = "pma_number"
+    product_code = "product_code"
+    state = "state"
+    street_1 = "street_1"
+    street_2 = "street_2"
+    supplement_number = "supplement_number"
+    supplement_reason = "supplement_reason"
+    supplement_type = "supplement_type"
+    trade_name = "trade_name"
+    zip = "zip"
+    zip_ext = "zip_ext"
+
+
+class FDADeviceRecallSearchField(Enum):
+    action = "action"
+    additional_info_contact = "additional_info_contact"
+    address_1 = "address_1"
+    address_2 = "address_2"
+    cfres_id = "cfres_id"
+    city = "city"
+    code_info = "code_info"
+    country = "country"
+    distribution_pattern = "distribution_pattern"
+    event_date_created = "event_date_created"
+    event_date_initiated = "event_date_initiated"
+    event_date_posted = "event_date_posted"
+    event_date_terminated = "event_date_terminated"
+    firm_fei_number = "firm_fei_number"
+    meta_disclaimer = "meta.disclaimer"
+    meta_last_updated = "meta.last_updated"
+    meta_license = "meta.license"
+    meta_results_limit = "meta.results.limit"
+    meta_results_skip = "meta.results.skip"
+    meta_results_total = "meta.results.total"
+    openfda_device_class = "openfda.device_class"
+    openfda_device_name = "openfda.device_name"
+    openfda_medical_specialty_description = "openfda.medical_specialty_description"
+    other_submission_description = "other_submission_description"
+    postal_code = "postal_code"
+    product_code = "product_code"
+    product_description = "product_description"
+    product_quantity = "product_quantity"
+    product_res_number = "product_res_number"
+    reason_for_recall = "reason_for_recall"
+    recall_status = "recall_status"
+    recalling_firm = "recalling_firm"
+    res_event_number = "res_event_number"
+    root_cause_description = "root_cause_description"
+    state = "state"
+
+
+class FDADeviceRegistrationListingSearchField(Enum):
+    k_number = "k_number"
+    pma_number = "pma_number"
+    products_created_date = "products.created_date"
+    products_exempt = "products.exempt"
+    products_openfda_device_class = "products.openfda.device_class"
+    products_openfda_device_name = "products.openfda.device_name"
+    products_openfda_medical_specialty_description = (
+        "products.openfda.medical_specialty_description"
+    )
+    products_openfda_regulation_number = "products.openfda.regulation_number"
+    products_owner_operator_number = "products.owner_operator_number"
+    products_product_code = "products.product_code"
+    registration_address_line_1 = "registration.address_line_1"
+    registration_address_line_2 = "registration.address_line_2"
+    registration_city = "registration.city"
+    registration_fei_number = "registration.fei_number"
+    registration_initial_importer_flag = "registration.initial_importer_flag"
+    registration_iso_country_code = "registration.iso_country_code"
+    registration_name = "registration.name"
+    registration_owner_operator_contact_address_address_1 = (
+        "registration.owner_operator.contact_address.address_1"
+    )
+    registration_owner_operator_contact_address_address_2 = (
+        "registration.owner_operator.contact_address.address_2"
+    )
+    registration_owner_operator_contact_address_city = (
+        "registration.owner_operator.contact_address.city"
+    )
+    registration_owner_operator_contact_address_iso_country_code = (
+        "registration.owner_operator.contact_address.iso_country_code"
+    )
+    registration_owner_operator_contact_address_postal_code = (
+        "registration.owner_operator.contact_address.postal_code"
+    )
+    registration_owner_operator_contact_address_state_code = (
+        "registration.owner_operator.contact_address.state_code"
+    )
+    registration_owner_operator_contact_address_state_province = (
+        "registration.owner_operator.contact_address.state_province"
+    )
+    registration_owner_operator_firm_name = "registration.owner_operator.firm_name"
+    registration_owner_operator_official_correspondent_first_name = (
+        "registration.owner_operator.official_correspondent.first_name"
+    )
+    registration_owner_operator_official_correspondent_last_name = (
+        "registration.owner_operator.official_correspondent.last_name"
+    )
+    registration_owner_operator_official_correspondent_middle_initial = (
+        "registration.owner_operator.official_correspondent.middle_initial"
+    )
+    registration_owner_operator_official_correspondent_phone_number = (
+        "registration.owner_operator.official_correspondent.phone_number"
+    )
+    registration_owner_operator_official_correspondent_subaccount_company_name = (
+        "registration.owner_operator.official_correspondent.subaccount_company_name"
+    )
+    registration_owner_operator_owner_operator_number = (
+        "registration.owner_operator.owner_operator_number"
+    )
+    registration_postal_code = "registration.postal_code"
+    registration_reg_expiry_date_year = "registration.reg_expiry_date_year"
+    registration_registration_number = "registration.registration_number"
+    registration_state_code = "registration.state_code"
+    registration_status_code = "registration.status_code"
+    registration_us_agent_address_line_1 = "registration.us_agent.address_line_1"
+    registration_us_agent_address_line_2 = "registration.us_agent.address_line_2"
+    registration_us_agent_bus_phone_area_code = (
+        "registration.us_agent.bus_phone_area_code"
+    )
+    registration_us_agent_bus_phone_extn = "registration.us_agent.bus_phone_extn"
+    registration_us_agent_bus_phone_num = "registration.us_agent.bus_phone_num"
+    registration_us_agent_business_name = "registration.us_agent.business_name"
+    registration_us_agent_city = "registration.us_agent.city"
+    registration_us_agent_email_address = "registration.us_agent.email_address"
+    registration_us_agent_fax_area_code = "registration.us_agent.fax_area_code"
+    registration_us_agent_fax_num = "registration.us_agent.fax_num"
+    registration_us_agent_iso_country_code = "registration.us_agent.iso_country_code"
+    registration_us_agent_name = "registration.us_agent.name"
+    registration_us_agent_postal_code = "registration.us_agent.postal_code"
+    registration_us_agent_state_code = "registration.us_agent.state_code"
+    registration_us_agent_zip_code = "registration.us_agent.zip_code"
+    registration_zip_code = "registration.zip_code"
+
+
+class FDADeviceCovid19SerologySearchField(Enum):
+    antibody_agree = "antibody_agree"
+    antibody_truth = "antibody_truth"
+    control = "control"
+    date_performed = "date_performed"
+    days_from_symptom = "days_from_symptom"
+    device = "device"
+    evaluation_id = "evaluation_id"
+    group = "group"
+    iga_agree = "iga_agree"
+    iga_result = "iga_result"
+    igg_agree = "igg_agree"
+    igg_result = "igg_result"
+    igg_titer = "igg_titer"
+    igg_truth = "igg_truth"
+    igm_agree = "igm_agree"
+    igm_iga_agree = "igm_iga_agree"
+    igm_iga_result = "igm_iga_result"
+    igm_igg_agree = "igm_igg_agree"
+    igm_igg_result = "igm_igg_result"
+    igm_result = "igm_result"
+    igm_titer = "igm_titer"
+    igm_truth = "igm_truth"
+    lot_number = "lot_number"
+    manufacturer = "manufacturer"
+    pan_agree = "pan_agree"
+    pan_result = "pan_result"
+    pan_titer = "pan_titer"
+    panel = "panel"
+    sample_id = "sample_id"
+    sample_no = "sample_no"
+    type = "type"
+
+
+class FDADeviceUDISearchField(Enum):
+    brand_name = "brand_name"
+    catalog_number = "catalog_number"
+    commercial_distribution_end_date = "commercial_distribution_end_date"
+    commercial_distribution_status = "commercial_distribution_status"
+    company_name = "company_name"
+    customer_contacts_email = "customer_contacts.email"
+    customer_contacts_phone = "customer_contacts.phone"
+    device_count_in_base_package = "device_count_in_base_package"
+    device_description = "device_description"
+    device_sizes_text = "device_sizes.text"
+    device_sizes_type = "device_sizes.type"
+    device_sizes_unit = "device_sizes.unit"
+    device_sizes_value = "device_sizes.value"
+    gmdn_terms_code = "gmdn_terms.code"
+    gmdn_terms_code_status = "gmdn_terms.code_status"
+    gmdn_terms_definition = "gmdn_terms.definition"
+    gmdn_terms_implantable = "gmdn_terms.implantable"
+    gmdn_terms_name = "gmdn_terms.name"
+    has_donation_id_number = "has_donation_id_number"
+    has_expiration_date = "has_expiration_date"
+    has_lot_or_batch_number = "has_lot_or_batch_number"
+    has_manufacturing_date = "has_manufacturing_date"
+    has_serial_number = "has_serial_number"
+    identifiers_id = "identifiers.id"
+    identifiers_issuing_agency = "identifiers.issuing_agency"
+    identifiers_package_discontinue_date = "identifiers.package_discontinue_date"
+    identifiers_package_status = "identifiers.package_status"
+    identifiers_package_type = "identifiers.package_type"
+    identifiers_quantity_per_package = "identifiers.quantity_per_package"
+    identifiers_type = "identifiers.type"
+    identifiers_unit_of_use_id = "identifiers.unit_of_use_id"
+    is_combination_product = "is_combination_product"
+    is_direct_marking_exempt = "is_direct_marking_exempt"
+    is_hct_p = "is_hct_p"
+    is_kit = "is_kit"
+    is_labeled_as_no_nrl = "is_labeled_as_no_nrl"
+    is_labeled_as_nrl = "is_labeled_as_nrl"
+    is_otc = "is_otc"
+    is_pm_exempt = "is_pm_exempt"
+    is_rx = "is_rx"
+    is_single_use = "is_single_use"
+    labeler_duns_number = "labeler_duns_number"
+    mri_safety = "mri_safety"
+    premarket_submissions_submission_number = "premarket_submissions.submission_number"
+    premarket_submissions_submission_type = "premarket_submissions.submission_type"
+    premarket_submissions_supplement_number = "premarket_submissions.supplement_number"
+    product_codes_code = "product_codes.code"
+    product_codes_name = "product_codes.name"
+    product_codes_openfda_device_class = "product_codes.openfda.device_class"
+    product_codes_openfda_device_name = "product_codes.openfda.device_name"
+    product_codes_openfda_medical_specialty_description = (
+        "product_codes.openfda.medical_specialty_description"
+    )
+    product_codes_openfda_regulation_number = "product_codes.openfda.regulation_number"
+    public_version_date = "public_version_date"
+    public_version_number = "public_version_number"
+    public_version_status = "public_version_status"
+    publish_date = "publish_date"
+    record_key = "record_key"
+    record_status = "record_status"
+    sterilization_is_sterile = "sterilization.is_sterile"
+    sterilization_is_sterilization_prior_use = (
+        "sterilization.is_sterilization_prior_use"
+    )
+    sterilization_sterilization_methods = "sterilization.sterilization_methods"
+    storage_high_unit = "storage.high.unit"
+    storage_high_value = "storage.high.value"
+    storage_low_unit = "storage.low.unit"
+    storage_low_value = "storage.low.value"
+    storage_special_conditions = "storage.special_conditions"
+    storage_type = "storage.type"
+    version_or_model_number = "version_or_model_number"
+
+
 SEARCH_FIELD_VALIDATION_RULES = {
+    FDAAnimalVeterinaryEndpoint.event: _load_field_rules(
+        "animalandveterinary_event_fields.yaml"
+    ),
     FDADrugEndpoint.event: _load_field_rules("drug_event_fields.yaml"),
     FDADrugEndpoint.enforcement: _load_field_rules("drug_enforcement_fields.yaml"),
     FDADrugEndpoint.label: _load_field_rules("drug_label_fields.yaml"),
@@ -606,17 +1177,29 @@ SEARCH_FIELD_VALIDATION_RULES = {
 
 
 SEARCH_FIELD_ENUMS = {
+    FDAAnimalVeterinaryEndpoint.event: FDAAnimalVeterinaryEventSearchField,
     FDADrugEndpoint.event: FDADrugEventSearchField,
     FDADrugEndpoint.enforcement: FDADrugEnforcementSearchField,
     FDADrugEndpoint.label: FDADrugLabelSearchField,
     FDADrugEndpoint.ndc: FDADrugNDCSearchField,
     FDADrugEndpoint.drugsfda: FDADrugDrugsFDASearchField,
     FDADrugEndpoint.shortages: FDADrugShortagesSearchField,
+    FDADeviceEndpoint._510k: FDADevice510kSearchField,
+    FDADeviceEndpoint.classification: FDADeviceClassificationSearchField,
+    FDADeviceEndpoint.enforcement: FDADeviceEnforcementSearchField,
+    FDADeviceEndpoint.event: FDADeviceEventSearchField,
+    FDADeviceEndpoint.pma: FDADevicePMASearchField,
+    FDADeviceEndpoint.recall: FDADeviceRecallSearchField,
+    FDADeviceEndpoint.registrationlisting: FDADeviceRegistrationListingSearchField,
+    FDADeviceEndpoint.covid19serology: FDADeviceCovid19SerologySearchField,
+    FDADeviceEndpoint.udi: FDADeviceUDISearchField,
 }
 
 
 VALID_ENDPOINTS = {
+    FDACategory("animalandveterinary"): FDAAnimalVeterinaryEndpoint,
     FDACategory("drug"): FDADrugEndpoint,
+    FDACategory("device"): FDADeviceEndpoint,
     FDACategory("food"): FDAFoodEndpoint,
 }
 
@@ -639,8 +1222,12 @@ class FDAModel(BaseModel):
 
     @model_validator(mode="after")
     def check_valid_search_values(self):
-        search_field_enum_value_dic = {k.value: v for k, v in SEARCH_FIELD_ENUMS.items()}
-        search_field_validation_rules = {k.value: v for k, v in SEARCH_FIELD_VALIDATION_RULES.items()}
+        search_field_enum_value_dic = {
+            k.value: v for k, v in SEARCH_FIELD_ENUMS.items()
+        }
+        search_field_validation_rules = {
+            k.value: v for k, v in SEARCH_FIELD_VALIDATION_RULES.items()
+        }
 
         if self.endpoint not in search_field_enum_value_dic:
             raise ValueError(f"Invalid endpoint '{self.endpoint}'")
@@ -684,9 +1271,7 @@ if __name__ == "__main__":
 
     try:
         invalid_model = FDAModel(
-            category="drug",
-            endpoint="event",
-            search={"strength": "10"}
+            category="drug", endpoint="event", search={"strength": "10"}
         )
     except ValidationError as e:
         print(e)
