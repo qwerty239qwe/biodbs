@@ -1234,7 +1234,7 @@ class FDAModel(BaseModel):
     @model_validator(mode="after")
     def check_valid_search_values(self):
         search_field_enum_value_dic = {
-            k.value: v for k, v in SEARCH_FIELD_ENUMS.items()
+            k.value: v for k, v in SEARCH_FIELD_ENUMS.items() if k in VALID_ENDPOINTS[FDACategory(self.category)]
         }
         search_field_validation_rules = {
             k.value: v for k, v in SEARCH_FIELD_VALIDATION_RULES.items()
@@ -1250,7 +1250,7 @@ class FDAModel(BaseModel):
         for field_path, value in self.search.items():
             if field_path not in valid_field_values:
                 raise ValueError(
-                    f"Invalid search field '{field_path}'. Must be one of: {valid_field_values}"
+                    f"Invalid search field '{field_path}'. Must be one of: {sorted(valid_field_values)} for the endpoint '{self.endpoint}'"
                 )
             rules = rules_map.get(field_path, {})
 

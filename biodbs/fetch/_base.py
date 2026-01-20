@@ -1,5 +1,8 @@
 from pydantic import BaseModel, ValidationError
-from typing import Tuple
+from typing import Tuple, List, Dict, Any, Callable, Optional
+import asyncio
+import time
+from functools import wraps
 
 
 class BaseAPIConfig:
@@ -61,4 +64,95 @@ class BaseDataFetcher:
         self._headers = headers
     
     def get(self, *args, **kwargs):
-        raise NotImplementedError()
+        raise NotImplementedError("This method should be implemented in subclass.")
+    
+    def schedule_process(
+        self,
+        get_func: Callable,
+        args_list: Optional[List[tuple]] = None,
+        kwargs_list: Optional[List[dict]] = None,
+        rate_limit_per_second: int = 10,
+        return_exceptions: bool = False,
+        progress_callback: Optional[Callable[[int, int], None]] = None
+    ) -> List[Any]:
+        """
+        Execute multiple async/sync function calls with rate limiting.
+        
+        Args:
+            get_func: The function to call (can be sync or async)
+            args_list: List of positional arguments for each call
+            kwargs_list: List of keyword arguments for each call
+            rate_limit_per_second: Maximum number of requests per second
+            return_exceptions: If True, exceptions are returned instead of raised
+            progress_callback: Optional callback function(completed, total) for progress tracking
+            
+        Returns:
+            List of results from all function calls
+            
+        Raises:
+            ValueError: If args_list and kwargs_list have different lengths
+        """
+        args_list = args_list or []
+        kwargs_list = kwargs_list or []
+        
+        # Determine total tasks
+        total_tasks = max(len(args_list), len(kwargs_list))
+        if total_tasks == 0:
+            return []
+        
+        # Validate list lengths match
+        if args_list and kwargs_list and len(args_list) != len(kwargs_list):
+            raise ValueError("args_list and kwargs_list must have the same length")
+        
+        # Pad shorter list with empty values
+        if len(args_list) < total_tasks:
+            args_list.extend([()] * (total_tasks - len(args_list)))
+        if len(kwargs_list) < total_tasks:
+            kwargs_list.extend([{}] * (total_tasks - len(kwargs_list)))
+        
+        # Check if function is async
+        is_async = asyncio.iscoroutinefunction(get_func)
+        
+        async def limited_gather():
+            # Semaphore for concurrent request limiting
+            semaphore = asyncio.Semaphore(rate_limit_per_second)
+            
+            # Track time for rate limiting
+            last_batch_time = time.time()
+            completed_count = 0
+            
+            async def rate_limited_call(index: int, args: tuple, kwargs: dict):
+                nonlocal completed_count, last_batch_time
+                
+                async with semaphore:
+                    # Rate limiting: ensure we don't exceed requests per second
+                    if index > 0 and index % rate_limit_per_second == 0:
+                        elapsed = time.time() - last_batch_time
+                        if elapsed < 1.0:
+                            await asyncio.sleep(1.0 - elapsed)
+                        last_batch_time = time.time()
+                    
+                    # Execute function (handle both sync and async)
+                    if is_async:
+                        result = await get_func(*args, **kwargs)
+                    else:
+                        result = get_func(*args, **kwargs)
+                    
+                    # Update progress
+                    completed_count += 1
+                    if progress_callback:
+                        progress_callback(completed_count, total_tasks)
+                    
+                    return result
+            
+            # Create all tasks
+            tasks = [
+                rate_limited_call(i, args_list[i], kwargs_list[i])
+                for i in range(total_tasks)
+            ]
+            
+            # Execute with optional exception handling
+            return await asyncio.gather(*tasks, return_exceptions=return_exceptions)
+        
+        # Run the async gather
+        return asyncio.run(limited_gather())
