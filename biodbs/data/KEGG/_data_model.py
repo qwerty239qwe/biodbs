@@ -1,6 +1,7 @@
 from enum import Enum
-from typing import Dict, Any, List
-from pydantic import BaseModel, ConfigDict
+from typing import Dict, Any, List, Optional, Union
+from pydantic import BaseModel, ConfigDict, model_validator, field_validator
+import re
 
 
 class KEGGOperation(Enum):
@@ -334,8 +335,371 @@ class KEGGLinkRDFOption(Enum):
     n_triple = "n-triple"
 
 
+# Mapping of operations to valid databases
+VALID_DATABASES_BY_OPERATION = {
+    KEGGOperation.info: [
+        KEGGDatabase.pathway, KEGGDatabase.brite, KEGGDatabase.module, 
+        KEGGDatabase.ko, KEGGDatabase.genome, KEGGDatabase.compound,
+        KEGGDatabase.glycan, KEGGDatabase.reaction, KEGGDatabase.rclass,
+        KEGGDatabase.enzyme, KEGGDatabase.network, KEGGDatabase.variant,
+        KEGGDatabase.disease, KEGGDatabase.drug, KEGGDatabase.dgroup
+    ],
+    KEGGOperation.list: [
+        KEGGDatabase.pathway, KEGGDatabase.brite, KEGGDatabase.module,
+        KEGGDatabase.ko, KEGGDatabase.genome, KEGGDatabase.compound,
+        KEGGDatabase.glycan, KEGGDatabase.reaction, KEGGDatabase.rclass,
+        KEGGDatabase.enzyme, KEGGDatabase.network, KEGGDatabase.variant,
+        KEGGDatabase.disease, KEGGDatabase.drug, KEGGDatabase.dgroup,
+        KEGGDatabase.organism
+    ],
+    KEGGOperation.find: [
+        KEGGDatabase.pathway, KEGGDatabase.brite, KEGGDatabase.module,
+        KEGGDatabase.ko, KEGGDatabase.genome, KEGGDatabase.compound,
+        KEGGDatabase.glycan, KEGGDatabase.reaction, KEGGDatabase.rclass,
+        KEGGDatabase.enzyme, KEGGDatabase.network, KEGGDatabase.variant,
+        KEGGDatabase.disease, KEGGDatabase.drug, KEGGDatabase.dgroup
+    ],
+    KEGGOperation.get: [
+        KEGGDatabase.pathway, KEGGDatabase.brite, KEGGDatabase.module,
+        KEGGDatabase.ko, KEGGDatabase.genome, KEGGDatabase.compound,
+        KEGGDatabase.glycan, KEGGDatabase.reaction, KEGGDatabase.rclass,
+        KEGGDatabase.enzyme, KEGGDatabase.network, KEGGDatabase.variant,
+        KEGGDatabase.disease, KEGGDatabase.drug, KEGGDatabase.dgroup
+    ],
+}
+
+
+# Mapping of databases to their search fields
+SEARCH_FIELDS_BY_DATABASE = {
+    KEGGDatabase.pathway: KEGGPathwaySearchField,
+    KEGGDatabase.brite: KEGGBriteSearchField,
+    KEGGDatabase.module: KEGGModuleSearchField,
+    KEGGDatabase.ko: KEGGOrthologySearchField,
+    KEGGDatabase.genome: KEGGGenomeSearchField,
+    KEGGDatabase.compound: KEGGCompoundSearchField,
+    KEGGDatabase.glycan: KEGGGlycanSearchField,
+    KEGGDatabase.reaction: KEGGReactionSearchField,
+    KEGGDatabase.rclass: KEGGRClassSearchField,
+    KEGGDatabase.enzyme: KEGGEnzymeSearchField,
+    KEGGDatabase.network: KEGGNetworkSearchField,
+    KEGGDatabase.variant: KEGGVariantSearchField,
+    KEGGDatabase.disease: KEGGDiseaseSearchField,
+    KEGGDatabase.drug: KEGGDrugSearchField,
+    KEGGDatabase.dgroup: KEGGDGroupSearchField,
+}
+
 
 class KEGGModel(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    """
+    Pydantic model for validating KEGG REST API requests.
+    
+    The KEGG API has the general form:
+    https://rest.kegg.jp/<operation>/<argument>[/<argument2>[/<argument3>]]
+    
+    Supported operations: info, list, find, get, conv, link, ddi
+    
+    Examples:
+        # INFO operation
+        KEGGModel(operation="info", database="pathway")
+        
+        # LIST operation
+        KEGGModel(operation="list", database="pathway", organism="hsa")
+        
+        # FIND operation
+        KEGGModel(operation="find", database="genes", query="shiga toxin")
+        KEGGModel(operation="find", database="compound", query="C7H10O5", find_option="formula")
+        
+        # GET operation
+        KEGGModel(operation="get", dbentries=["hsa:10458", "ece:Z5100"])
+        KEGGModel(operation="get", dbentries=["C00002"], get_option="image")
+        
+        # CONV operation
+        KEGGModel(operation="conv", target_db="eco", source_db="ncbi-geneid")
+        KEGGModel(operation="conv", target_db="ncbi-proteinid", dbentries=["hsa:10458"])
+        
+        # LINK operation
+        KEGGModel(operation="link", target_db="pathway", source_db="hsa")
+        KEGGModel(operation="link", target_db="pathway", dbentries=["hsa:10458"])
+        
+        # DDI operation
+        KEGGModel(operation="ddi", dbentries=["D00564", "D00100"])
+    """
+    model_config = ConfigDict(use_enum_values=True)
+    
+    # Core fields
     operation: KEGGOperation
     
+    # Fields for INFO, LIST, FIND operations
+    database: Optional[Union[KEGGDatabase, str]] = None  # Can be organism code like "hsa"
+    
+    # Fields for LIST operation
+    organism: Optional[str] = None  # For list/pathway/<org> or list/brite/<org>
+    brite_option: Optional[KEGGBriteOption] = None  # For list/brite/<option>
+    
+    # Fields for FIND operation
+    query: Optional[str] = None  # Search query string
+    find_option: Optional[Union[KEGGCompoundFindOption, KEGGDrugFindOption, str]] = None  # formula, exact_mass, etc.
+    
+    # Fields for GET operation
+    dbentries: Optional[List[str]] = None  # List of database entry identifiers
+    get_option: Optional[KEGGGetOption] = None  # aaseq, ntseq, image, kgml, etc.
+    
+    # Fields for CONV operation
+    target_db: Optional[Union[KEGGDatabase, KEGGOutsideDatabase, str]] = None
+    source_db: Optional[Union[KEGGDatabase, KEGGOutsideDatabase, str]] = None
+    
+    # Fields for LINK operation
+    # target_db and source_db already defined above, dbentries also defined
+    rdf_option: Optional[KEGGLinkRDFOption] = None  # turtle or n-triple for specific link operations
+    
+    # Additional constraints
+    max_entries: int = 10  # KEGG API limit for multiple entries
+    
+    @model_validator(mode='after')
+    def validate_operation_requirements(self):
+        """Validate that required fields are present for each operation."""
+        op = KEGGOperation(self.operation)
+        
+        if op == KEGGOperation.info:
+            if not self.database:
+                raise ValueError("INFO operation requires 'database' field")
+                
+        elif op == KEGGOperation.list:
+            if not self.database and not self.dbentries:
+                raise ValueError("LIST operation requires either 'database' or 'dbentries' field")
+            # Validate special cases
+            if self.database == KEGGDatabase.organism.value:
+                # list/organism is valid
+                pass
+            elif self.organism and self.database not in [KEGGDatabase.pathway.value, "pathway"]:
+                raise ValueError("organism option only valid for pathway database")
+                
+        elif op == KEGGOperation.find:
+            if not self.database or not self.query:
+                raise ValueError("FIND operation requires 'database' and 'query' fields")
+            # Validate find_option
+            if self.find_option:
+                if self.database in [KEGGDatabase.compound.value, "compound"]:
+                    # Validate it's a valid compound find option
+                    valid_options = [opt.value for opt in KEGGCompoundFindOption]
+                    if self.find_option not in valid_options:
+                        raise ValueError(f"Invalid find_option for compound: {self.find_option}. Must be one of {valid_options}")
+                elif self.database in [KEGGDatabase.drug.value, "drug"]:
+                    valid_options = [opt.value for opt in KEGGDrugFindOption]
+                    if self.find_option not in valid_options:
+                        raise ValueError(f"Invalid find_option for drug: {self.find_option}. Must be one of {valid_options}")
+                        
+        elif op == KEGGOperation.get:
+            if not self.dbentries:
+                raise ValueError("GET operation requires 'dbentries' field")
+            if len(self.dbentries) > self.max_entries:
+                raise ValueError(f"GET operation limited to {self.max_entries} entries, got {len(self.dbentries)}")
+            # Validate image/kgml options (limited to 1 entry)
+            if self.get_option in [KEGGGetOption.image.value, KEGGGetOption.kgml.value]:
+                if len(self.dbentries) > 1:
+                    raise ValueError(f"GET option '{self.get_option}' limited to 1 entry")
+                    
+        elif op == KEGGOperation.conv:
+            if not self.target_db:
+                raise ValueError("CONV operation requires 'target_db' field")
+            if not self.source_db and not self.dbentries:
+                raise ValueError("CONV operation requires either 'source_db' or 'dbentries' field")
+            if self.source_db and self.dbentries:
+                raise ValueError("CONV operation cannot have both 'source_db' and 'dbentries'")
+                
+        elif op == KEGGOperation.link:
+            if not self.target_db:
+                raise ValueError("LINK operation requires 'target_db' field")
+            if not self.source_db and not self.dbentries:
+                raise ValueError("LINK operation requires either 'source_db' or 'dbentries' field")
+            if self.source_db and self.dbentries:
+                raise ValueError("LINK operation cannot have both 'source_db' and 'dbentries'")
+                
+        elif op == KEGGOperation.ddi:
+            if not self.dbentries:
+                raise ValueError("DDI operation requires 'dbentries' field")
+            # DDI only works with drug, ndc, yj databases
+            for entry in self.dbentries:
+                if not any(entry.startswith(prefix) for prefix in ['D', 'ndc:', 'yj:']):
+                    raise ValueError(f"DDI entries must be drug (D*), ndc (ndc:*), or yj (yj:*) entries. Got: {entry}")
+                    
+        return self
+    
+    @model_validator(mode='after')
+    def validate_database_for_operation(self):
+        """Validate that the database is valid for the operation."""
+        if not self.database:
+            return self
+            
+        op = KEGGOperation(self.operation)
+        
+        # Check if operation has database restrictions
+        if op in VALID_DATABASES_BY_OPERATION:
+            valid_dbs = [db.value for db in VALID_DATABASES_BY_OPERATION[op]]
+            
+            # Allow organism codes (3-4 letter codes)
+            if self.database not in valid_dbs:
+                # Check if it's a valid organism code format (3-4 letters or T number)
+                if not (re.match(r'^[a-z]{3,4}$', str(self.database)) or 
+                        re.match(r'^T\d{5}$', str(self.database)) or
+                        str(self.database) in ['vg', 'vp', 'ag', 'genes', 'ligand', 'kegg']):
+                    raise ValueError(
+                        f"Database '{self.database}' not valid for operation '{op.value}'. "
+                        f"Valid databases: {valid_dbs} or organism codes (e.g., 'hsa', 'eco')"
+                    )
+        
+        return self
+    
+    @field_validator('dbentries')
+    @classmethod
+    def validate_dbentries_format(cls, v):
+        """Validate database entry format."""
+        if v is None:
+            return v
+            
+        for entry in v:
+            # Valid formats: K00001, hsa:10458, map00010, D00001, ncbi-geneid:948364, etc.
+            if not re.match(r'^[A-Za-z0-9_-]+:[A-Za-z0-9_.-]+$', entry) and \
+               not re.match(r'^[A-Z]{1,3}\d+$', entry) and \
+               not re.match(r'^[a-z]{2,4}\d{5}$', entry):
+                # Allow it but log warning - KEGG is flexible with entry formats
+                pass
+                
+        return v
+    
+    def build_url(self) -> str:
+        """
+        Build the KEGG API URL from the model parameters.
+        
+        Returns:
+            Complete KEGG REST API URL
+        """
+        base_url = "https://rest.kegg.jp"
+        op = self.operation
+        
+        if op == KEGGOperation.info.value:
+            return f"{base_url}/info/{self.database}"
+            
+        elif op == KEGGOperation.list.value:
+            if self.dbentries:
+                entries = '+'.join(self.dbentries)
+                return f"{base_url}/list/{entries}"
+            elif self.organism and self.database == KEGGDatabase.pathway.value:
+                return f"{base_url}/list/pathway/{self.organism}"
+            elif self.brite_option:
+                return f"{base_url}/list/brite/{self.brite_option}"
+            else:
+                return f"{base_url}/list/{self.database}"
+                
+        elif op == KEGGOperation.find.value:
+            url = f"{base_url}/find/{self.database}/{self.query}"
+            if self.find_option:
+                url += f"/{self.find_option}"
+            return url
+            
+        elif op == KEGGOperation.get.value:
+            entries = '+'.join(self.dbentries)
+            url = f"{base_url}/get/{entries}"
+            if self.get_option:
+                url += f"/{self.get_option}"
+            return url
+            
+        elif op == KEGGOperation.conv.value:
+            if self.dbentries:
+                entries = '+'.join(self.dbentries)
+                return f"{base_url}/conv/{self.target_db}/{entries}"
+            else:
+                return f"{base_url}/conv/{self.target_db}/{self.source_db}"
+                
+        elif op == KEGGOperation.link.value:
+            if self.dbentries:
+                entries = '+'.join(self.dbentries)
+                url = f"{base_url}/link/{self.target_db}/{entries}"
+            else:
+                url = f"{base_url}/link/{self.target_db}/{self.source_db}"
+            if self.rdf_option:
+                url += f"/{self.rdf_option}"
+            return url
+            
+        elif op == KEGGOperation.ddi.value:
+            entries = '+'.join(self.dbentries)
+            return f"{base_url}/ddi/{entries}"
+            
+        else:
+            raise ValueError(f"Unsupported operation: {op}")
+
+
+if __name__ == "__main__":
+    # Test cases
+    
+    # INFO operation
+    print("=== INFO Operation ===")
+    model1 = KEGGModel(operation="info", database="pathway")
+    print(f"URL: {model1.build_url()}")
+    
+    # LIST operation
+    print("\n=== LIST Operation ===")
+    model2 = KEGGModel(operation="list", database="pathway")
+    print(f"URL: {model2.build_url()}")
+    
+    model3 = KEGGModel(operation="list", database="pathway", organism="hsa")
+    print(f"URL: {model3.build_url()}")
+    
+    model4 = KEGGModel(operation="list", database="organism")
+    print(f"URL: {model4.build_url()}")
+    
+    # FIND operation
+    print("\n=== FIND Operation ===")
+    model5 = KEGGModel(operation="find", database="genes", query="shiga toxin")
+    print(f"URL: {model5.build_url()}")
+    
+    model6 = KEGGModel(operation="find", database="compound", query="C7H10O5", find_option="formula")
+    print(f"URL: {model6.build_url()}")
+    
+    # GET operation
+    print("\n=== GET Operation ===")
+    model7 = KEGGModel(operation="get", dbentries=["hsa:10458", "ece:Z5100"])
+    print(f"URL: {model7.build_url()}")
+    
+    model8 = KEGGModel(operation="get", dbentries=["C00002"], get_option="image")
+    print(f"URL: {model8.build_url()}")
+    
+    # CONV operation
+    print("\n=== CONV Operation ===")
+    model9 = KEGGModel(operation="conv", target_db="eco", source_db="ncbi-geneid")
+    print(f"URL: {model9.build_url()}")
+    
+    model10 = KEGGModel(operation="conv", target_db="ncbi-proteinid", dbentries=["hsa:10458", "ece:Z5100"])
+    print(f"URL: {model10.build_url()}")
+    
+    # LINK operation
+    print("\n=== LINK Operation ===")
+    model11 = KEGGModel(operation="link", target_db="pathway", source_db="hsa")
+    print(f"URL: {model11.build_url()}")
+    
+    model12 = KEGGModel(operation="link", target_db="pathway", dbentries=["hsa:10458", "ece:Z5100"])
+    print(f"URL: {model12.build_url()}")
+    
+    # DDI operation
+    print("\n=== DDI Operation ===")
+    model13 = KEGGModel(operation="ddi", dbentries=["D00564"])
+    print(f"URL: {model13.build_url()}")
+    
+    model14 = KEGGModel(operation="ddi", dbentries=["D00564", "D00100", "D00109"])
+    print(f"URL: {model14.build_url()}")
+    
+    # Test validation errors
+    print("\n=== Validation Errors ===")
+    try:
+        invalid_model = KEGGModel(operation="info")  # Missing database
+    except ValueError as e:
+        print(f"Error: {e}")
+    
+    try:
+        invalid_model = KEGGModel(operation="get", dbentries=["C00002"], get_option="image", database="compound")
+        invalid_model2 = KEGGModel(operation="get", dbentries=["C00002", "C00003"], get_option="image")
+    except ValueError as e:
+        print(f"Error: {e}")
+    
+    print("\n=== Model Dump ===")
+    print(model7.model_dump())
