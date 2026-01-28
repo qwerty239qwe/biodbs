@@ -6,27 +6,54 @@ from functools import wraps
 
 
 class BaseAPIConfig:
-    def __init__(self, url_format):
+    """Configuration for API URL construction.
+
+    Supports two modes:
+        - **Template mode**: Pass ``url_format`` as a format string
+          (e.g. ``"https://api.example.com/{category}/{endpoint}"``) and
+          parameters will be interpolated via ``.format(**params)``.
+        - **Builder mode**: Pass ``url_builder`` as a callable that takes
+          a params dict and returns the full URL string. Use this for
+          APIs whose URL structure varies by parameter (e.g. KEGG).
+
+    If both are provided, ``url_builder`` takes precedence.
+    """
+
+    def __init__(
+        self,
+        url_format: Optional[str] = None,
+        url_builder: Optional[Callable[[Dict[str, Any]], str]] = None,
+    ):
         self._url_format = url_format
-        self._params = {}
+        self._url_builder = url_builder
+        self._params: Dict[str, Any] = {}
 
     def __str__(self):
-        disp_names = [self.__class__.__name__, 
-                      f"API format: {self._url_format}", 
-                      f"Current params: {self._params}"]
-        return "\n".join(disp_names) 
+        disp_names = [
+            self.__class__.__name__,
+            f"API format: {self._url_format}",
+            f"URL builder: {self._url_builder}",
+            f"Current params: {self._params}",
+        ]
+        return "\n".join(disp_names)
 
     def update_params(self, **kwargs):
         self._params.update(kwargs)
 
     @property
-    def api_url(self):
-        if self._url_format is None:
-            raise NotImplementedError("This class must be inherited")
-        return self._url_format.format(**self._params)
+    def api_url(self) -> str:
+        if self._url_builder is not None:
+            return self._url_builder(self._params)
+        if self._url_format is not None:
+            return self._url_format.format(**self._params)
+        raise NotImplementedError(
+            "Subclass must provide url_format, url_builder, or override api_url"
+        )
 
     def copy(self):
         new = self.__class__()
+        new._url_format = self._url_format
+        new._url_builder = self._url_builder
         new.update_params(**self._params)
         return new
 
