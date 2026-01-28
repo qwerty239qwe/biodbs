@@ -1,4 +1,4 @@
-from biodbs.data._base import BaseFetchedData
+from biodbs.data._base import BaseFetchedData, BaseDBManager
 from typing import Literal
 import pandas as pd
 import polars as pl
@@ -13,6 +13,7 @@ class FDAFetchedData(BaseFetchedData):
 
     def __iadd__(self, data: "FDAFetchedData"):
         self.results.extend(data.results)
+        return self
     
     def as_dict(self, columns=None,):
         if columns is not None:
@@ -71,6 +72,37 @@ class FDAFetchedData(BaseFetchedData):
             formatted_results.append(formatted_record)
         return formatted_results
     
-    def trim(self, columns: list):
-        raise NotImplementedError("This method should be implemented in subclass.")
+    @staticmethod
+    def _delete_nested_key(data, keys: list[str]):
+        """Remove the leaf key addressed by *keys* from a nested dict/list structure."""
+        if not keys:
+            return
+        head, *tail = keys
+        if isinstance(data, list):
+            for item in data:
+                FDAFetchedData._delete_nested_key(item, keys)
+        elif isinstance(data, dict):
+            if not tail:
+                data.pop(head, None)
+            elif head in data:
+                FDAFetchedData._delete_nested_key(data[head], tail)
+
+    def trim(self, columns: list[str]) -> "FDAFetchedData":
+        """Remove *columns* from every record in ``self.results`` in-place.
+
+        Columns use the same dot-separated path format as
+        :meth:`format_results` (e.g. ``"patient.drug.medicinalproduct"``).
+
+        Returns *self* so calls can be chained.
+        """
+        split_columns = [col.split(".") for col in columns]
+        for record in self.results:
+            for keys in split_columns:
+                self._delete_nested_key(record, keys)
+        return self
     
+
+
+class FDADataManager(BaseDBManager):
+    def __init__(self, storage_path, db_name = "data", cache_expiry_days = None, auto_create_dirs = True):
+        super().__init__(storage_path, db_name, cache_expiry_days, auto_create_dirs)

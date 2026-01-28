@@ -1,9 +1,14 @@
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
 from biodbs.data.FDA._data_model import FDAModel
-from biodbs.data.FDA.data import FDAFetchedData
-from biodbs.utils import get_rsp
-from typing import Tuple, Literal
+from biodbs.data.FDA.data import FDAFetchedData, FDADataManager
 
+from typing import Literal, Optional, Union
+from pathlib import Path
+import logging
+
+import requests
+
+logger = logging.getLogger(__name__)
 
 
 class FDANameSpace(NameSpace):
@@ -18,12 +23,14 @@ class FDA_APIConfig(BaseAPIConfig):
         
 
 class FDA_Fetcher(BaseDataFetcher):
-    def __init__(self, api_key: str = None, limit: int = None):
+    # TODO: integrate with DataManager
+    def __init__(self, api_key: str = None, limit: int = None, **data_manager_kws):
         super().__init__(FDA_APIConfig(), FDANameSpace(), {})
         self._api_key = api_key
         self._limit = limit
+        self._data_manager = FDADataManager(**data_manager_kws)
 
-    def get(self, category, endpoint, **kwargs):
+    def get(self, category, endpoint, stream=None, **kwargs):
         kwargs["api_key"] = self._api_key if kwargs.get("api_key") is None else kwargs.get("api_key")
         kwargs["limit"] = self._limit if kwargs.get("limit") is None else kwargs.get("limit")
 
@@ -39,42 +46,176 @@ class FDA_Fetcher(BaseDataFetcher):
         self._api_config.update_params(**self._namespace.valid_params)
         url = self._api_config.api_url
 
-        response = get_rsp(url, params=kwargs)
+        response = requests.get(url, params=kwargs, stream=stream)
         if response.status_code != 200:
             raise ConnectionError(f"Failed to fetch data from FDA API. Status code: {response.status_code}, Message: {response.text}")
         
-        data_class = FDAFetchedData
-        if data_class is None:
-            raise NotImplementedError(f"The data class for category '{category}' and endpoint '{endpoint}' is not implemented.")
-        return data_class(response.json())
+        return FDAFetchedData(response.json())
     
-    def get_all(self, 
-                category, 
-                endpoint, 
-                method: Literal["concat", "stream_to_db"],
-                conn,
-                batch_size=100, 
-                max_records=-1, 
-                **kwargs):
-        all_results = []
-        total_fetched = 0
-        while total_fetched < max_records:
-            current_limit = min(batch_size, max_records - total_fetched)
-            kwargs.update({"limit": current_limit, "skip": total_fetched})
-            data = self.get(category, endpoint, **kwargs)
-            if not data.results:
-                break
-            all_results.extend(data.results)
-            fetched_count = len(data.results)
-            total_fetched += fetched_count
-            if fetched_count < current_limit:
-                break
-        data.results = all_results
-        return data
+    def _fetch_page(self, url: str, **params) -> FDAFetchedData:
+        """Thread-safe page fetch — no shared state mutation."""
+        response = requests.get(url, params=params)
+        if response.status_code != 200:
+            raise ConnectionError(
+                f"FDA API error {response.status_code}: {response.text}"
+            )
+        return FDAFetchedData(response.json())
+
+    def _resolve_url(self, category, endpoint, **kwargs):
+        """Validate params once and return the resolved base URL."""
+        is_valid, err_msg = self._namespace.validate(
+            category=category,
+            endpoint=endpoint,
+            search=kwargs.get("search"),
+            limit=kwargs.get("limit"),
+            sort=kwargs.get("sort"),
+            count=kwargs.get("count"),
+            skip=kwargs.get("skip"),
+        )
+        if not is_valid:
+            raise ValueError(err_msg)
+        self._api_config.update_params(**self._namespace.valid_params)
+        return self._api_config.api_url
+
+    def get_all(
+        self,
+        category,
+        endpoint,
+        method: Literal["concat", "stream_to_storage"] = "concat",
+        batch_size: int = 1000,
+        max_records: Optional[int] = None,
+        rate_limit_per_second: int = 4,
+        **kwargs,
+    ) -> Union[FDAFetchedData, Path]:
+        """Fetch multiple pages of results concurrently.
+
+        Uses :meth:`schedule_process` to dispatch page requests across
+        threads while staying within the FDA rate limit.
+
+        Args:
+            category: FDA category (e.g. ``"drug"``).
+            endpoint: FDA endpoint (e.g. ``"event"``).
+            method: ``"concat"`` accumulates all results in memory and returns
+                a single :class:`FDAFetchedData`.  ``"stream_to_storage"``
+                streams each batch to the data manager as JSON Lines and
+                returns the output file :class:`Path`.
+            batch_size: Records per request (max 1000).
+            max_records: Total records to fetch.  ``None`` means fetch all
+                available records.
+            rate_limit_per_second: Max concurrent requests per second
+                (FDA default: 240/min ≈ 4/sec).
+            **kwargs: Forwarded to the API (``search``, ``sort``, etc.).
+
+        Note — openFDA rate limits:
+            Without an API key: 240 req/min, 1 000 req/day per IP.
+            With an API key: 240 req/min, 120 000 req/day per key.
+        """
+        if batch_size > 1000:
+            raise ValueError("Upper limit = 1000 per request")
+        if method not in ("concat", "stream_to_storage"):
+            raise ValueError(f"Unknown method: {method!r}")
+
+        # -- resolve URL and apply defaults --------------------------------
+        req_kwargs = dict(kwargs)
+        req_kwargs["api_key"] = (
+            self._api_key if req_kwargs.get("api_key") is None else req_kwargs["api_key"]
+        )
+        req_kwargs["limit"] = (
+            self._limit if req_kwargs.get("limit") is None else req_kwargs["limit"]
+        )
+        url = self._resolve_url(category, endpoint, **req_kwargs)
+
+        # -- first request: discover total ---------------------------------
+        first_params = {**req_kwargs, "limit": batch_size, "skip": 0}
+        first_page = self._fetch_page(url, **first_params)
+
+        if not first_page.results:
+            return FDAFetchedData({"meta": {}, "results": []})
+
+        total_available = (
+            first_page.metadata.get("results", {}).get("total")
+            or len(first_page.results)
+        )
+        target = (
+            min(max_records, total_available)
+            if max_records is not None
+            else total_available
+        )
+        first_count = len(first_page.results)
+
+        # -- compute remaining page offsets --------------------------------
+        offsets = list(range(first_count, target, batch_size))
+        if not offsets:
+            # First page already covers everything.
+            if max_records is not None:
+                first_page.results = first_page.results[:target]
+            return self._finalise(method, [first_page], category, endpoint)
+
+        page_kwargs_list = [
+            {**req_kwargs, "limit": min(batch_size, target - offset), "skip": offset}
+            for offset in offsets
+        ]
+
+        # -- concurrent fetch via schedule_process -------------------------
+        logger.info(
+            "Fetching %d remaining pages concurrently (rate=%d/s)",
+            len(page_kwargs_list),
+            rate_limit_per_second,
+        )
+
+        def _fetch(page_params):
+            return self._fetch_page(url, **page_params)
+
+        remaining_pages: list = self.schedule_process(
+            get_func=_fetch,
+            args_list=[(kw,) for kw in page_kwargs_list],
+            rate_limit_per_second=rate_limit_per_second,
+            return_exceptions=True,
+        )
+
+        # -- collect results in order --------------------------------------
+        all_pages: list[FDAFetchedData] = [first_page]
+        for i, page in enumerate(remaining_pages):
+            if isinstance(page, Exception):
+                logger.warning(
+                    "Page at skip=%d failed: %s", offsets[i], page
+                )
+                continue
+            if page.results:
+                all_pages.append(page)
+
+        return self._finalise(method, all_pages, category, endpoint, target)
+
+    def _finalise(
+        self,
+        method: str,
+        pages: list[FDAFetchedData],
+        category: str,
+        endpoint: str,
+        max_records: Optional[int] = None,
+    ) -> Union[FDAFetchedData, Path]:
+        """Combine fetched pages into the requested output format."""
+        filename = f"{category}_{endpoint}"
+
+        if method == "concat":
+            result = pages[0]
+            for page in pages[1:]:
+                result += page
+            if max_records is not None:
+                result.results = result.results[:max_records]
+            return result
+
+        # stream_to_storage
+        for page in pages:
+            self._data_manager.stream_json_lines(
+                iter(page.results), filename, key=filename,
+            )
+        self._data_manager.flush_metadata()
+        return self._data_manager.storage_path / f"{filename}.jsonl"
 
 
 if __name__ == "__main__":
-    fetcher = FDA_Fetcher()
+    fetcher = FDA_Fetcher(storage_path="./temp")
     params = dict(search={"receivedate": "[20040101+TO+20081231]"}, limit=3)
     data = fetcher.get(category="drug", endpoint="event", **params)
 
@@ -84,3 +225,7 @@ if __name__ == "__main__":
                                        "patient.drug.drugindication"]))
     
     print(data.as_dataframe(columns=["receivedate", "patient.patientonsetage"],))
+
+    batch_data = fetcher.get_all(category="drug", endpoint="event", max_records=4500, **params)
+    print(batch_data.as_dataframe(columns=["receivedate", "patient.patientonsetage"],))
+    print(f"#results: {len(batch_data.results)}")

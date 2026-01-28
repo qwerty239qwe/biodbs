@@ -136,7 +136,7 @@ class BaseDataFetcher:
                     if is_async:
                         result = await get_func(*args, **kwargs)
                     else:
-                        result = get_func(*args, **kwargs)
+                        result = await asyncio.to_thread(get_func, *args, **kwargs)
                     
                     # Update progress
                     completed_count += 1
