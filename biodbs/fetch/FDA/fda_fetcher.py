@@ -23,7 +23,6 @@ class FDA_APIConfig(BaseAPIConfig):
         
 
 class FDA_Fetcher(BaseDataFetcher):
-    # TODO: integrate with DataManager
     def __init__(self, api_key: str = None, limit: int = None, **data_manager_kws):
         super().__init__(FDA_APIConfig(), FDANameSpace(), {})
         self._api_key = api_key
