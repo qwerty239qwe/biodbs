@@ -1,4 +1,4 @@
-from biodbs.fetch import BaseAPIConfig
+from biodbs.fetch._base import BaseAPIConfig
 
 
 class PUGRestAPI(BaseAPIConfig):
