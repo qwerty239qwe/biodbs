@@ -1,2 +1,3 @@
-from biodbs.biomart.enum import BiomartHost
-from biodbs.biomart.utils import *
+from biodbs.fetch.biomart.biomart_fetcher import BioMart_Fetcher
+
+__all__ = ["BioMart_Fetcher"]

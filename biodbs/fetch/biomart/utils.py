@@ -1,5 +1,5 @@
 import re
-import defusedxml.ElementTree as ET
+import xml.etree.ElementTree as ET
 import pandas as pd
 from functools import reduce
 
