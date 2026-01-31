@@ -92,6 +92,21 @@ class FDADeviceEndpoint(Enum):
 
 class FDAFoodEndpoint(Enum):
     event = "event"
+    enforcement = "enforcement"
+
+
+class FDACosmeticEndpoint(Enum):
+    event = "event"
+
+
+class FDATobaccoEndpoint(Enum):
+    problem = "problem"
+
+
+class FDAOtherEndpoint(Enum):
+    historicaldocument = "historicaldocument"
+    nsde = "nsde"
+    substance = "substance"
 
 
 class FDADrugEventSearchField(Enum):
@@ -1163,6 +1178,127 @@ class FDADeviceUDISearchField(Enum):
     version_or_model_number = "version_or_model_number"
 
 
+class FDAFoodEventSearchField(Enum):
+    consumer_age = "consumer.age"
+    consumer_age_unit = "consumer.age_unit"
+    consumer_gender = "consumer.gender"
+    date_created = "date_created"
+    date_started = "date_started"
+    outcomes = "outcomes"
+    products_industry_code = "products.industry_code"
+    products_industry_name = "products.industry_name"
+    products_name_brand = "products.name_brand"
+    products_role = "products.role"
+    reactions = "reactions"
+    report_number = "report_number"
+
+
+class FDAFoodEnforcementSearchField(Enum):
+    address_1 = "address_1"
+    address_2 = "address_2"
+    center_classification_date = "center_classification_date"
+    city = "city"
+    classification = "classification"
+    code_info = "code_info"
+    country = "country"
+    distribution_pattern = "distribution_pattern"
+    event_id = "event_id"
+    initial_firm_notification = "initial_firm_notification"
+    more_code_info = "more_code_info"
+    openfda_application_number = "openfda.application_number"
+    openfda_brand_name = "openfda.brand_name"
+    openfda_generic_name = "openfda.generic_name"
+    openfda_is_original_packager = "openfda.is_original_packager"
+    openfda_manufacturer_name = "openfda.manufacturer_name"
+    openfda_nui = "openfda.nui"
+    openfda_original_packager_product_ndc = "openfda.original_packager_product_ndc"
+    openfda_package_ndc = "openfda.package_ndc"
+    openfda_pharm_class_cs = "openfda.pharm_class_cs"
+    openfda_pharm_class_epc = "openfda.pharm_class_epc"
+    openfda_pharm_class_pe = "openfda.pharm_class_pe"
+    openfda_pharm_class_moa = "openfda.pharm_class_moa"
+    openfda_product_ndc = "openfda.product_ndc"
+    openfda_product_type = "openfda.product_type"
+    openfda_route = "openfda.route"
+    openfda_rxcui = "openfda.rxcui"
+    openfda_spl_id = "openfda.spl_id"
+    openfda_spl_set_id = "openfda.spl_set_id"
+    openfda_substance_name = "openfda.substance_name"
+    openfda_unii = "openfda.unii"
+    openfda_upc = "openfda.upc"
+    product_type = "product_type"
+    product_code = "product_code"
+    product_description = "product_description"
+    product_quantity = "product_quantity"
+    reason_for_recall = "reason_for_recall"
+    recall_initiation_date = "recall_initiation_date"
+    recall_number = "recall_number"
+    recalling_firm = "recalling_firm"
+    report_date = "report_date"
+    state = "state"
+    status = "status"
+    termination_date = "termination_date"
+    voluntary_mandated = "voluntary_mandated"
+
+
+class FDACosmeticEventSearchField(Enum):
+    report_number = "report_number"
+    report_version = "report_version"
+    legacy_report_id = "legacy_report_id"
+    report_type = "report_type"
+    initial_received_date = "initial_received_date"
+    latest_received_date = "latest_received_date"
+    event_date = "event_date"
+    products_product_name = "products.product_name"
+    products_role = "products.role"
+    patient_age = "patient.age"
+    patient_age_unit = "patient.age_unit"
+    patient_gender = "patient.gender"
+    reactions = "reactions"
+    meddra_version = "meddra_version"
+    outcomes = "outcomes"
+
+
+class FDATobaccoProblemSearchField(Enum):
+    report_id = "report_id"
+    date_submitted = "date_submitted"
+    number_tobacco_products = "number_tobacco_products"
+    tobacco_products = "tobacco_products"
+    number_health_problems = "number_health_problems"
+    reported_health_problems = "reported_health_problems"
+    nonuser_affected = "nonuser_affected"
+    number_product_problems = "number_product_problems"
+    reported_product_problems = "reported_product_problems"
+
+
+class FDAOtherHistoricalDocumentSearchField(Enum):
+    doc_type = "doc_type"
+    year = "year"
+    num_of_pages = "num_of_pages"
+    text = "text"
+    download_url = "download_url"
+
+
+class FDAOtherNSDESearchField(Enum):
+    package_ndc = "package_ndc"
+    package_ndc11 = "package_ndc11"
+    proprietary_name = "proprietary_name"
+    dosage_form = "dosage_form"
+    marketing_category = "marketing_category"
+    application_number_or_citation = "application_number_or_citation"
+    product_type = "product_type"
+    marketing_start_date = "marketing_start_date"
+    marketing_end_date = "marketing_end_date"
+    billing_unit = "billing_unit"
+    inactivation_date = "inactivation_date"
+    reactivation_date = "reactivation_date"
+
+
+class FDAOtherSubstanceSearchField(Enum):
+    substance_name = "substance_name"
+    unii = "unii"
+
+
 SEARCH_FIELD_VALIDATION_RULES = {
     FDAAnimalVeterinaryEndpoint.event: _load_field_rules(
         "animalandveterinary_event_fields.yaml"
@@ -1173,6 +1309,22 @@ SEARCH_FIELD_VALIDATION_RULES = {
     FDADrugEndpoint.ndc: _load_field_rules("drug_ndc_fields.yaml"),
     FDADrugEndpoint.drugsfda: _load_field_rules("drug_drugsfda_fields.yaml"),
     FDADrugEndpoint.shortages: _load_field_rules("drug_shortages_fields.yaml"),
+    FDADeviceEndpoint._510k: _load_field_rules("device_510k_fields.yaml"),
+    FDADeviceEndpoint.classification: _load_field_rules("device_classification_fields.yaml"),
+    FDADeviceEndpoint.enforcement: _load_field_rules("device_enforcement_fields.yaml"),
+    FDADeviceEndpoint.event: _load_field_rules("device_event_fields.yaml"),
+    FDADeviceEndpoint.pma: _load_field_rules("device_pma_fields.yaml"),
+    FDADeviceEndpoint.recall: _load_field_rules("device_recall_fields.yaml"),
+    FDADeviceEndpoint.registrationlisting: _load_field_rules("device_registrationlisting_fields.yaml"),
+    FDADeviceEndpoint.covid19serology: _load_field_rules("device_covid19serology_fields.yaml"),
+    FDADeviceEndpoint.udi: _load_field_rules("device_udi_fields.yaml"),
+    FDAFoodEndpoint.event: _load_field_rules("food_event_fields.yaml"),
+    FDAFoodEndpoint.enforcement: _load_field_rules("food_enforcement_fields.yaml"),
+    FDACosmeticEndpoint.event: _load_field_rules("cosmetic_event_fields.yaml"),
+    FDATobaccoEndpoint.problem: _load_field_rules("tobacco_problem_fields.yaml"),
+    FDAOtherEndpoint.historicaldocument: _load_field_rules("other_historicaldocument_fields.yaml"),
+    FDAOtherEndpoint.nsde: _load_field_rules("other_nsde_fields.yaml"),
+    FDAOtherEndpoint.substance: _load_field_rules("other_substance_fields.yaml"),
 }
 
 
@@ -1193,26 +1345,44 @@ SEARCH_FIELD_ENUMS = {
     FDADeviceEndpoint.registrationlisting: FDADeviceRegistrationListingSearchField,
     FDADeviceEndpoint.covid19serology: FDADeviceCovid19SerologySearchField,
     FDADeviceEndpoint.udi: FDADeviceUDISearchField,
+    FDAFoodEndpoint.event: FDAFoodEventSearchField,
+    FDAFoodEndpoint.enforcement: FDAFoodEnforcementSearchField,
+    FDACosmeticEndpoint.event: FDACosmeticEventSearchField,
+    FDATobaccoEndpoint.problem: FDATobaccoProblemSearchField,
+    FDAOtherEndpoint.historicaldocument: FDAOtherHistoricalDocumentSearchField,
+    FDAOtherEndpoint.nsde: FDAOtherNSDESearchField,
+    FDAOtherEndpoint.substance: FDAOtherSubstanceSearchField,
 }
 
 
 VALID_ENDPOINTS = {
-    FDACategory("animalandveterinary"): FDAAnimalVeterinaryEndpoint,
-    FDACategory("drug"): FDADrugEndpoint,
-    FDACategory("device"): FDADeviceEndpoint,
-    FDACategory("food"): FDAFoodEndpoint,
+    FDACategory.animalandveterinary: FDAAnimalVeterinaryEndpoint,
+    FDACategory.drug: FDADrugEndpoint,
+    FDACategory.device: FDADeviceEndpoint,
+    FDACategory.food: FDAFoodEndpoint,
+    FDACategory.cosmetic: FDACosmeticEndpoint,
+    FDACategory.tobacco: FDATobaccoEndpoint,
+    FDACategory.other: FDAOtherEndpoint,
 }
 
 
 class FDAModel(BaseModel):
     model_config = ConfigDict(use_enum_values=True)
     category: FDACategory
-    endpoint: FDADrugEndpoint | FDAFoodEndpoint
-    search: Optional[Dict[str, Any]]
-    count: Optional[str]
-    skip: Optional[int]
-    sort: Optional[str]
-    limit: Optional[int]
+    endpoint: (
+        FDAAnimalVeterinaryEndpoint
+        | FDADrugEndpoint
+        | FDADeviceEndpoint
+        | FDAFoodEndpoint
+        | FDACosmeticEndpoint
+        | FDATobaccoEndpoint
+        | FDAOtherEndpoint
+    )
+    search: Optional[Dict[str, Any]] = None
+    count: Optional[str] = None
+    skip: Optional[int] = None
+    sort: Optional[str] = None
+    limit: Optional[int] = None
 
     @model_validator(mode="after")
     def check_valid_endpoint(self):

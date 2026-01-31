@@ -225,7 +225,7 @@ class TestPubChemFetcherDataQuality:
         record = data.results[0]
         assert record["MolecularFormula"] == "C9H8O4"
         # Aspirin molecular weight is ~180.16
-        assert 180 < record["MolecularWeight"] < 181
+        assert 180 < float(record["MolecularWeight"]) < 181
 
     def test_dataframe_conversion(self):
         """Test DataFrame conversion works correctly."""
