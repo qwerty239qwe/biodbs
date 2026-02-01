@@ -9,6 +9,7 @@ from biodbs.data.FDA._data_model import (
     FDACosmeticEndpoint,
     FDATobaccoEndpoint,
     FDAOtherEndpoint,
+    FDATransparencyEndpoint,
     # Search field enums - Animal and Veterinary
     FDAAnimalVeterinaryEventSearchField,
     # Search field enums - Drug
@@ -39,6 +40,8 @@ from biodbs.data.FDA._data_model import (
     FDAOtherHistoricalDocumentSearchField,
     FDAOtherNSDESearchField,
     FDAOtherSubstanceSearchField,
+    # Search field enums - Transparency
+    FDATransparencyCRLSearchField,
     # Validation rules and mappings
     SEARCH_FIELD_VALIDATION_RULES,
     SEARCH_FIELD_ENUMS,
@@ -58,6 +61,7 @@ __all__ = [
     "FDACosmeticEndpoint",
     "FDATobaccoEndpoint",
     "FDAOtherEndpoint",
+    "FDATransparencyEndpoint",
     # Search field enums - Animal and Veterinary
     "FDAAnimalVeterinaryEventSearchField",
     # Search field enums - Drug
@@ -88,6 +92,8 @@ __all__ = [
     "FDAOtherHistoricalDocumentSearchField",
     "FDAOtherNSDESearchField",
     "FDAOtherSubstanceSearchField",
+    # Search field enums - Transparency
+    "FDATransparencyCRLSearchField",
     # Validation rules and mappings
     "SEARCH_FIELD_VALIDATION_RULES",
     "SEARCH_FIELD_ENUMS",

@@ -109,6 +109,10 @@ class FDAOtherEndpoint(Enum):
     substance = "substance"
 
 
+class FDATransparencyEndpoint(Enum):
+    crl = "crl"
+
+
 class FDADrugEventSearchField(Enum):
     authoritynumb = "authoritynumb"
     companynumb = "companynumb"
@@ -1299,6 +1303,20 @@ class FDAOtherSubstanceSearchField(Enum):
     unii = "unii"
 
 
+class FDATransparencyCRLSearchField(Enum):
+    file_name = "file_name"
+    application_number = "application_number"
+    letter_type = "letter_type"
+    letter_date = "letter_date"
+    company_name = "company_name"
+    company_rep = "company_rep"
+    company_address = "company_address"
+    approval_name = "approval_name"
+    approval_title = "approval_title"
+    approval_center = "approval_center"
+    text = "text"
+
+
 SEARCH_FIELD_VALIDATION_RULES = {
     FDAAnimalVeterinaryEndpoint.event: _load_field_rules(
         "animalandveterinary_event_fields.yaml"
@@ -1325,6 +1343,7 @@ SEARCH_FIELD_VALIDATION_RULES = {
     FDAOtherEndpoint.historicaldocument: _load_field_rules("other_historicaldocument_fields.yaml"),
     FDAOtherEndpoint.nsde: _load_field_rules("other_nsde_fields.yaml"),
     FDAOtherEndpoint.substance: _load_field_rules("other_substance_fields.yaml"),
+    FDATransparencyEndpoint.crl: _load_field_rules("transparency_crl_fields.yaml"),
 }
 
 
@@ -1352,6 +1371,7 @@ SEARCH_FIELD_ENUMS = {
     FDAOtherEndpoint.historicaldocument: FDAOtherHistoricalDocumentSearchField,
     FDAOtherEndpoint.nsde: FDAOtherNSDESearchField,
     FDAOtherEndpoint.substance: FDAOtherSubstanceSearchField,
+    FDATransparencyEndpoint.crl: FDATransparencyCRLSearchField,
 }
 
 
@@ -1363,6 +1383,7 @@ VALID_ENDPOINTS = {
     FDACategory.cosmetic: FDACosmeticEndpoint,
     FDACategory.tobacco: FDATobaccoEndpoint,
     FDACategory.other: FDAOtherEndpoint,
+    FDACategory.transparency: FDATransparencyEndpoint,
 }
 
 
@@ -1377,6 +1398,7 @@ class FDAModel(BaseModel):
         | FDACosmeticEndpoint
         | FDATobaccoEndpoint
         | FDAOtherEndpoint
+        | FDATransparencyEndpoint
     )
     search: Optional[Dict[str, Any]] = None
     count: Optional[str] = None
