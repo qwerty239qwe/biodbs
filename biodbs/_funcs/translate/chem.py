@@ -57,7 +57,12 @@ def translate_chemical_ids(
         ...     return_dict=True
         ... )
     """
-    # Map to_type to PubChem property names
+    # Supported from_types
+    valid_from_types = {"cid", "name", "smiles", "inchikey"}
+    if from_type not in valid_from_types:
+        raise ValueError(f"Unsupported from_type: {from_type}. Valid types: {valid_from_types}")
+
+    # Map to_type to PubChem property names (for request)
     property_map = {
         "cid": "CID",
         "smiles": "CanonicalSMILES",
@@ -66,6 +71,20 @@ def translate_chemical_ids(
         "formula": "MolecularFormula",
         "name": "IUPACName",
     }
+
+    # PubChem API returns different keys than requested - map response keys
+    response_key_map = {
+        "CanonicalSMILES": ["CanonicalSMILES", "ConnectivitySMILES", "SMILES"],
+        "IsomericSMILES": ["IsomericSMILES", "SMILES"],
+        "InChIKey": ["InChIKey"],
+        "InChI": ["InChI"],
+        "MolecularFormula": ["MolecularFormula"],
+        "IUPACName": ["IUPACName", "Title"],
+        "CID": ["CID"],
+    }
+
+    if to_type not in property_map:
+        raise ValueError(f"Unsupported to_type: {to_type}. Valid types: {set(property_map.keys())}")
 
     results = []
 
@@ -86,8 +105,6 @@ def translate_chemical_ids(
                 data = pubchem_search_by_inchikey(id_val)
                 cids = data.get_cids()
                 cid = cids[0] if cids else None
-            else:
-                raise ValueError(f"Unsupported from_type: {from_type}")
 
             if cid is None:
                 results.append({from_type: id_val, to_type: None})
@@ -97,16 +114,17 @@ def translate_chemical_ids(
             if to_type == "cid":
                 to_val = cid
             else:
-                prop_name = property_map.get(to_type)
-                if not prop_name:
-                    raise ValueError(f"Unsupported to_type: {to_type}")
-
+                prop_name = property_map[to_type]
                 prop_data = pubchem_get_properties(cid, properties=[prop_name])
                 prop_results = prop_data.results
+                to_val = None
                 if prop_results:
-                    to_val = prop_results[0].get(prop_name)
-                else:
-                    to_val = None
+                    result_dict = prop_results[0]
+                    # Try each possible response key
+                    for key in response_key_map.get(prop_name, [prop_name]):
+                        if key in result_dict:
+                            to_val = result_dict[key]
+                            break
 
             results.append({from_type: id_val, to_type: to_val, "cid": cid})
 

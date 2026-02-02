@@ -27,6 +27,10 @@ Usage:
     # FDA
     events = funcs.fda_drug_events(search="aspirin", limit=10)
 
+    # Ensembl
+    gene = funcs.ensembl_lookup("ENSG00000141510")
+    seq = funcs.ensembl_get_sequence("ENST00000269305", sequence_type="cds")
+
 For ID translation functions, use biodbs._funcs:
     from biodbs._funcs import translate_gene_ids, translate_chemical_ids
 """
@@ -146,6 +150,38 @@ from biodbs.fetch.FDA.funcs import (
     fda_tobacco_problem,
 )
 
+# =============================================================================
+# Ensembl REST API functions
+# =============================================================================
+from biodbs.fetch.ensembl.funcs import (
+    ensembl_lookup,
+    ensembl_lookup_batch,
+    ensembl_lookup_symbol,
+    ensembl_get_sequence,
+    ensembl_get_sequence_batch,
+    ensembl_get_sequence_region,
+    ensembl_get_overlap_id,
+    ensembl_get_overlap_region,
+    ensembl_get_xrefs,
+    ensembl_get_xrefs_symbol,
+    ensembl_get_homology,
+    ensembl_get_homology_symbol,
+    ensembl_get_variation,
+    ensembl_vep_hgvs,
+    ensembl_vep_id,
+    ensembl_vep_region,
+    ensembl_map_assembly,
+    ensembl_get_phenotype_gene,
+    ensembl_get_phenotype_region,
+    ensembl_get_ontology_term,
+    ensembl_get_ontology_ancestors,
+    ensembl_get_ontology_descendants,
+    ensembl_get_genetree,
+    ensembl_get_genetree_member,
+    ensembl_get_assembly_info,
+    ensembl_get_species_info,
+)
+
 __all__ = [
     # PubChem
     "pubchem_get_compound",
@@ -227,4 +263,31 @@ __all__ = [
     "fda_food_enforcement",
     "fda_animalandveterinary_events",
     "fda_tobacco_problem",
+    # Ensembl
+    "ensembl_lookup",
+    "ensembl_lookup_batch",
+    "ensembl_lookup_symbol",
+    "ensembl_get_sequence",
+    "ensembl_get_sequence_batch",
+    "ensembl_get_sequence_region",
+    "ensembl_get_overlap_id",
+    "ensembl_get_overlap_region",
+    "ensembl_get_xrefs",
+    "ensembl_get_xrefs_symbol",
+    "ensembl_get_homology",
+    "ensembl_get_homology_symbol",
+    "ensembl_get_variation",
+    "ensembl_vep_hgvs",
+    "ensembl_vep_id",
+    "ensembl_vep_region",
+    "ensembl_map_assembly",
+    "ensembl_get_phenotype_gene",
+    "ensembl_get_phenotype_region",
+    "ensembl_get_ontology_term",
+    "ensembl_get_ontology_ancestors",
+    "ensembl_get_ontology_descendants",
+    "ensembl_get_genetree",
+    "ensembl_get_genetree_member",
+    "ensembl_get_assembly_info",
+    "ensembl_get_species_info",
 ]

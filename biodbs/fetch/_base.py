@@ -1,5 +1,6 @@
+from __future__ import annotations
 from pydantic import BaseModel, ValidationError
-from typing import Tuple, List, Dict, Any, Callable, Optional
+from typing import Tuple, List, Dict, Any, Callable, Optional, Type
 import asyncio
 import time
 from functools import wraps

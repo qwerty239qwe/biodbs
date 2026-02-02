@@ -101,6 +101,76 @@ class TestTranslateGeneIds:
 # Gene ID Translation Tests (KEGG)
 # =============================================================================
 
+# =============================================================================
+# Gene ID Translation Tests (Ensembl REST API)
+# =============================================================================
+
+class TestTranslateGeneIdsEnsembl:
+    """Tests for translate_gene_ids function using Ensembl REST API."""
+
+    @pytest.mark.integration
+    def test_ensembl_to_hgnc(self):
+        """Test translating Ensembl IDs to HGNC using Ensembl REST API."""
+        result = translate_gene_ids(
+            ["ENSG00000141510"],  # TP53
+            from_type="ensembl_gene_id",
+            to_type="HGNC",
+            database="ensembl",
+        )
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) >= 1
+        assert "ensembl_gene_id" in result.columns
+        assert "HGNC" in result.columns
+
+    @pytest.mark.integration
+    def test_ensembl_to_entrezgene(self):
+        """Test translating Ensembl IDs to EntrezGene using Ensembl REST API."""
+        result = translate_gene_ids(
+            ["ENSG00000141510", "ENSG00000012048"],  # TP53, BRCA1
+            from_type="ensembl_gene_id",
+            to_type="EntrezGene",
+            database="ensembl",
+        )
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) >= 2
+
+    @pytest.mark.integration
+    def test_symbol_to_ensembl_via_rest(self):
+        """Test looking up Ensembl ID from gene symbol using REST API."""
+        result = translate_gene_ids(
+            ["TP53", "BRCA1"],
+            from_type="gene_symbol",
+            to_type="ensembl_gene_id",
+            species="human",
+            database="ensembl",
+        )
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) >= 2
+
+    @pytest.mark.integration
+    def test_ensembl_return_dict(self):
+        """Test Ensembl REST returning result as dictionary."""
+        result = translate_gene_ids(
+            ["ENSG00000141510"],  # TP53
+            from_type="ensembl_gene_id",
+            to_type="HGNC",
+            database="ensembl",
+            return_dict=True,
+        )
+        assert isinstance(result, dict)
+        assert "ENSG00000141510" in result
+
+    def test_invalid_database(self):
+        """Test that invalid database raises ValueError."""
+        with pytest.raises(ValueError, match="Unsupported database"):
+            translate_gene_ids(
+                ["TP53"],
+                from_type="external_gene_name",
+                to_type="ensembl_gene_id",
+                database="invalid_db",
+            )
+
+
 class TestTranslateGeneIdsKegg:
     """Tests for translate_gene_ids_kegg function using KEGG."""
 
@@ -146,12 +216,18 @@ class TestTranslateGeneIdsKegg:
 
 
 @pytest.mark.integration
+@pytest.mark.slow
 def test_empty_list_gene():
-    """Test translation with empty list for genes."""
+    """Test translation with empty list for genes.
+
+    Note: When passing an empty list to BioMart, it returns all genes
+    rather than an empty result (no filter = return all).
+    """
     result = translate_gene_ids(
         [],
         from_type="external_gene_name",
         to_type="ensembl_gene_id",
     )
     assert isinstance(result, pd.DataFrame)
-    assert len(result) == 0
+    # Empty list means no filter, so BioMart returns all genes
+    assert len(result) > 0

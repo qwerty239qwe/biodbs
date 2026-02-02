@@ -1,6 +1,6 @@
 """Gene ID translation functions."""
 
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Literal
 import pandas as pd
 
 from biodbs.fetch.biomart.funcs import biomart_convert_ids
@@ -12,13 +12,25 @@ def translate_gene_ids(
     from_type: str,
     to_type: str,
     species: str = "human",
+    database: Literal["biomart", "ensembl"] = "biomart",
     return_dict: bool = False,
 ) -> Union[Dict[str, str], "pd.DataFrame"]:
     """Translate gene IDs between different identifier types.
 
-    Uses BioMart/Ensembl for gene ID conversion.
+    Args:
+        ids: List of gene IDs to translate.
+        from_type: Source ID type.
+        to_type: Target ID type.
+        species: Species name ("human", "mouse", "rat", etc.). Defaults to "human".
+        database: Database to use for translation:
+            - "biomart": Use BioMart/Ensembl query interface (default).
+              Supports batch queries with many ID types.
+            - "ensembl": Use Ensembl REST API (xrefs endpoint).
+              Better for single ID lookups, returns more cross-references.
+        return_dict: If True, return a dict mapping from_id -> to_id.
+            If False (default), return a DataFrame.
 
-    Supported ID types:
+    Supported ID types for BioMart:
         - ensembl_gene_id: Ensembl gene ID (e.g., "ENSG00000141510")
         - ensembl_transcript_id: Ensembl transcript ID
         - ensembl_peptide_id: Ensembl protein ID
@@ -30,34 +42,48 @@ def translate_gene_ids(
         - refseq_mrna: RefSeq mRNA ID
         - refseq_peptide: RefSeq protein ID
 
-    Args:
-        ids: List of gene IDs to translate.
-        from_type: Source ID type.
-        to_type: Target ID type.
-        species: Species name ("human", "mouse", "rat", etc.). Defaults to "human".
-        return_dict: If True, return a dict mapping from_id -> to_id.
-            If False (default), return a DataFrame.
+    Supported ID types for Ensembl REST:
+        - Input (from_type): Ensembl stable IDs (ENSG*, ENST*, ENSP*)
+        - Output (to_type): Filter by external_db name (e.g., "HGNC", "EntrezGene",
+          "Uniprot_gn", "RefSeq_mRNA", "RefSeq_peptide")
 
     Returns:
         Dict mapping source IDs to target IDs, or DataFrame with both columns.
 
     Example:
-        >>> # Gene symbols to Ensembl IDs
+        >>> # Gene symbols to Ensembl IDs (using BioMart)
         >>> result = translate_gene_ids(
         ...     ["TP53", "BRCA1", "EGFR"],
         ...     from_type="external_gene_name",
         ...     to_type="ensembl_gene_id"
         ... )
 
-        >>> # Ensembl IDs to Entrez IDs
-        >>> mapping = translate_gene_ids(
-        ...     ["ENSG00000141510"],
+        >>> # Ensembl IDs to HGNC (using Ensembl REST API)
+        >>> result = translate_gene_ids(
+        ...     ["ENSG00000141510", "ENSG00000012048"],
         ...     from_type="ensembl_gene_id",
-        ...     to_type="entrezgene_id",
-        ...     return_dict=True
+        ...     to_type="HGNC",
+        ...     database="ensembl"
         ... )
     """
-    
+    valid_databases = {"biomart", "ensembl"}
+    if database not in valid_databases:
+        raise ValueError(f"Unsupported database: {database}. Valid options: {valid_databases}")
+
+    if database == "biomart":
+        return _translate_via_biomart(ids, from_type, to_type, species, return_dict)
+    else:  # ensembl
+        return _translate_via_ensembl(ids, from_type, to_type, species, return_dict)
+
+
+def _translate_via_biomart(
+    ids: List[str],
+    from_type: str,
+    to_type: str,
+    species: str,
+    return_dict: bool,
+) -> Union[Dict[str, str], "pd.DataFrame"]:
+    """Translate gene IDs using BioMart."""
     # Map species names to BioMart dataset names
     species_datasets = {
         "human": "hsapiens_gene_ensembl",
@@ -82,6 +108,77 @@ def translate_gene_ids(
             if from_val and to_val:
                 mapping[from_val] = to_val
         return mapping
+
+    return df
+
+
+def _translate_via_ensembl(
+    ids: List[str],
+    from_type: str,
+    to_type: str,
+    species: str,
+    return_dict: bool,
+) -> Union[Dict[str, str], "pd.DataFrame"]:
+    """Translate gene IDs using Ensembl REST API xrefs endpoint."""
+    from biodbs.fetch.ensembl.funcs import ensembl_get_xrefs, ensembl_get_xrefs_symbol
+
+    # Map common species names to Ensembl species names
+    species_map = {
+        "human": "homo_sapiens",
+        "mouse": "mus_musculus",
+        "rat": "rattus_norvegicus",
+        "zebrafish": "danio_rerio",
+        "fly": "drosophila_melanogaster",
+        "worm": "caenorhabditis_elegans",
+        "yeast": "saccharomyces_cerevisiae",
+    }
+    ensembl_species = species_map.get(species.lower(), species)
+
+    results = []
+
+    for id_val in ids:
+        try:
+            # Determine if input is an Ensembl ID or external symbol
+            if id_val.startswith(("ENSG", "ENST", "ENSP", "ENSMUS", "ENSRNO")):
+                # Input is Ensembl ID - get xrefs
+                data = ensembl_get_xrefs(id_val, external_db=to_type if to_type else None)
+                if data.results:
+                    # Get the primary_id from the first matching xref
+                    for xref in data.results:
+                        if to_type is None or xref.get("dbname", "").upper() == to_type.upper():
+                            results.append({
+                                from_type: id_val,
+                                to_type: xref.get("primary_id") or xref.get("display_id"),
+                                "dbname": xref.get("dbname"),
+                            })
+                            break
+                    else:
+                        # No matching xref found
+                        results.append({from_type: id_val, to_type: None})
+                else:
+                    results.append({from_type: id_val, to_type: None})
+            else:
+                # Input is external symbol - look up Ensembl ID
+                data = ensembl_get_xrefs_symbol(ensembl_species, id_val)
+                if data.results:
+                    # Return the Ensembl ID
+                    ensembl_id = data.results[0].get("id")
+                    results.append({
+                        from_type: id_val,
+                        to_type: ensembl_id,
+                        "type": data.results[0].get("type"),
+                    })
+                else:
+                    results.append({from_type: id_val, to_type: None})
+        except Exception:
+            results.append({from_type: id_val, to_type: None})
+
+    df = pd.DataFrame(results)
+
+    if return_dict:
+        if df.empty:
+            return {}
+        return dict(zip(df[from_type], df[to_type]))
 
     return df
 
