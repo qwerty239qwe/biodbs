@@ -197,14 +197,25 @@ class QuickGOFetchedData(BaseFetchedData):
         Args:
             columns: Columns to include. None means all columns.
             engine: ``"pandas"`` or ``"polars"``.
-        """
-        data = self.as_dict(columns)
-        if not data:
-            cols = columns or []
-            if engine == "pandas":
-                return pd.DataFrame(columns=cols)
-            return pl.DataFrame(schema={c: pl.Utf8 for c in cols})
 
+        Raises:
+            ValueError: If the data is not tabular (no results parsed).
+        """
+        # Check if we have tabular data (results)
+        if not self.results:
+            if self.text:
+                raise ValueError(
+                    "This QuickGO response contains text data that was not parsed into tabular records. "
+                    "Use .text attribute to access the raw text content."
+                )
+            else:
+                # Empty response - return empty DataFrame
+                cols = columns or []
+                if engine == "pandas":
+                    return pd.DataFrame(columns=cols)
+                return pl.DataFrame(schema={c: pl.Utf8 for c in cols})
+
+        data = self.as_dict(columns)
         if engine == "pandas":
             return pd.DataFrame(data)
         return pl.DataFrame(data)

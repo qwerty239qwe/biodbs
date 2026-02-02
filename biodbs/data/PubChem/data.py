@@ -139,6 +139,22 @@ class PUGRestFetchedData(BaseFetchedData):
         columns: Optional[List[str]] = None,
         engine: Literal["pandas", "polars"] = "pandas",
     ):
+        """Convert results to a DataFrame.
+
+        Args:
+            columns: Columns to include. None means all columns.
+            engine: "pandas" or "polars".
+
+        Raises:
+            ValueError: If the data is binary (e.g., SDF, image) and cannot be converted.
+        """
+        # Check for binary data that can't be converted
+        if self.binary_data and not self.results:
+            raise ValueError(
+                "This PubChem response contains binary data (e.g., SDF, image) which cannot be "
+                "converted to a DataFrame. Use .binary_data, .to_sdf(path), or .to_image(path) instead."
+            )
+
         data = self.as_dict(columns)
         if not data:
             return pd.DataFrame() if engine == "pandas" else pl.DataFrame()
@@ -342,6 +358,22 @@ class PUGViewFetchedData(BaseFetchedData):
     def as_dict(self) -> Dict:
         """Return the parsed data as a dictionary."""
         return self.get_parsed_data()
+
+    def as_dataframe(self, *args, **kwargs):
+        """PUG View data is hierarchical and cannot be converted to a DataFrame.
+
+        Raises:
+            ValueError: Always, as PUG View data is not tabular.
+
+        Use ``as_dict()`` or ``get_parsed_data()`` to access the data as a
+        nested dictionary, or use ``get_section()`` and ``find_value()``
+        to navigate the hierarchy.
+        """
+        raise ValueError(
+            "PUG View data is hierarchical and cannot be converted to a DataFrame. "
+            "Use .as_dict() or .get_parsed_data() to get the data as a dictionary, "
+            "or use .get_section() and .find_value() to navigate the hierarchy."
+        )
 
     def has_error(self) -> bool:
         if isinstance(self.raw_content, dict):

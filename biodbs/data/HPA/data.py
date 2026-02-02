@@ -125,7 +125,27 @@ class HPAFetchedData(BaseFetchedData):
         columns: Optional[List[str]] = None,
         engine: Literal["pandas", "polars"] = "pandas",
     ):
-        """Convert results to DataFrame."""
+        """Convert results to DataFrame.
+
+        Args:
+            columns: Columns to include. None means all columns.
+            engine: "pandas" or "polars".
+
+        Raises:
+            ValueError: If the data is binary or unparsed text that cannot be converted.
+        """
+        # Check for non-tabular data
+        if not self.results:
+            if hasattr(self, 'binary_data') and self.binary_data:
+                raise ValueError(
+                    "This HPA response contains binary data which cannot be converted to a DataFrame."
+                )
+            elif hasattr(self, 'text_data') and self.text_data and self.format == "xml":
+                raise ValueError(
+                    "This HPA XML response was not parsed into tabular records. "
+                    "Use .text_data attribute to access the raw XML content."
+                )
+
         data = self.as_dict(columns)
         if not data:
             return pd.DataFrame() if engine == "pandas" else pl.DataFrame()

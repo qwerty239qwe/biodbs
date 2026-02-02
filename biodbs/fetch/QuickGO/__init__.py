@@ -5,6 +5,7 @@ from biodbs.fetch.QuickGO.quickgo_fetcher import (
     QuickGO_APIConfig,
     QuickGONameSpace,
 )
+from biodbs.fetch.QuickGO import funcs
 
 
 class QuickGODB(SearchFetcher, SlimFetcher, ChartFetcher, TermFetcher):
@@ -22,4 +23,5 @@ __all__ = [
     "QuickGO_Fetcher",
     "QuickGO_APIConfig",
     "QuickGONameSpace",
+    "funcs",
 ]

@@ -21,6 +21,25 @@ class FDAFetchedData(BaseFetchedData):
         return self.results
 
     def as_dataframe(self, columns, engine: Literal["pandas", "polars"] = "pandas"):
+        """Convert results to a DataFrame with specified columns.
+
+        Args:
+            columns: List of column names to include (supports dot notation for nested fields,
+                e.g., "patient.drug.medicinalproduct"). Use show_valid_columns() to see available columns.
+            engine: "pandas" or "polars".
+
+        Raises:
+            ValueError: If no results are available.
+
+        Note:
+            FDA data is deeply nested, so columns parameter is required to specify
+            which fields to extract. Use show_valid_columns() to see available fields.
+        """
+        if not self.results:
+            raise ValueError(
+                "No results available to convert to DataFrame. "
+                "The API response may be empty or an error occurred."
+            )
         formatted_results = self.format_results(columns=columns)
         return pd.DataFrame(formatted_results) if engine == "pandas" else pl.DataFrame(formatted_results)
 

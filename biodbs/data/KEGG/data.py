@@ -224,15 +224,36 @@ class KEGGFetchedData(BaseFetchedData):
         Args:
             columns: Columns to include. None means all columns.
             engine: ``"pandas"`` or ``"polars"``.
-        """
-        data = self.as_dict(columns)
-        if not data:
-            # Return empty dataframe with expected columns
-            cols = columns or (KEGG_TABULAR_COLUMNS.get(self.operation, []))
-            if engine == "pandas":
-                return pd.DataFrame(columns=cols)
-            return pl.DataFrame(schema={c: pl.Utf8 for c in cols})
 
+        Raises:
+            ValueError: If the data is not tabular (no records parsed).
+        """
+        # Check if we have tabular data (records)
+        if not self.records:
+            # Determine what kind of non-tabular data we have and give helpful error
+            if self.binary_data:
+                raise ValueError(
+                    "This KEGG response contains binary data (e.g., image) which cannot be "
+                    "converted to a DataFrame. Use .binary_data or .to_binary(path) instead."
+                )
+            elif self.json_data:
+                raise ValueError(
+                    "This KEGG response contains JSON data that was not parsed into tabular records. "
+                    "Use .json_data attribute to access the raw JSON dict."
+                )
+            elif self.text:
+                raise ValueError(
+                    f"This KEGG '{self.operation}' response contains text data that is not tabular. "
+                    "Use .text attribute to access the raw text content."
+                )
+            else:
+                # Empty response
+                cols = columns or (KEGG_TABULAR_COLUMNS.get(self.operation, []))
+                if engine == "pandas":
+                    return pd.DataFrame(columns=cols)
+                return pl.DataFrame(schema={c: pl.Utf8 for c in cols})
+
+        data = self.as_dict(columns)
         if engine == "pandas":
             return pd.DataFrame(data)
         return pl.DataFrame(data)
