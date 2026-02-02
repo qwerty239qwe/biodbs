@@ -1,6 +1,10 @@
 """Gene ID translation functions."""
 
 from typing import List, Dict, Union
+import pandas as pd
+
+from biodbs.fetch.biomart.funcs import biomart_convert_ids
+from biodbs.fetch.KEGG.funcs import kegg_conv
 
 
 def translate_gene_ids(
@@ -53,8 +57,7 @@ def translate_gene_ids(
         ...     return_dict=True
         ... )
     """
-    from biodbs.fetch.biomart.funcs import biomart_convert_ids
-
+    
     # Map species names to BioMart dataset names
     species_datasets = {
         "human": "hsapiens_gene_ensembl",
@@ -117,8 +120,7 @@ def translate_gene_ids_kegg(
         >>> # Convert entire organism's genes
         >>> result = translate_gene_ids_kegg([], from_db="hsa", to_db="uniprot")
     """
-    from biodbs.fetch.KEGG.funcs import kegg_conv
-
+    
     if ids:
         data = kegg_conv(target_db=to_db, source=ids)
     else:

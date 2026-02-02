@@ -1,6 +1,17 @@
 """Chemical/Compound ID translation functions."""
 
 from typing import List, Dict, Union
+import pandas as pd
+
+from biodbs.fetch.pubchem.funcs import (
+        pubchem_search_by_name,
+        pubchem_search_by_smiles,
+        pubchem_search_by_inchikey,
+        pubchem_get_properties,
+    )
+
+from biodbs.fetch.KEGG.funcs import kegg_conv
+from biodbs.fetch.ChEMBL.funcs import chembl_get_molecule, chembl_search_molecules
 
 
 def translate_chemical_ids(
@@ -46,14 +57,6 @@ def translate_chemical_ids(
         ...     return_dict=True
         ... )
     """
-    import pandas as pd
-    from biodbs.fetch.pubchem.funcs import (
-        pubchem_search_by_name,
-        pubchem_search_by_smiles,
-        pubchem_search_by_inchikey,
-        pubchem_get_properties,
-    )
-
     # Map to_type to PubChem property names
     property_map = {
         "cid": "CID",
@@ -150,8 +153,7 @@ def translate_chemical_ids_kegg(
         ...     to_db="pubchem"
         ... )
     """
-    from biodbs.fetch.KEGG.funcs import kegg_conv
-
+    
     if ids:
         data = kegg_conv(target_db=to_db, source=ids)
     else:
@@ -176,9 +178,6 @@ def translate_chembl_to_pubchem(
     Example:
         >>> result = translate_chembl_to_pubchem(["CHEMBL25", "CHEMBL1201585"])
     """
-    import pandas as pd
-    from biodbs.fetch.ChEMBL.funcs import chembl_get_molecule
-    from biodbs.fetch.pubchem.funcs import pubchem_search_by_inchikey
 
     results = []
     for chembl_id in chembl_ids:
@@ -235,9 +234,6 @@ def translate_pubchem_to_chembl(
     Example:
         >>> result = translate_pubchem_to_chembl([2244, 3672])
     """
-    import pandas as pd
-    from biodbs.fetch.pubchem.funcs import pubchem_get_properties
-    from biodbs.fetch.ChEMBL.funcs import chembl_search_molecules
 
     results = []
     for cid in cids:
