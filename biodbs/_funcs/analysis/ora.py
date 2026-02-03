@@ -991,13 +991,13 @@ def ora_enrichr(
         genes: List of gene symbols.
         gene_set_library: EnrichR library to use. Common options:
             - "KEGG_2021_Human"
-            - "GO_Biological_Process_2021"
-            - "GO_Molecular_Function_2021"
-            - "GO_Cellular_Component_2021"
+            - "GO_Biological_Process_2023"
+            - "GO_Molecular_Function_2023"
+            - "GO_Cellular_Component_2023"
             - "Reactome_2022"
-            - "WikiPathways_2019_Human"
+            - "WikiPathway_2023_Human"
             - "MSigDB_Hallmark_2020"
-        organism: Organism ("human" or "mouse").
+        organism: Organism ("human", "mouse", "fly", "yeast", "worm", "fish").
 
     Returns:
         ORAResult with EnrichR enrichment results.
@@ -1011,80 +1011,32 @@ def ora_enrichr(
         >>> result = ora_enrichr(genes, "KEGG_2021_Human")
         >>> print(result.top_terms(10).as_dataframe())
     """
-    import requests
+    from biodbs.fetch.EnrichR import EnrichR_Fetcher
 
-    # EnrichR API endpoints
-    if organism.lower() == "mouse":
-        base_url = "https://maayanlab.cloud/Enrichr"
-    else:
-        base_url = "https://maayanlab.cloud/Enrichr"
+    # Use the EnrichR fetcher
+    fetcher = EnrichR_Fetcher(organism=organism)
+    enrichr_data = fetcher.enrich(genes, gene_set_library)
 
-    # Step 1: Submit gene list
-    add_list_url = f"{base_url}/addList"
-
-    genes_str = "\n".join(genes)
-    payload = {
-        "list": (None, genes_str),
-        "description": (None, "biodbs ORA analysis"),
-    }
-
-    try:
-        response = requests.post(add_list_url, files=payload, timeout=30)
-        response.raise_for_status()
-        list_data = response.json()
-        user_list_id = list_data.get("userListId")
-
-        if not user_list_id:
-            raise ValueError("Failed to get userListId from EnrichR")
-
-    except requests.RequestException as e:
-        raise ConnectionError(f"Failed to connect to EnrichR: {e}")
-
-    # Step 2: Get enrichment results
-    enrich_url = f"{base_url}/enrich"
-    params = {
-        "userListId": user_list_id,
-        "backgroundType": gene_set_library,
-    }
-
-    try:
-        response = requests.get(enrich_url, params=params, timeout=60)
-        response.raise_for_status()
-        enrich_data = response.json()
-    except requests.RequestException as e:
-        raise ConnectionError(f"Failed to get EnrichR results: {e}")
-
-    # Parse results
+    # Convert EnrichR results to ORATermResult objects
     results = []
-    library_results = enrich_data.get(gene_set_library, [])
+    for term in enrichr_data.get_enrichment_terms():
+        # Parse overlap genes - handle both string and list formats
+        overlap_genes = term.overlapping_genes
+        if isinstance(overlap_genes, str):
+            overlap_genes = overlap_genes.split(";") if overlap_genes else []
 
-    for entry in library_results:
-        # EnrichR result format:
-        # [rank, term_name, p_value, z_score, combined_score,
-        #  overlap_genes, adjusted_p_value, old_p_value, old_adjusted_p_value]
-        if len(entry) < 7:
-            continue
-
-        term_name = entry[1]
-        p_value = entry[2]
-        adjusted_p_value = entry[6]
-        overlap_genes = entry[5] if isinstance(entry[5], list) else []
-
-        # Parse overlap info from term name if available
-        # Format is often "Term Name (k/K)"
         overlap_count = len(overlap_genes)
-        term_size = overlap_count  # EnrichR doesn't provide this directly
 
         result = ORATermResult(
-            term_id=term_name,
-            term_name=term_name,
-            p_value=p_value,
-            adjusted_p_value=adjusted_p_value,
+            term_id=term.term_name,
+            term_name=term.term_name,
+            p_value=term.p_value,
+            adjusted_p_value=term.adjusted_p_value,
             overlap_count=overlap_count,
-            term_size=term_size,
+            term_size=overlap_count,  # EnrichR doesn't provide term size directly
             query_size=len(genes),
             background_size=0,  # Not provided by EnrichR
-            fold_enrichment=entry[4] if len(entry) > 4 else 0.0,  # combined score
+            fold_enrichment=term.combined_score,
             overlap_genes=overlap_genes,
             database=f"EnrichR:{gene_set_library}",
         )
@@ -1103,6 +1055,6 @@ def ora_enrichr(
         parameters={
             "gene_set_library": gene_set_library,
             "organism": organism,
-            "method": "enrichr_api",
+            "method": "enrichr_fetcher",
         },
     )

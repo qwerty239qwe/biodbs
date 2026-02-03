@@ -144,6 +144,17 @@ __all__ = [
     "fda_food_enforcement",
     "fda_animalandveterinary_events",
     "fda_tobacco_problem",
+    # EnrichR
+    "enrichr_get_libraries",
+    "enrichr_enrich",
+    "enrichr_enrich_multiple",
+    "enrichr_enrich_with_background",
+    "enrichr_kegg",
+    "enrichr_go_bp",
+    "enrichr_go_mf",
+    "enrichr_go_cc",
+    "enrichr_reactome",
+    "enrichr_wikipathways",
     # Ensembl REST API
     "ensembl_lookup",
     "ensembl_lookup_batch",
