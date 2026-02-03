@@ -525,10 +525,10 @@ def _get_go_terms(
         kwargs["aspect"] = aspect
 
     if evidence_codes:
-        kwargs["goEvidence"] = ",".join(evidence_codes)
+        kwargs["goEvidence"] = evidence_codes
     else:
         # Exclude IEA (electronic annotations) by default for higher quality
-        kwargs["goEvidence"] = "IDA,IPI,IMP,IGI,IEP,TAS,IC"
+        kwargs["goEvidence"] = ["IDA", "IPI", "IMP", "IGI", "IEP", "TAS", "IC"]
 
     # Fetch annotations (this may take a while)
     try:
@@ -935,6 +935,9 @@ def ora_go(
         max_term_size=max_term_size,
     )
 
+    # Determine aspect string
+    aspect_str = aspect if isinstance(aspect, str) else aspect.value if hasattr(aspect, 'value') else str(aspect)
+
     if not go_terms:
         warnings.warn(f"No GO terms found for taxon: {taxon_id}")
         return ORAResult(
@@ -944,10 +947,14 @@ def ora_go(
             unmapped_genes=unmapped,
             background_size=0,
             database="GO",
+            parameters={
+                "taxon_id": taxon_id,
+                "id_type": id_type,
+                "aspect": aspect_str,
+            },
         )
 
-    # Determine aspect string for database name
-    aspect_str = aspect if isinstance(aspect, str) else aspect.value
+    # Create database name with aspect
     db_name = f"GO:{aspect_str}"
 
     # Run ORA

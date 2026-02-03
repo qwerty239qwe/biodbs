@@ -1,11 +1,69 @@
+"""biodbs - Biological Database Access Library.
+
+This library provides easy access to various biological databases through
+three main namespaces:
+
+1. biodbs.fetch - Data fetching functions (low-level API wrappers)
+   from biodbs.fetch import pubchem_get_compound, kegg_get, ensembl_lookup
+
+2. biodbs.translate - ID translation functions
+   from biodbs.translate import translate_gene_ids, translate_chemical_ids
+
+3. biodbs.analysis - Analysis functions (ORA, enrichment, etc.)
+   from biodbs.analysis import ora_kegg, ora_go, ora_enrichr
+
+All functions are also available at the top level for convenience:
+   from biodbs import pubchem_get_compound, translate_gene_ids, ora_kegg
+"""
+
 __version__ = 0.01
 
-
+# =============================================================================
+# Fetch functions (low-level API wrappers for biological databases)
+# =============================================================================
 from biodbs.fetch._func import *
-from biodbs._funcs import *
 
+# =============================================================================
+# Translate functions (ID mapping between databases)
+# =============================================================================
+from biodbs._funcs.translate import (
+    translate_gene_ids,
+    translate_gene_ids_kegg,
+    translate_chemical_ids,
+    translate_chemical_ids_kegg,
+    translate_chembl_to_pubchem,
+    translate_pubchem_to_chembl,
+)
+
+# =============================================================================
+# Analysis functions (enrichment analysis, statistics, etc.)
+# =============================================================================
+from biodbs._funcs.analysis import (
+    ora,
+    ora_kegg,
+    ora_go,
+    ora_enrichr,
+    ORAResult,
+    hypergeometric_test,
+    multiple_test_correction,
+)
+
+# =============================================================================
+# Submodule namespaces (for organized imports)
+# =============================================================================
+from biodbs import fetch
+from biodbs import translate
+from biodbs import analysis
 
 __all__ = [
+    # Submodules
+    "fetch",
+    "translate",
+    "analysis",
+
+    # ==========================================================================
+    # FETCH FUNCTIONS - Low-level API wrappers
+    # ==========================================================================
     # PubChem
     "pubchem_get_compound",
     "pubchem_get_compounds",
@@ -86,16 +144,47 @@ __all__ = [
     "fda_food_enforcement",
     "fda_animalandveterinary_events",
     "fda_tobacco_problem",
+    # Ensembl REST API
+    "ensembl_lookup",
+    "ensembl_lookup_batch",
+    "ensembl_lookup_symbol",
+    "ensembl_get_sequence",
+    "ensembl_get_sequence_batch",
+    "ensembl_get_sequence_region",
+    "ensembl_get_overlap_id",
+    "ensembl_get_overlap_region",
+    "ensembl_get_xrefs",
+    "ensembl_get_xrefs_symbol",
+    "ensembl_get_homology",
+    "ensembl_get_homology_symbol",
+    "ensembl_get_variation",
+    "ensembl_vep_hgvs",
+    "ensembl_vep_id",
+    "ensembl_vep_region",
+    "ensembl_map_assembly",
+    "ensembl_get_phenotype_gene",
+    "ensembl_get_phenotype_region",
+    "ensembl_get_ontology_term",
+    "ensembl_get_ontology_ancestors",
+    "ensembl_get_ontology_descendants",
+    "ensembl_get_genetree",
+    "ensembl_get_genetree_member",
+    "ensembl_get_assembly_info",
+    "ensembl_get_species_info",
 
-    # Gene translation
+    # ==========================================================================
+    # TRANSLATE FUNCTIONS - ID mapping between databases
+    # ==========================================================================
     "translate_gene_ids",
     "translate_gene_ids_kegg",
-    # Chemical translation
     "translate_chemical_ids",
     "translate_chemical_ids_kegg",
     "translate_chembl_to_pubchem",
     "translate_pubchem_to_chembl",
-    # Over-representation analysis
+
+    # ==========================================================================
+    # ANALYSIS FUNCTIONS - Enrichment analysis, statistics
+    # ==========================================================================
     "ora",
     "ora_kegg",
     "ora_go",

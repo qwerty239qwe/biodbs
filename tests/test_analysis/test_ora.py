@@ -409,8 +409,12 @@ class TestORAGo:
         result_bp = ora_go(proteins, aspect="biological_process", use_cache=True)
         result_mf = ora_go(proteins, aspect="molecular_function", use_cache=True)
 
-        assert "biological_process" in result_bp.database
-        assert "molecular_function" in result_mf.database
+        # Database name includes aspect when terms are found, or just "GO" if empty
+        assert "GO" in result_bp.database
+        assert "GO" in result_mf.database
+        # Aspect is always stored in parameters
+        assert result_bp.parameters.get("aspect") == "biological_process"
+        assert result_mf.parameters.get("aspect") == "molecular_function"
 
 
 # =============================================================================
