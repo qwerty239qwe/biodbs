@@ -483,9 +483,10 @@ class EnsemblModel(BaseModel):
         # Overlap parameters
         if self.feature:
             if isinstance(self.feature, list):
-                params["feature"] = ";feature=".join(
+                # Pass as list for multiple feature parameters
+                params["feature"] = [
                     f.value if hasattr(f, "value") else f for f in self.feature
-                )
+                ]
             else:
                 feat = self.feature.value if hasattr(self.feature, "value") else self.feature
                 params["feature"] = feat

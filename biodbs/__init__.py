@@ -86,4 +86,21 @@ __all__ = [
     "fda_food_enforcement",
     "fda_animalandveterinary_events",
     "fda_tobacco_problem",
+
+    # Gene translation
+    "translate_gene_ids",
+    "translate_gene_ids_kegg",
+    # Chemical translation
+    "translate_chemical_ids",
+    "translate_chemical_ids_kegg",
+    "translate_chembl_to_pubchem",
+    "translate_pubchem_to_chembl",
+    # Over-representation analysis
+    "ora",
+    "ora_kegg",
+    "ora_go",
+    "ora_enrichr",
+    "ORAResult",
+    "hypergeometric_test",
+    "multiple_test_correction",
 ]
