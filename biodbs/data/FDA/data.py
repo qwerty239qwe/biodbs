@@ -20,26 +20,71 @@ class FDAFetchedData(BaseFetchedData):
             return self.format_results(columns=columns)
         return self.results
 
-    def as_dataframe(self, columns, engine: Literal["pandas", "polars"] = "pandas"):
-        """Convert results to a DataFrame with specified columns.
+    def _flatten_dict(
+        self, d: dict, parent_key: str = "", sep: str = "."
+    ) -> dict:
+        """Flatten a nested dictionary into dot-separated keys.
+
+        Args:
+            d: Dictionary to flatten.
+            parent_key: Prefix for keys (used in recursion).
+            sep: Separator between nested keys.
+
+        Returns:
+            Flattened dictionary with dot-separated keys.
+        """
+        items = []
+        for k, v in d.items():
+            new_key = f"{parent_key}{sep}{k}" if parent_key else k
+            if isinstance(v, dict):
+                items.extend(self._flatten_dict(v, new_key, sep).items())
+            else:
+                items.append((new_key, v))
+        return dict(items)
+
+    def as_dataframe(
+        self,
+        columns=None,
+        engine: Literal["pandas", "polars"] = "pandas",
+        flatten: bool = False,
+    ):
+        """Convert results to a DataFrame.
 
         Args:
             columns: List of column names to include (supports dot notation for nested fields,
                 e.g., "patient.drug.medicinalproduct"). Use show_valid_columns() to see available columns.
+                If None and flatten=True, all fields will be flattened.
             engine: "pandas" or "polars".
+            flatten: If True, flatten nested dictionaries into dot-separated columns.
+                When flatten=True, columns parameter is optional.
 
         Raises:
-            ValueError: If no results are available.
+            ValueError: If no results are available or if columns is None and flatten is False.
 
         Note:
-            FDA data is deeply nested, so columns parameter is required to specify
-            which fields to extract. Use show_valid_columns() to see available fields.
+            FDA data is deeply nested. Either specify columns to extract specific fields,
+            or use flatten=True to automatically flatten all nested structures.
         """
         if not self.results:
             raise ValueError(
                 "No results available to convert to DataFrame. "
                 "The API response may be empty or an error occurred."
             )
+
+        if flatten:
+            data = [self._flatten_dict(record) for record in self.results]
+            if columns:
+                # Filter to specified columns after flattening
+                data = [{k: v for k, v in record.items() if k in columns} for record in data]
+            return pd.DataFrame(data) if engine == "pandas" else pl.DataFrame(data)
+
+        if columns is None:
+            raise ValueError(
+                "FDA data is deeply nested. Either specify 'columns' parameter to extract "
+                "specific fields, or use 'flatten=True' to flatten all nested structures. "
+                "Use show_valid_columns() to see available fields."
+            )
+
         formatted_results = self.format_results(columns=columns)
         return pd.DataFrame(formatted_results) if engine == "pandas" else pl.DataFrame(formatted_results)
 

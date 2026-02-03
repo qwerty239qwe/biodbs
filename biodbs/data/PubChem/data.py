@@ -129,24 +129,124 @@ class PUGRestFetchedData(BaseFetchedData):
     def get_sids(self) -> List[int]:
         return [r["SID"] for r in self.results if "SID" in r]
 
+    def get_properties_df(self, engine: Literal["pandas", "polars"] = "pandas"):
+        """Extract compound properties into a clean DataFrame.
+
+        This method extracts the nested 'props' field from PC_Compounds records
+        and returns a flat DataFrame with common molecular properties.
+
+        Returns:
+            DataFrame with columns: CID, and various property columns like
+            MolecularWeight, MolecularFormula, InChI, SMILES, etc.
+
+        Example:
+            >>> data = pubchem_get_compounds([2244, 5988])
+            >>> df = data.get_properties_df()
+            >>> print(df[['CID', 'MolecularFormula', 'MolecularWeight']])
+        """
+        records = []
+        for result in self.results:
+            record = {}
+
+            # Extract CID
+            if "id" in result and "id" in result["id"]:
+                record["CID"] = result["id"]["id"].get("cid")
+            elif "CID" in result:
+                record["CID"] = result["CID"]
+
+            # Extract properties from 'props' list
+            props = result.get("props", [])
+            for prop in props:
+                urn = prop.get("urn", {})
+                value = prop.get("value", {})
+
+                # Get property name from urn
+                label = urn.get("label", "")
+                name = urn.get("name", "")
+
+                # Get the actual value (can be in different fields)
+                val = None
+                for val_key in ["sval", "ival", "fval", "binary"]:
+                    if val_key in value:
+                        val = value[val_key]
+                        break
+
+                if label and val is not None:
+                    # Create column name from label (and name if different)
+                    col_name = label
+                    if name and name != label:
+                        col_name = f"{label}_{name}"
+                    # Clean column name
+                    col_name = col_name.replace(" ", "_").replace("-", "_")
+                    record[col_name] = val
+
+            # Extract counts
+            count = result.get("count", {})
+            for count_key, count_val in count.items():
+                record[f"count_{count_key}"] = count_val
+
+            # Extract charge
+            if "charge" in result:
+                record["charge"] = result["charge"]
+
+            records.append(record)
+
+        if not records:
+            return pd.DataFrame() if engine == "pandas" else pl.DataFrame()
+
+        return pd.DataFrame(records) if engine == "pandas" else pl.DataFrame(records)
+
     def as_dict(self, columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         if columns is None:
             return self.results
         return self.format_results(columns=columns)
 
+    def _flatten_dict(
+        self,
+        d: Dict[str, Any],
+        parent_key: str = "",
+        sep: str = ".",
+    ) -> Dict[str, Any]:
+        """Flatten a nested dictionary."""
+        items = []
+        for k, v in d.items():
+            new_key = f"{parent_key}{sep}{k}" if parent_key else k
+            if isinstance(v, dict):
+                items.extend(self._flatten_dict(v, new_key, sep).items())
+            elif isinstance(v, list):
+                # Handle lists - if all items are dicts, try to flatten
+                if v and all(isinstance(item, dict) for item in v):
+                    # For lists of dicts, we can't easily flatten, keep as-is
+                    items.append((new_key, v))
+                else:
+                    items.append((new_key, v))
+            else:
+                items.append((new_key, v))
+        return dict(items)
+
     def as_dataframe(
         self,
         columns: Optional[List[str]] = None,
         engine: Literal["pandas", "polars"] = "pandas",
+        flatten: bool = False,
     ):
         """Convert results to a DataFrame.
 
         Args:
             columns: Columns to include. None means all columns.
             engine: "pandas" or "polars".
+            flatten: If True, flatten nested dictionaries into dot-separated column names.
+                     e.g., {'id': {'cid': 2244}} becomes {'id.cid': 2244}
 
         Raises:
             ValueError: If the data is binary (e.g., SDF, image) and cannot be converted.
+
+        Example:
+            >>> data = pubchem_get_compounds([2244, 5988])
+            >>> # Without flatten - nested dicts in columns
+            >>> df = data.as_dataframe()
+            >>> # With flatten - flat columns like 'id.id.cid'
+            >>> df = data.as_dataframe(flatten=True)
         """
         # Check for binary data that can't be converted
         if self.binary_data and not self.results:
@@ -158,6 +258,10 @@ class PUGRestFetchedData(BaseFetchedData):
         data = self.as_dict(columns)
         if not data:
             return pd.DataFrame() if engine == "pandas" else pl.DataFrame()
+
+        if flatten:
+            data = [self._flatten_dict(record) for record in data]
+
         return pd.DataFrame(data) if engine == "pandas" else pl.DataFrame(data)
 
     def _get_nested_value(self, data_dict: dict, keys: List[str]) -> Any:

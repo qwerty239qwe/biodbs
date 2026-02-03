@@ -120,16 +120,40 @@ class HPAFetchedData(BaseFetchedData):
             return self.results
         return self.format_results(columns=columns)
 
+    def _flatten_dict(
+        self, d: Dict[str, Any], parent_key: str = "", sep: str = "."
+    ) -> Dict[str, Any]:
+        """Flatten a nested dictionary into dot-separated keys.
+
+        Args:
+            d: Dictionary to flatten.
+            parent_key: Prefix for keys (used in recursion).
+            sep: Separator between nested keys.
+
+        Returns:
+            Flattened dictionary with dot-separated keys.
+        """
+        items = []
+        for k, v in d.items():
+            new_key = f"{parent_key}{sep}{k}" if parent_key else k
+            if isinstance(v, dict):
+                items.extend(self._flatten_dict(v, new_key, sep).items())
+            else:
+                items.append((new_key, v))
+        return dict(items)
+
     def as_dataframe(
         self,
         columns: Optional[List[str]] = None,
         engine: Literal["pandas", "polars"] = "pandas",
+        flatten: bool = False,
     ):
         """Convert results to DataFrame.
 
         Args:
             columns: Columns to include. None means all columns.
             engine: "pandas" or "polars".
+            flatten: If True, flatten nested dictionaries into dot-separated columns.
 
         Raises:
             ValueError: If the data is binary or unparsed text that cannot be converted.
@@ -149,6 +173,10 @@ class HPAFetchedData(BaseFetchedData):
         data = self.as_dict(columns)
         if not data:
             return pd.DataFrame() if engine == "pandas" else pl.DataFrame()
+
+        if flatten:
+            data = [self._flatten_dict(record) for record in data]
+
         return pd.DataFrame(data) if engine == "pandas" else pl.DataFrame(data)
 
     def _get_nested_value(self, data_dict: dict, keys: List[str]) -> Any:

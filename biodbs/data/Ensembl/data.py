@@ -146,16 +146,40 @@ class EnsemblFetchedData(BaseFetchedData):
             return self.results
         return self.format_results(columns=columns)
 
+    def _flatten_dict(
+        self, d: Dict[str, Any], parent_key: str = "", sep: str = "."
+    ) -> Dict[str, Any]:
+        """Flatten a nested dictionary into dot-separated keys.
+
+        Args:
+            d: Dictionary to flatten.
+            parent_key: Prefix for keys (used in recursion).
+            sep: Separator between nested keys.
+
+        Returns:
+            Flattened dictionary with dot-separated keys.
+        """
+        items = []
+        for k, v in d.items():
+            new_key = f"{parent_key}{sep}{k}" if parent_key else k
+            if isinstance(v, dict):
+                items.extend(self._flatten_dict(v, new_key, sep).items())
+            else:
+                items.append((new_key, v))
+        return dict(items)
+
     def as_dataframe(
         self,
         columns: Optional[List[str]] = None,
         engine: Literal["pandas", "polars"] = "pandas",
+        flatten: bool = False,
     ):
         """Convert results to a DataFrame.
 
         Args:
             columns: Columns to include. None means all columns.
             engine: "pandas" or "polars".
+            flatten: If True, flatten nested dictionaries into dot-separated columns.
 
         Raises:
             ValueError: If data is not tabular (e.g., sequence/text responses).
@@ -172,6 +196,9 @@ class EnsemblFetchedData(BaseFetchedData):
             return pl.DataFrame()
 
         data = self.as_dict(columns)
+
+        if flatten:
+            data = [self._flatten_dict(record) for record in data]
 
         if engine == "pandas":
             return pd.DataFrame(data)
