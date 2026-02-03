@@ -1,6 +1,7 @@
 """Convenience functions for FDA openFDA data fetching."""
 
 from typing import Dict, Optional, Union
+from biodbs.data.FDA.data import FDAFetchedData
 from biodbs.fetch.FDA.fda_fetcher import FDA_Fetcher
 
 # Module-level fetcher instance (lazy initialization)
@@ -21,21 +22,21 @@ def fda_search(
     search: Optional[Union[str, Dict]] = None,
     limit: int = 100,
     **kwargs,
-):
-    """Generic FDA search function.
+) -> FDAFetchedData:
+    """Search FDA openFDA database.
 
     Args:
-        category: FDA category (drug, device, food, etc.).
-        endpoint: Endpoint within category (event, label, enforcement, etc.).
-        search: Search query string or dict.
-        limit: Maximum results per request.
+        category (str): FDA category ("drug", "device", "food", etc.).
+        endpoint (str): Endpoint within category ("event", "label", "enforcement", etc.).
+        search (Optional[Union[str, Dict]]): Search query string or dict of field:value pairs.
+        limit (int): Maximum results per request.
         **kwargs: Additional parameters (sort, count, skip).
 
     Returns:
-        FDAFetchedData with search results.
+        FDAFetchedData containing search results.
 
     Example:
-        >>> data = fda_search("drug", "event", search="patient.drug.openfda.brand_name:aspirin", limit=10)
+        >>> data = fda_search("drug", "event", search="aspirin", limit=10)
         >>> df = data.as_dataframe()
     """
     return _get_fetcher().get(
@@ -53,22 +54,22 @@ def fda_search_all(
     search: Optional[Union[str, Dict]] = None,
     max_records: Optional[int] = None,
     **kwargs,
-):
-    """FDA search with automatic pagination.
+) -> FDAFetchedData:
+    """Search FDA openFDA database with automatic pagination.
 
     Args:
-        category: FDA category.
-        endpoint: Endpoint within category.
-        search: Search query.
-        max_records: Maximum total records to fetch (None = all available).
+        category (str): FDA category.
+        endpoint (str): Endpoint within category.
+        search (Optional[Union[str, Dict]]): Search query.
+        max_records (Optional[int]): Maximum total records to fetch. If None, fetches all available.
         **kwargs: Additional parameters.
 
     Returns:
-        FDAFetchedData with all matching results.
+        FDAFetchedData containing all matching results.
 
     Example:
         >>> data = fda_search_all("drug", "event", search="aspirin", max_records=5000)
-        >>> print(len(data.results))
+        >>> print(f"Found {len(data.results)} records")
     """
     return _get_fetcher().get_all(
         category=category,
@@ -88,20 +89,21 @@ def fda_drug_events(
     search: Optional[Union[str, Dict]] = None,
     limit: int = 100,
     **kwargs,
-):
+) -> FDAFetchedData:
     """Search FDA drug adverse event reports (FAERS).
 
     Args:
-        search: Search query (e.g., "patient.drug.openfda.brand_name:aspirin").
-        limit: Maximum results.
-        **kwargs: Additional parameters.
+        search (Optional[Union[str, Dict]]): Search query (e.g., "patient.drug.openfda.brand_name:aspirin").
+        limit (int): Maximum results to return.
+        **kwargs: Additional parameters (sort, count, skip).
 
     Returns:
-        FDAFetchedData with adverse event reports.
+        FDAFetchedData containing adverse event reports with
+        patient information, drug details, and outcomes.
 
     Example:
-        >>> data = fda_drug_events(search={"receivedate": "[20200101 TO 20201231]"}, limit=50)
-        >>> df = data.as_dataframe(columns=["receivedate", "patient.patientsex"])
+        >>> data = fda_drug_events(search="aspirin", limit=50)
+        >>> df = data.as_dataframe()
     """
     return _get_fetcher().get(
         category="drug", endpoint="event", search=search, limit=limit, **kwargs
@@ -112,16 +114,17 @@ def fda_drug_labels(
     search: Optional[Union[str, Dict]] = None,
     limit: int = 100,
     **kwargs,
-):
-    """Search FDA drug labeling information.
+) -> FDAFetchedData:
+    """Search FDA drug labeling information (SPL).
 
     Args:
-        search: Search query (e.g., "openfda.brand_name:aspirin").
-        limit: Maximum results.
+        search (Optional[Union[str, Dict]]): Search query (e.g., "openfda.brand_name:aspirin").
+        limit (int): Maximum results to return.
         **kwargs: Additional parameters.
 
     Returns:
-        FDAFetchedData with drug labels.
+        FDAFetchedData containing drug labels with
+        indications, warnings, dosage, and contraindications.
 
     Example:
         >>> data = fda_drug_labels(search="openfda.brand_name:aspirin")
@@ -136,19 +139,21 @@ def fda_drug_enforcement(
     search: Optional[Union[str, Dict]] = None,
     limit: int = 100,
     **kwargs,
-):
+) -> FDAFetchedData:
     """Search FDA drug recall enforcement reports.
 
     Args:
-        search: Search query.
-        limit: Maximum results.
+        search (Optional[Union[str, Dict]]): Search query.
+        limit (int): Maximum results to return.
         **kwargs: Additional parameters.
 
     Returns:
-        FDAFetchedData with enforcement reports.
+        FDAFetchedData containing drug recall and enforcement
+        actions with classification and distribution details.
 
     Example:
         >>> data = fda_drug_enforcement(limit=50)
+        >>> df = data.as_dataframe()
     """
     return _get_fetcher().get(
         category="drug", endpoint="enforcement", search=search, limit=limit, **kwargs
@@ -159,19 +164,21 @@ def fda_drug_ndc(
     search: Optional[Union[str, Dict]] = None,
     limit: int = 100,
     **kwargs,
-):
+) -> FDAFetchedData:
     """Search FDA National Drug Code (NDC) directory.
 
     Args:
-        search: Search query.
-        limit: Maximum results.
+        search (Optional[Union[str, Dict]]): Search query.
+        limit (int): Maximum results to return.
         **kwargs: Additional parameters.
 
     Returns:
-        FDAFetchedData with NDC entries.
+        FDAFetchedData containing NDC entries with
+        product and packaging information.
 
     Example:
         >>> data = fda_drug_ndc(search="brand_name:aspirin")
+        >>> df = data.as_dataframe()
     """
     return _get_fetcher().get(
         category="drug", endpoint="ndc", search=search, limit=limit, **kwargs
@@ -182,19 +189,21 @@ def fda_drug_drugsfda(
     search: Optional[Union[str, Dict]] = None,
     limit: int = 100,
     **kwargs,
-):
+) -> FDAFetchedData:
     """Search Drugs@FDA database (approved drug products).
 
     Args:
-        search: Search query.
-        limit: Maximum results.
+        search (Optional[Union[str, Dict]]): Search query.
+        limit (int): Maximum results to return.
         **kwargs: Additional parameters.
 
     Returns:
-        FDAFetchedData with approved drug products.
+        FDAFetchedData containing approved drug products
+        with application numbers and approval details.
 
     Example:
         >>> data = fda_drug_drugsfda(search="products.brand_name:aspirin")
+        >>> df = data.as_dataframe()
     """
     return _get_fetcher().get(
         category="drug", endpoint="drugsfda", search=search, limit=limit, **kwargs
@@ -210,19 +219,21 @@ def fda_device_events(
     search: Optional[Union[str, Dict]] = None,
     limit: int = 100,
     **kwargs,
-):
+) -> FDAFetchedData:
     """Search FDA medical device adverse event reports (MAUDE).
 
     Args:
-        search: Search query.
-        limit: Maximum results.
+        search (Optional[Union[str, Dict]]): Search query.
+        limit (int): Maximum results to return.
         **kwargs: Additional parameters.
 
     Returns:
-        FDAFetchedData with device adverse events.
+        FDAFetchedData containing device adverse events
+        with device and patient information.
 
     Example:
-        >>> data = fda_device_events(limit=50)
+        >>> data = fda_device_events(search="pacemaker", limit=50)
+        >>> df = data.as_dataframe()
     """
     return _get_fetcher().get(
         category="device", endpoint="event", search=search, limit=limit, **kwargs
@@ -233,16 +244,21 @@ def fda_device_classification(
     search: Optional[Union[str, Dict]] = None,
     limit: int = 100,
     **kwargs,
-):
+) -> FDAFetchedData:
     """Search FDA device classification database.
 
     Args:
-        search: Search query.
-        limit: Maximum results.
+        search (Optional[Union[str, Dict]]): Search query.
+        limit (int): Maximum results to return.
         **kwargs: Additional parameters.
 
     Returns:
-        FDAFetchedData with device classifications.
+        FDAFetchedData containing device classifications
+        with regulatory class and product codes.
+
+    Example:
+        >>> data = fda_device_classification(search="pacemaker")
+        >>> df = data.as_dataframe()
     """
     return _get_fetcher().get(
         category="device", endpoint="classification", search=search, limit=limit, **kwargs
@@ -253,16 +269,20 @@ def fda_device_510k(
     search: Optional[Union[str, Dict]] = None,
     limit: int = 100,
     **kwargs,
-):
+) -> FDAFetchedData:
     """Search FDA 510(k) premarket notifications.
 
     Args:
-        search: Search query.
-        limit: Maximum results.
+        search (Optional[Union[str, Dict]]): Search query.
+        limit (int): Maximum results to return.
         **kwargs: Additional parameters.
 
     Returns:
-        FDAFetchedData with 510(k) clearances.
+        FDAFetchedData containing 510(k) clearance records.
+
+    Example:
+        >>> data = fda_device_510k(search="pacemaker")
+        >>> df = data.as_dataframe()
     """
     return _get_fetcher().get(
         category="device", endpoint="510k", search=search, limit=limit, **kwargs
@@ -273,16 +293,20 @@ def fda_device_pma(
     search: Optional[Union[str, Dict]] = None,
     limit: int = 100,
     **kwargs,
-):
+) -> FDAFetchedData:
     """Search FDA Premarket Approval (PMA) database.
 
     Args:
-        search: Search query.
-        limit: Maximum results.
+        search (Optional[Union[str, Dict]]): Search query.
+        limit (int): Maximum results to return.
         **kwargs: Additional parameters.
 
     Returns:
-        FDAFetchedData with PMA approvals.
+        FDAFetchedData containing PMA approval records.
+
+    Example:
+        >>> data = fda_device_pma(search="pacemaker")
+        >>> df = data.as_dataframe()
     """
     return _get_fetcher().get(
         category="device", endpoint="pma", search=search, limit=limit, **kwargs
@@ -293,16 +317,20 @@ def fda_device_recall(
     search: Optional[Union[str, Dict]] = None,
     limit: int = 100,
     **kwargs,
-):
+) -> FDAFetchedData:
     """Search FDA device recall database.
 
     Args:
-        search: Search query.
-        limit: Maximum results.
+        search (Optional[Union[str, Dict]]): Search query.
+        limit (int): Maximum results to return.
         **kwargs: Additional parameters.
 
     Returns:
-        FDAFetchedData with device recalls.
+        FDAFetchedData containing device recall records.
+
+    Example:
+        >>> data = fda_device_recall(limit=50)
+        >>> df = data.as_dataframe()
     """
     return _get_fetcher().get(
         category="device", endpoint="recall", search=search, limit=limit, **kwargs
@@ -313,16 +341,21 @@ def fda_device_udi(
     search: Optional[Union[str, Dict]] = None,
     limit: int = 100,
     **kwargs,
-):
+) -> FDAFetchedData:
     """Search FDA Unique Device Identifier (UDI) database.
 
     Args:
-        search: Search query.
-        limit: Maximum results.
+        search (Optional[Union[str, Dict]]): Search query.
+        limit (int): Maximum results to return.
         **kwargs: Additional parameters.
 
     Returns:
-        FDAFetchedData with UDI entries.
+        FDAFetchedData containing UDI entries with
+        device identification and labeling information.
+
+    Example:
+        >>> data = fda_device_udi(search="pacemaker")
+        >>> df = data.as_dataframe()
     """
     return _get_fetcher().get(
         category="device", endpoint="udi", search=search, limit=limit, **kwargs
@@ -338,19 +371,20 @@ def fda_food_events(
     search: Optional[Union[str, Dict]] = None,
     limit: int = 100,
     **kwargs,
-):
+) -> FDAFetchedData:
     """Search FDA food adverse event reports (CAERS).
 
     Args:
-        search: Search query.
-        limit: Maximum results.
+        search (Optional[Union[str, Dict]]): Search query.
+        limit (int): Maximum results to return.
         **kwargs: Additional parameters.
 
     Returns:
-        FDAFetchedData with food adverse events.
+        FDAFetchedData containing food adverse event reports.
 
     Example:
-        >>> data = fda_food_events(limit=50)
+        >>> data = fda_food_events(search="salmonella", limit=50)
+        >>> df = data.as_dataframe()
     """
     return _get_fetcher().get(
         category="food", endpoint="event", search=search, limit=limit, **kwargs
@@ -361,16 +395,20 @@ def fda_food_enforcement(
     search: Optional[Union[str, Dict]] = None,
     limit: int = 100,
     **kwargs,
-):
+) -> FDAFetchedData:
     """Search FDA food recall enforcement reports.
 
     Args:
-        search: Search query.
-        limit: Maximum results.
+        search (Optional[Union[str, Dict]]): Search query.
+        limit (int): Maximum results to return.
         **kwargs: Additional parameters.
 
     Returns:
-        FDAFetchedData with food enforcement reports.
+        FDAFetchedData containing food enforcement reports.
+
+    Example:
+        >>> data = fda_food_enforcement(limit=50)
+        >>> df = data.as_dataframe()
     """
     return _get_fetcher().get(
         category="food", endpoint="enforcement", search=search, limit=limit, **kwargs
@@ -386,16 +424,20 @@ def fda_animalandveterinary_events(
     search: Optional[Union[str, Dict]] = None,
     limit: int = 100,
     **kwargs,
-):
+) -> FDAFetchedData:
     """Search FDA animal and veterinary adverse event reports.
 
     Args:
-        search: Search query.
-        limit: Maximum results.
+        search (Optional[Union[str, Dict]]): Search query.
+        limit (int): Maximum results to return.
         **kwargs: Additional parameters.
 
     Returns:
-        FDAFetchedData with animal/vet adverse events.
+        FDAFetchedData containing animal/veterinary adverse events.
+
+    Example:
+        >>> data = fda_animalandveterinary_events(search="dog", limit=50)
+        >>> df = data.as_dataframe()
     """
     return _get_fetcher().get(
         category="animalandveterinary", endpoint="event", search=search, limit=limit, **kwargs
@@ -406,16 +448,20 @@ def fda_tobacco_problem(
     search: Optional[Union[str, Dict]] = None,
     limit: int = 100,
     **kwargs,
-):
+) -> FDAFetchedData:
     """Search FDA tobacco problem reports.
 
     Args:
-        search: Search query.
-        limit: Maximum results.
+        search (Optional[Union[str, Dict]]): Search query.
+        limit (int): Maximum results to return.
         **kwargs: Additional parameters.
 
     Returns:
-        FDAFetchedData with tobacco problem reports.
+        FDAFetchedData containing tobacco problem reports.
+
+    Example:
+        >>> data = fda_tobacco_problem(search="cigarette", limit=50)
+        >>> df = data.as_dataframe()
     """
     return _get_fetcher().get(
         category="tobacco", endpoint="problem", search=search, limit=limit, **kwargs

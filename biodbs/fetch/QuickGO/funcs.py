@@ -1,6 +1,7 @@
 """Convenience functions for QuickGO data fetching."""
 
 from typing import List, Optional, Union
+from biodbs.data.QuickGO.data import QuickGOFetchedData
 from biodbs.fetch.QuickGO.quickgo_fetcher import QuickGO_Fetcher
 
 # Module-level fetcher instance (lazy initialization)
@@ -15,19 +16,21 @@ def _get_fetcher() -> QuickGO_Fetcher:
     return _fetcher
 
 
-def quickgo_search_terms(query: str, limit: int = 100):
+def quickgo_search_terms(query: str, limit: int = 100) -> QuickGOFetchedData:
     """Search GO terms by keyword.
 
     Args:
-        query: Search query (e.g., "apoptosis", "cell cycle").
-        limit: Maximum number of results.
+        query (str): Search query (e.g., "apoptosis", "cell cycle").
+        limit (int): Maximum number of results to return.
 
     Returns:
-        QuickGOFetchedData with matching GO terms.
+        QuickGOFetchedData containing matching GO terms with
+        their IDs, names, definitions, and aspects.
 
     Example:
         >>> data = quickgo_search_terms("apoptosis")
         >>> df = data.as_dataframe()
+        >>> print(df[["id", "name", "aspect"]].head())
     """
     return _get_fetcher().get(
         category="ontology",
@@ -37,14 +40,16 @@ def quickgo_search_terms(query: str, limit: int = 100):
     )
 
 
-def quickgo_get_terms(ids: Union[str, List[str]]):
+def quickgo_get_terms(ids: Union[str, List[str]]) -> QuickGOFetchedData:
     """Get GO term details by ID.
 
     Args:
-        ids: GO term ID(s) (e.g., "GO:0008150", ["GO:0008150", "GO:0003674"]).
+        ids (Union[str, List[str]]): GO term ID or list of IDs
+            (e.g., "GO:0008150" or ["GO:0008150", "GO:0003674"]).
 
     Returns:
-        QuickGOFetchedData with term details.
+        QuickGOFetchedData containing term details including
+        name, definition, aspect, and synonyms.
 
     Example:
         >>> data = quickgo_get_terms("GO:0006915")  # apoptotic process
@@ -59,17 +64,19 @@ def quickgo_get_terms(ids: Union[str, List[str]]):
     )
 
 
-def quickgo_get_term_children(go_id: str):
+def quickgo_get_term_children(go_id: str) -> QuickGOFetchedData:
     """Get child terms of a GO term.
 
     Args:
-        go_id: GO term ID (e.g., "GO:0008150").
+        go_id (str): GO term ID (e.g., "GO:0008150").
 
     Returns:
-        QuickGOFetchedData with child terms.
+        QuickGOFetchedData containing direct child terms
+        in the GO hierarchy.
 
     Example:
-        >>> data = quickgo_get_term_children("GO:0008150")
+        >>> data = quickgo_get_term_children("GO:0008150")  # biological_process
+        >>> print(len(data.results))  # Number of child terms
     """
     return _get_fetcher().get(
         category="ontology",
@@ -78,17 +85,19 @@ def quickgo_get_term_children(go_id: str):
     )
 
 
-def quickgo_get_term_ancestors(go_id: str):
+def quickgo_get_term_ancestors(go_id: str) -> QuickGOFetchedData:
     """Get ancestor terms of a GO term.
 
     Args:
-        go_id: GO term ID (e.g., "GO:0006915").
+        go_id (str): GO term ID (e.g., "GO:0006915").
 
     Returns:
-        QuickGOFetchedData with ancestor terms.
+        QuickGOFetchedData containing ancestor terms
+        up to the root of the GO hierarchy.
 
     Example:
-        >>> data = quickgo_get_term_ancestors("GO:0006915")
+        >>> data = quickgo_get_term_ancestors("GO:0006915")  # apoptotic process
+        >>> print([r["name"] for r in data.results])
     """
     return _get_fetcher().get(
         category="ontology",
@@ -103,23 +112,24 @@ def quickgo_search_annotations(
     gene_product_id: Optional[str] = None,
     evidence_code: Optional[str] = None,
     limit: int = 100,
-):
-    """Search GO annotations.
+) -> QuickGOFetchedData:
+    """Search GO annotations with filters.
 
     Args:
-        go_id: GO term ID to filter by.
-        taxon_id: NCBI taxonomy ID (e.g., 9606 for human).
-        gene_product_id: Gene product ID (e.g., UniProt ID).
-        evidence_code: Evidence code (e.g., "IDA", "IEA").
-        limit: Maximum number of results.
+        go_id (Optional[str]): GO term ID to filter by.
+        taxon_id (Optional[int]): NCBI taxonomy ID (e.g., 9606 for human).
+        gene_product_id (Optional[str]): Gene product ID (e.g., "UniProtKB:P04637").
+        evidence_code (Optional[str]): Evidence code (e.g., "IDA", "IEA").
+        limit (int): Maximum number of results to return.
 
     Returns:
-        QuickGOFetchedData with annotations.
+        QuickGOFetchedData containing matching GO annotations
+        with gene products, GO terms, and evidence codes.
 
     Example:
-        >>> # Get human apoptosis annotations
         >>> data = quickgo_search_annotations(go_id="GO:0006915", taxon_id=9606)
         >>> df = data.as_dataframe()
+        >>> print(df[["geneProductId", "goId", "goName"]].head())
     """
     kwargs = {"category": "annotation", "endpoint": "search", "limit": limit}
     if go_id:
@@ -138,17 +148,19 @@ def quickgo_search_annotations_all(
     taxon_id: Optional[int] = None,
     max_records: Optional[int] = None,
     **kwargs,
-):
+) -> QuickGOFetchedData:
     """Search GO annotations with automatic pagination.
 
+    Fetches all matching annotations by handling pagination automatically.
+
     Args:
-        go_id: GO term ID to filter by.
-        taxon_id: NCBI taxonomy ID.
-        max_records: Maximum total records to fetch (None = all).
-        **kwargs: Additional parameters (evidenceCode, aspect, etc.).
+        go_id (Optional[str]): GO term ID to filter by.
+        taxon_id (Optional[int]): NCBI taxonomy ID.
+        max_records (Optional[int]): Maximum total records to fetch. If None, fetches all.
+        **kwargs: Additional filter parameters (goEvidence, aspect, assignedBy, etc.).
 
     Returns:
-        QuickGOFetchedData with all matching annotations.
+        QuickGOFetchedData containing all matching annotations.
 
     Example:
         >>> data = quickgo_search_annotations_all(
@@ -156,7 +168,7 @@ def quickgo_search_annotations_all(
         ...     taxon_id=9606,
         ...     max_records=5000
         ... )
-        >>> print(len(data.results))
+        >>> print(f"Found {len(data.results)} annotations")
     """
     params = dict(kwargs)
     if go_id:
@@ -176,17 +188,17 @@ def quickgo_download_annotations(
     taxon_id: Optional[int] = None,
     download_format: str = "tsv",
     **kwargs,
-):
+) -> QuickGOFetchedData:
     """Download GO annotations in various formats.
 
     Args:
-        go_id: GO term ID to filter by.
-        taxon_id: NCBI taxonomy ID.
-        download_format: Output format ("tsv", "gaf", "gpad").
-        **kwargs: Additional parameters.
+        go_id (Optional[str]): GO term ID to filter by.
+        taxon_id (Optional[int]): NCBI taxonomy ID.
+        download_format (str): Output format ("tsv", "gaf", or "gpad").
+        **kwargs: Additional filter parameters.
 
     Returns:
-        QuickGOFetchedData with downloaded data (text format).
+        QuickGOFetchedData containing downloaded data in text format.
 
     Example:
         >>> data = quickgo_download_annotations(
@@ -208,17 +220,19 @@ def quickgo_download_annotations(
     )
 
 
-def quickgo_get_gene_product(gene_product_id: str):
-    """Get gene product information.
+def quickgo_get_gene_product(gene_product_id: str) -> QuickGOFetchedData:
+    """Get gene product information by ID.
 
     Args:
-        gene_product_id: Gene product ID (e.g., UniProt accession).
+        gene_product_id (str): Gene product ID (e.g., UniProt accession "P04637").
 
     Returns:
-        QuickGOFetchedData with gene product details.
+        QuickGOFetchedData containing gene product details
+        including name, synonyms, and database references.
 
     Example:
         >>> data = quickgo_get_gene_product("P04637")  # TP53
+        >>> print(data.results[0])
     """
     return _get_fetcher().get(
         category="geneproduct",

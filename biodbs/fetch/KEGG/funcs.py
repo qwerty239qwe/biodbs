@@ -1,6 +1,8 @@
 """Convenience functions for KEGG data fetching."""
 
 from typing import List, Optional, Union
+
+from biodbs.data.KEGG.data import KEGGFetchedData
 from biodbs.fetch.KEGG.kegg_fetcher import KEGG_Fetcher
 
 # Module-level fetcher instance (lazy initialization)
@@ -15,14 +17,14 @@ def _get_fetcher() -> KEGG_Fetcher:
     return _fetcher
 
 
-def kegg_info(database: str):
+def kegg_info(database: str) -> KEGGFetchedData:
     """Get information about a KEGG database.
 
     Args:
         database: Database name (e.g., "kegg", "pathway", "compound", "drug").
 
     Returns:
-        KEGGFetchedData with database information.
+        KEGGFetchedData containing database information and statistics.
 
     Example:
         >>> data = kegg_info("pathway")
@@ -31,7 +33,10 @@ def kegg_info(database: str):
     return _get_fetcher().get(operation="info", database=database)
 
 
-def kegg_list(database: str, organism: Optional[str] = None):
+def kegg_list(
+    database: str,
+    organism: Optional[str] = None,
+) -> KEGGFetchedData:
     """List entries in a KEGG database.
 
     Args:
@@ -39,7 +44,7 @@ def kegg_list(database: str, organism: Optional[str] = None):
         organism: Organism code for pathway/module lists (e.g., "hsa" for human).
 
     Returns:
-        KEGGFetchedData with entry list.
+        KEGGFetchedData containing a list of entries with IDs and descriptions.
 
     Example:
         >>> data = kegg_list("pathway", organism="hsa")
@@ -51,7 +56,11 @@ def kegg_list(database: str, organism: Optional[str] = None):
     return _get_fetcher().get(**kwargs)
 
 
-def kegg_find(database: str, query: str, option: Optional[str] = None):
+def kegg_find(
+    database: str,
+    query: str,
+    option: Optional[str] = None,
+) -> KEGGFetchedData:
     """Search for entries in a KEGG database.
 
     Args:
@@ -60,7 +69,7 @@ def kegg_find(database: str, query: str, option: Optional[str] = None):
         option: Search option (e.g., "formula", "exact_mass", "mol_weight").
 
     Returns:
-        KEGGFetchedData with search results.
+        KEGGFetchedData containing search results with matching entries.
 
     Example:
         >>> data = kegg_find("compound", "aspirin")
@@ -75,18 +84,18 @@ def kegg_find(database: str, query: str, option: Optional[str] = None):
 def kegg_get(
     dbentries: Union[str, List[str]],
     option: Optional[str] = None,
-):
-    """Get entry data from KEGG.
+) -> KEGGFetchedData:
+    """Retrieve entry data from KEGG database.
 
     Args:
-        dbentries: Entry ID(s) (e.g., "hsa:10458", ["hsa:10458", "hsa:7157"]).
-        option: Output format (e.g., "aaseq", "ntseq", "mol", "kcf", "image", "json").
+        dbentries: Entry ID or list of IDs (e.g., "hsa:7157").
+        option: Output format ("aaseq", "ntseq", "mol", "kcf", "image", "json").
 
     Returns:
-        KEGGFetchedData with entry data.
+        KEGGFetchedData containing entry data.
 
     Example:
-        >>> data = kegg_get("hsa:10458")
+        >>> data = kegg_get("hsa:7157")  # TP53 gene
         >>> print(data.text)
 
         >>> data = kegg_get("cpd:C00022", option="mol")
@@ -104,16 +113,16 @@ def kegg_get_batch(
     dbentries: List[str],
     option: Optional[str] = None,
     batch_size: int = 10,
-):
-    """Get data for many entries using batched concurrent requests.
+) -> KEGGFetchedData:
+    """Retrieve data for many entries using batched concurrent requests.
 
     Args:
-        dbentries: List of entry IDs.
+        dbentries: List of entry IDs to fetch.
         option: Output format (e.g., "aaseq", "ntseq", "json").
-        batch_size: Entries per request (default 10, KEGG's limit).
+        batch_size: Number of entries per request (default 10, KEGG's limit).
 
     Returns:
-        KEGGFetchedData with combined results.
+        KEGGFetchedData containing combined results from all batches.
 
     Example:
         >>> genes = ["hsa:10458", "hsa:7157", "hsa:672", "hsa:675"]
@@ -131,7 +140,7 @@ def kegg_get_batch(
 def kegg_conv(
     target_db: str,
     source: Union[str, List[str]],
-):
+) -> KEGGFetchedData:
     """Convert entry IDs between KEGG and external databases.
 
     Args:
@@ -139,10 +148,10 @@ def kegg_conv(
         source: Source database name OR list of entry IDs to convert.
 
     Returns:
-        KEGGFetchedData with ID mappings.
+        KEGGFetchedData containing ID mappings between databases.
 
     Example:
-        >>> # Convert database
+        >>> # Convert entire database
         >>> data = kegg_conv("ncbi-geneid", "hsa")
 
         >>> # Convert specific entries
@@ -161,7 +170,7 @@ def kegg_conv(
 def kegg_link(
     target_db: str,
     source: Union[str, List[str]],
-):
+) -> KEGGFetchedData:
     """Find related entries between KEGG databases.
 
     Args:
@@ -169,7 +178,7 @@ def kegg_link(
         source: Source database name OR list of entry IDs.
 
     Returns:
-        KEGGFetchedData with linked entries.
+        KEGGFetchedData containing linked entries between databases.
 
     Example:
         >>> # Link genes to pathways
@@ -188,14 +197,14 @@ def kegg_link(
     )
 
 
-def kegg_ddi(drug_entries: List[str]):
+def kegg_ddi(drug_entries: List[str]) -> KEGGFetchedData:
     """Get drug-drug interaction information.
 
     Args:
         drug_entries: List of drug entry IDs (e.g., ["D00001", "D00002"]).
 
     Returns:
-        KEGGFetchedData with DDI information.
+        KEGGFetchedData containing drug-drug interaction data.
 
     Example:
         >>> data = kegg_ddi(["D00564", "D00109"])

@@ -33,13 +33,13 @@ def ensembl_lookup(
     """Look up an Ensembl stable ID.
 
     Args:
-        id: Ensembl stable ID (e.g., "ENSG00000141510" for TP53).
-        species: Species name/alias (optional, auto-detected from ID).
-        expand: Include connected features (transcripts, exons).
-        db_type: Database type ("core" or "otherfeatures").
+        id (str): Ensembl stable ID (e.g., "ENSG00000141510").
+        species (Optional[str]): Species name (optional, auto-detected from ID).
+        expand (bool): If True, include connected features (transcripts, exons).
+        db_type (str): Database type ("core" or "otherfeatures").
 
     Returns:
-        EnsemblFetchedData with gene/transcript/protein information.
+        EnsemblFetchedData containing gene/transcript/protein information.
 
     Example:
         >>> data = ensembl_lookup("ENSG00000141510", expand=True)
@@ -56,15 +56,16 @@ def ensembl_lookup_batch(
     """Look up multiple Ensembl stable IDs in batch.
 
     Args:
-        ids: List of Ensembl stable IDs (max 1000).
-        species: Species name/alias.
-        expand: Include connected features.
+        ids (List[str]): List of Ensembl stable IDs (max 1000).
+        species (Optional[str]): Species name/alias.
+        expand (bool): If True, include connected features.
 
     Returns:
-        EnsemblFetchedData with results for each ID.
+        EnsemblFetchedData containing results for each ID.
 
     Example:
         >>> data = ensembl_lookup_batch(["ENSG00000141510", "ENSG00000012048"])
+        >>> print(len(data.results))
     """
     return _get_fetcher().lookup_batch(ids=ids, species=species, expand=expand)
 
@@ -77,15 +78,16 @@ def ensembl_lookup_symbol(
     """Look up a gene by symbol.
 
     Args:
-        species: Species name (e.g., "human", "mouse").
-        symbol: Gene symbol (e.g., "BRCA2", "TP53").
-        expand: Include connected features.
+        species (str): Species name (e.g., "human", "mouse").
+        symbol (str): Gene symbol (e.g., "BRCA2", "TP53").
+        expand (bool): If True, include connected features.
 
     Returns:
-        EnsemblFetchedData with gene information.
+        EnsemblFetchedData containing gene information.
 
     Example:
         >>> data = ensembl_lookup_symbol("human", "TP53")
+        >>> print(data.results[0]["id"])  # ENSG00000141510
     """
     return _get_fetcher().lookup_symbol(species=species, symbol=symbol, expand=expand)
 
@@ -106,16 +108,16 @@ def ensembl_get_sequence(
     """Get sequence for an Ensembl stable ID.
 
     Args:
-        id: Ensembl stable ID (gene, transcript, exon, protein).
-        sequence_type: Type of sequence ("genomic", "cds", "cdna", "protein").
-        species: Species name (optional).
-        expand_5prime: Extend upstream (genomic only).
-        expand_3prime: Extend downstream (genomic only).
-        mask: Mask repeats ("hard" or "soft", genomic only).
-        format: Output format ("fasta" or "json").
+        id (str): Ensembl stable ID (gene, transcript, exon, protein).
+        sequence_type (str): Type of sequence ("genomic", "cds", "cdna", "protein").
+        species (Optional[str]): Species name (optional).
+        expand_5prime (Optional[int]): Extend upstream (genomic only).
+        expand_3prime (Optional[int]): Extend downstream (genomic only).
+        mask (Optional[str]): Mask repeats ("hard" or "soft", genomic only).
+        format (str): Output format ("fasta" or "json").
 
     Returns:
-        EnsemblFetchedData with sequence data.
+        EnsemblFetchedData containing sequence data.
 
     Example:
         >>> data = ensembl_get_sequence("ENST00000269305", sequence_type="cds")
@@ -141,13 +143,17 @@ def ensembl_get_sequence_batch(
     """Get sequences for multiple Ensembl IDs in batch.
 
     Args:
-        ids: List of Ensembl stable IDs (max 50).
-        sequence_type: Type of sequence.
-        species: Species name.
-        format: Output format.
+        ids (List[str]): List of Ensembl stable IDs (max 50).
+        sequence_type (str): Type of sequence ("genomic", "cds", "cdna", "protein").
+        species (Optional[str]): Species name.
+        format (str): Output format ("fasta" or "json").
 
     Returns:
-        EnsemblFetchedData with sequences.
+        EnsemblFetchedData containing sequences for all requested IDs.
+
+    Example:
+        >>> data = ensembl_get_sequence_batch(["ENST00000269305", "ENST00000366667"])
+        >>> print(data.text)  # FASTA sequences
     """
     return _get_fetcher().get_sequence_batch(
         ids=ids,
@@ -168,18 +174,19 @@ def ensembl_get_sequence_region(
     """Get genomic sequence for a region.
 
     Args:
-        species: Species name (e.g., "human").
-        region: Genomic region (e.g., "X:1000000..1000100:1").
-        expand_5prime: Extend upstream.
-        expand_3prime: Extend downstream.
-        mask: Mask repeats ("hard" or "soft").
-        format: Output format ("fasta" or "json").
+        species (str): Species name (e.g., "human").
+        region (str): Genomic region (e.g., "X:1000000..1000100:1").
+        expand_5prime (Optional[int]): Extend upstream.
+        expand_3prime (Optional[int]): Extend downstream.
+        mask (Optional[str]): Mask repeats ("hard" or "soft").
+        format (str): Output format ("fasta" or "json").
 
     Returns:
-        EnsemblFetchedData with sequence.
+        EnsemblFetchedData containing the genomic sequence.
 
     Example:
         >>> data = ensembl_get_sequence_region("human", "7:140424943-140424963:1")
+        >>> print(data.text)  # FASTA sequence
     """
     return _get_fetcher().get_sequence_region(
         species=species,
@@ -204,16 +211,17 @@ def ensembl_get_overlap_id(
     """Get features overlapping an Ensembl ID.
 
     Args:
-        id: Ensembl stable ID.
-        feature: Feature type(s) to retrieve (gene, transcript, exon, etc.).
-        species: Species name.
-        biotype: Filter by biotype (e.g., "protein_coding").
+        id (str): Ensembl stable ID.
+        feature (Union[str, List[str]]): Feature type(s) to retrieve (gene, transcript, exon, etc.).
+        species (Optional[str]): Species name.
+        biotype (Optional[str]): Filter by biotype (e.g., "protein_coding").
 
     Returns:
-        EnsemblFetchedData with overlapping features.
+        EnsemblFetchedData containing overlapping features.
 
     Example:
         >>> data = ensembl_get_overlap_id("ENSG00000141510", feature=["transcript", "exon"])
+        >>> print(len(data.results))
     """
     return _get_fetcher().get_overlap_id(
         id=id,
@@ -233,20 +241,21 @@ def ensembl_get_overlap_region(
     """Get features overlapping a genomic region.
 
     Args:
-        species: Species name (e.g., "human").
-        region: Genomic region (e.g., "7:140424943-140624564", max 5Mb).
-        feature: Feature type(s) to retrieve.
-        biotype: Filter by biotype.
-        variant_set: Variant set restriction (e.g., "ClinVar").
+        species (str): Species name (e.g., "human").
+        region (str): Genomic region (e.g., "7:140424943-140624564", max 5Mb).
+        feature (Union[str, List[str]]): Feature type(s) to retrieve.
+        biotype (Optional[str]): Filter by biotype.
+        variant_set (Optional[str]): Variant set restriction (e.g., "ClinVar").
 
     Returns:
-        EnsemblFetchedData with overlapping features.
+        EnsemblFetchedData containing overlapping features.
 
     Example:
         >>> data = ensembl_get_overlap_region(
         ...     "human", "7:140424943-140624564",
         ...     feature=["gene", "transcript"]
         ... )
+        >>> print(len(data.results))
     """
     return _get_fetcher().get_overlap_region(
         species=species,
@@ -270,16 +279,17 @@ def ensembl_get_xrefs(
     """Get external cross-references for an Ensembl ID.
 
     Args:
-        id: Ensembl stable ID.
-        species: Species name.
-        external_db: Filter by external database (e.g., "HGNC", "UniProt").
-        all_levels: Find all linked features.
+        id (str): Ensembl stable ID.
+        species (Optional[str]): Species name.
+        external_db (Optional[str]): Filter by external database (e.g., "HGNC", "UniProt").
+        all_levels (bool): If True, find all linked features.
 
     Returns:
-        EnsemblFetchedData with cross-references.
+        EnsemblFetchedData containing cross-references.
 
     Example:
         >>> data = ensembl_get_xrefs("ENSG00000141510", external_db="HGNC")
+        >>> print(data.results[0]["display_id"])
     """
     return _get_fetcher().get_xrefs(
         id=id,
@@ -298,16 +308,17 @@ def ensembl_get_xrefs_symbol(
     """Look up Ensembl objects by external symbol.
 
     Args:
-        species: Species name.
-        symbol: External symbol (e.g., gene name "BRCA2").
-        external_db: Filter by external database.
-        object_type: Filter by feature type (e.g., "gene").
+        species (str): Species name.
+        symbol (str): External symbol (e.g., gene name "BRCA2").
+        external_db (Optional[str]): Filter by external database.
+        object_type (Optional[str]): Filter by feature type (e.g., "gene").
 
     Returns:
-        EnsemblFetchedData with matching Ensembl objects.
+        EnsemblFetchedData containing matching Ensembl objects.
 
     Example:
         >>> data = ensembl_get_xrefs_symbol("human", "BRCA2")
+        >>> print(data.results[0]["id"])
     """
     return _get_fetcher().get_xrefs_symbol(
         species=species,
@@ -331,17 +342,18 @@ def ensembl_get_homology(
     """Get homology information for a gene.
 
     Args:
-        species: Source species name (e.g., "human").
-        id: Ensembl gene ID.
-        homology_type: Type of homology ("orthologues", "paralogues", "all").
-        target_species: Filter by target species.
-        sequence: Sequence type ("none", "cdna", "protein").
+        species (str): Source species name (e.g., "human").
+        id (str): Ensembl gene ID.
+        homology_type (str): Type of homology ("orthologues", "paralogues", "all").
+        target_species (Optional[str]): Filter by target species.
+        sequence (str): Sequence type ("none", "cdna", "protein").
 
     Returns:
-        EnsemblFetchedData with homology data.
+        EnsemblFetchedData containing homology data.
 
     Example:
         >>> data = ensembl_get_homology("human", "ENSG00000141510", target_species="mouse")
+        >>> print(data.results[0]["homologies"])
     """
     return _get_fetcher().get_homology(
         species=species,
@@ -361,16 +373,17 @@ def ensembl_get_homology_symbol(
     """Get homology information for a gene by symbol.
 
     Args:
-        species: Source species name.
-        symbol: Gene symbol.
-        homology_type: Type of homology.
-        target_species: Filter by target species.
+        species (str): Source species name.
+        symbol (str): Gene symbol.
+        homology_type (str): Type of homology ("orthologues", "paralogues", "all").
+        target_species (Optional[str]): Filter by target species.
 
     Returns:
-        EnsemblFetchedData with homology data.
+        EnsemblFetchedData containing homology data.
 
     Example:
         >>> data = ensembl_get_homology_symbol("human", "TP53", target_species="mouse")
+        >>> print(data.results[0]["homologies"])
     """
     return _get_fetcher().get_homology_symbol(
         species=species,
@@ -394,17 +407,18 @@ def ensembl_get_variation(
     """Get variant information by rsID.
 
     Args:
-        species: Species name.
-        id: Variant ID (e.g., "rs56116432").
-        genotypes: Include individual genotypes.
-        pops: Include population allele frequencies.
-        phenotypes: Include phenotypes.
+        species (str): Species name.
+        id (str): Variant ID (e.g., "rs56116432").
+        genotypes (bool): If True, include individual genotypes.
+        pops (bool): If True, include population allele frequencies.
+        phenotypes (bool): If True, include phenotypes.
 
     Returns:
-        EnsemblFetchedData with variant data.
+        EnsemblFetchedData containing variant data.
 
     Example:
         >>> data = ensembl_get_variation("human", "rs56116432", pops=True)
+        >>> print(data.results[0]["MAF"])
     """
     return _get_fetcher().get_variation(
         species=species,
@@ -429,17 +443,18 @@ def ensembl_vep_hgvs(
     """Get variant consequences using HGVS notation.
 
     Args:
-        species: Species name.
-        hgvs_notation: HGVS notation (e.g., "ENST00000366667:c.803C>T").
-        canonical: Only return canonical transcript.
-        hgvs: Add HGVS nomenclature.
-        protein: Include protein position and amino acid changes.
+        species (str): Species name.
+        hgvs_notation (str): HGVS notation (e.g., "ENST00000366667:c.803C>T").
+        canonical (bool): If True, only return canonical transcript.
+        hgvs (bool): If True, add HGVS nomenclature.
+        protein (bool): If True, include protein position and amino acid changes.
 
     Returns:
-        EnsemblFetchedData with VEP results.
+        EnsemblFetchedData containing VEP results.
 
     Example:
         >>> data = ensembl_vep_hgvs("human", "ENST00000366667:c.803C>T")
+        >>> print(data.results[0]["transcript_consequences"])
     """
     return _get_fetcher().get_vep_hgvs(
         species=species,
@@ -460,17 +475,18 @@ def ensembl_vep_id(
     """Get variant consequences using variant ID.
 
     Args:
-        species: Species name.
-        id: Variant ID (e.g., rsID).
-        canonical: Only return canonical transcript.
-        hgvs: Add HGVS nomenclature.
-        protein: Include protein position.
+        species (str): Species name.
+        id (str): Variant ID (e.g., rsID).
+        canonical (bool): If True, only return canonical transcript.
+        hgvs (bool): If True, add HGVS nomenclature.
+        protein (bool): If True, include protein position.
 
     Returns:
-        EnsemblFetchedData with VEP results.
+        EnsemblFetchedData containing VEP results.
 
     Example:
         >>> data = ensembl_vep_id("human", "rs56116432")
+        >>> print(data.results[0]["most_severe_consequence"])
     """
     return _get_fetcher().get_vep_id(
         species=species,
@@ -492,18 +508,19 @@ def ensembl_vep_region(
     """Get variant consequences using genomic coordinates.
 
     Args:
-        species: Species name.
-        region: Genomic region (e.g., "9:22125503-22125502:1").
-        allele: Variant allele (e.g., "C", "DUP").
-        canonical: Only return canonical transcript.
-        hgvs: Add HGVS nomenclature.
-        protein: Include protein position.
+        species (str): Species name.
+        region (str): Genomic region (e.g., "9:22125503-22125502:1").
+        allele (str): Variant allele (e.g., "C", "DUP").
+        canonical (bool): If True, only return canonical transcript.
+        hgvs (bool): If True, add HGVS nomenclature.
+        protein (bool): If True, include protein position.
 
     Returns:
-        EnsemblFetchedData with VEP results.
+        EnsemblFetchedData containing VEP results.
 
     Example:
         >>> data = ensembl_vep_region("human", "9:22125503-22125502:1", "C")
+        >>> print(data.results[0]["most_severe_consequence"])
     """
     return _get_fetcher().get_vep_region(
         species=species,
@@ -528,16 +545,17 @@ def ensembl_map_assembly(
     """Map coordinates between assemblies.
 
     Args:
-        species: Species name.
-        asm_one: Source assembly version (e.g., "GRCh37").
-        region: Genomic region to map (e.g., "X:1000000..1000100:1").
-        asm_two: Target assembly version (e.g., "GRCh38").
+        species (str): Species name.
+        asm_one (str): Source assembly version (e.g., "GRCh37").
+        region (str): Genomic region to map (e.g., "X:1000000..1000100:1").
+        asm_two (str): Target assembly version (e.g., "GRCh38").
 
     Returns:
-        EnsemblFetchedData with mapped coordinates.
+        EnsemblFetchedData containing mapped coordinates.
 
     Example:
         >>> data = ensembl_map_assembly("human", "GRCh37", "X:1000000..1000100:1", "GRCh38")
+        >>> print(data.results[0]["mapped"])
     """
     return _get_fetcher().map_assembly(
         species=species,
@@ -560,16 +578,17 @@ def ensembl_get_phenotype_gene(
     """Get phenotypes associated with a gene.
 
     Args:
-        species: Species name.
-        gene: Gene name or Ensembl ID.
-        include_associated: Include phenotypes from associated variants.
-        include_overlap: Include phenotypes from overlapping features.
+        species (str): Species name.
+        gene (str): Gene name or Ensembl ID.
+        include_associated (bool): If True, include phenotypes from associated variants.
+        include_overlap (bool): If True, include phenotypes from overlapping features.
 
     Returns:
-        EnsemblFetchedData with phenotype data.
+        EnsemblFetchedData containing phenotype data.
 
     Example:
         >>> data = ensembl_get_phenotype_gene("human", "BRCA2")
+        >>> print(data.results[0]["description"])
     """
     return _get_fetcher().get_phenotype_gene(
         species=species,
@@ -586,14 +605,15 @@ def ensembl_get_phenotype_region(
     """Get phenotypes in a genomic region.
 
     Args:
-        species: Species name.
-        region: Genomic region.
+        species (str): Species name.
+        region (str): Genomic region.
 
     Returns:
-        EnsemblFetchedData with phenotype data.
+        EnsemblFetchedData containing phenotype data.
 
     Example:
         >>> data = ensembl_get_phenotype_region("human", "9:22125503-22130000")
+        >>> print(len(data.results))
     """
     return _get_fetcher().get_phenotype_region(
         species=species,
@@ -612,14 +632,15 @@ def ensembl_get_ontology_term(
     """Get ontology term information.
 
     Args:
-        id: Ontology term ID (e.g., "GO:0005667").
-        simple: Don't fetch parent/child terms.
+        id (str): Ontology term ID (e.g., "GO:0005667").
+        simple (bool): If True, don't fetch parent/child terms.
 
     Returns:
-        EnsemblFetchedData with ontology term data.
+        EnsemblFetchedData containing ontology term data.
 
     Example:
         >>> data = ensembl_get_ontology_term("GO:0005667")
+        >>> print(data.results[0]["name"])
     """
     return _get_fetcher().get_ontology_term(id=id, simple=simple)
 
@@ -631,14 +652,15 @@ def ensembl_get_ontology_ancestors(
     """Get ancestor terms for an ontology term.
 
     Args:
-        id: Ontology term ID.
-        ontology: Filter by ontology.
+        id (str): Ontology term ID.
+        ontology (Optional[str]): Filter by ontology.
 
     Returns:
-        EnsemblFetchedData with ancestor terms.
+        EnsemblFetchedData containing ancestor terms.
 
     Example:
         >>> data = ensembl_get_ontology_ancestors("GO:0005667")
+        >>> print(len(data.results))
     """
     return _get_fetcher().get_ontology_ancestors(id=id, ontology=ontology)
 
@@ -650,14 +672,15 @@ def ensembl_get_ontology_descendants(
     """Get descendant terms for an ontology term.
 
     Args:
-        id: Ontology term ID.
-        ontology: Filter by ontology.
+        id (str): Ontology term ID.
+        ontology (Optional[str]): Filter by ontology.
 
     Returns:
-        EnsemblFetchedData with descendant terms.
+        EnsemblFetchedData containing descendant terms.
 
     Example:
         >>> data = ensembl_get_ontology_descendants("GO:0005667")
+        >>> print(len(data.results))
     """
     return _get_fetcher().get_ontology_descendants(id=id, ontology=ontology)
 
@@ -674,15 +697,16 @@ def ensembl_get_genetree(
     """Get gene tree by tree ID.
 
     Args:
-        id: Gene tree ID (e.g., "ENSGT00390000003602").
-        sequence: Sequence type ("none", "cdna", "protein").
-        aligned: Include aligned sequences.
+        id (str): Gene tree ID (e.g., "ENSGT00390000003602").
+        sequence (str): Sequence type ("none", "cdna", "protein").
+        aligned (bool): If True, include aligned sequences.
 
     Returns:
-        EnsemblFetchedData with gene tree data.
+        EnsemblFetchedData containing gene tree data.
 
     Example:
         >>> data = ensembl_get_genetree("ENSGT00390000003602")
+        >>> print(data.results[0]["tree"])
     """
     return _get_fetcher().get_genetree(id=id, sequence=sequence, aligned=aligned)
 
@@ -695,15 +719,16 @@ def ensembl_get_genetree_member(
     """Get gene tree containing a gene ID.
 
     Args:
-        species: Species name.
-        id: Ensembl gene ID.
-        sequence: Sequence type.
+        species (str): Species name.
+        id (str): Ensembl gene ID.
+        sequence (str): Sequence type ("none", "cdna", "protein").
 
     Returns:
-        EnsemblFetchedData with gene tree data.
+        EnsemblFetchedData containing gene tree data.
 
     Example:
         >>> data = ensembl_get_genetree_member("human", "ENSG00000141510")
+        >>> print(data.results[0]["tree"])
     """
     return _get_fetcher().get_genetree_member(species=species, id=id, sequence=sequence)
 
@@ -718,10 +743,10 @@ def ensembl_get_assembly_info(
     """Get assembly information for a species.
 
     Args:
-        species: Species name.
+        species (str): Species name.
 
     Returns:
-        EnsemblFetchedData with assembly information.
+        EnsemblFetchedData containing assembly information.
 
     Example:
         >>> data = ensembl_get_assembly_info("human")
@@ -736,12 +761,13 @@ def ensembl_get_species_info(
     """Get information about available species.
 
     Args:
-        division: Filter by Ensembl division (e.g., "EnsemblVertebrates").
+        division (Optional[str]): Filter by Ensembl division (e.g., "EnsemblVertebrates").
 
     Returns:
-        EnsemblFetchedData with species information.
+        EnsemblFetchedData containing species information.
 
     Example:
         >>> data = ensembl_get_species_info()
+        >>> print(len(data.results))
     """
     return _get_fetcher().get_species_info(division=division)
