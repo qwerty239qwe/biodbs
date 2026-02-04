@@ -12,7 +12,7 @@ def translate_gene_ids(
     from_type: str,
     to_type: str,
     species: str = "human",
-    database: Literal["biomart", "ensembl"] = "biomart",
+    database: Literal["biomart", "ensembl", "ncbi"] = "biomart",
     return_dict: bool = False,
 ) -> Union[Dict[str, str], "pd.DataFrame"]:
     """Translate gene IDs between different identifier types.
@@ -27,8 +27,17 @@ def translate_gene_ids(
               Supports batch queries with many ID types.
             - "ensembl": Use Ensembl REST API (xrefs endpoint).
               Better for single ID lookups, returns more cross-references.
+            - "ncbi": Use NCBI Datasets API.
+              Best for NCBI Gene IDs (Entrez), RefSeq accessions, and symbols.
         return_dict: If True, return a dict mapping from_id -> to_id.
             If False (default), return a DataFrame.
+
+    Supported ID types for NCBI:
+        - symbol / gene_symbol: Gene symbol (e.g., "TP53")
+        - entrez_id / gene_id: NCBI Gene ID (e.g., "7157")
+        - refseq_accession: RefSeq accession (e.g., "NM_000546.6")
+        - ensembl_gene_id: Ensembl gene ID (output only)
+        - uniprot / swiss_prot: UniProt accession (output only)
 
     Supported ID types for BioMart:
         - ensembl_gene_id: Ensembl gene ID (e.g., "ENSG00000141510")
@@ -66,14 +75,16 @@ def translate_gene_ids(
         ...     database="ensembl"
         ... )
     """
-    valid_databases = {"biomart", "ensembl"}
+    valid_databases = {"biomart", "ensembl", "ncbi"}
     if database not in valid_databases:
         raise ValueError(f"Unsupported database: {database}. Valid options: {valid_databases}")
 
     if database == "biomart":
         return _translate_via_biomart(ids, from_type, to_type, species, return_dict)
-    else:  # ensembl
+    elif database == "ensembl":
         return _translate_via_ensembl(ids, from_type, to_type, species, return_dict)
+    else:  # ncbi
+        return _translate_via_ncbi(ids, from_type, to_type, species, return_dict)
 
 
 def _translate_via_biomart(
@@ -217,10 +228,41 @@ def translate_gene_ids_kegg(
         >>> # Convert entire organism's genes
         >>> result = translate_gene_ids_kegg([], from_db="hsa", to_db="uniprot")
     """
-    
+
     if ids:
         data = kegg_conv(target_db=to_db, source=ids)
     else:
         data = kegg_conv(target_db=to_db, source=from_db)
 
     return data.as_dataframe()
+
+
+def _translate_via_ncbi(
+    ids: List[str],
+    from_type: str,
+    to_type: str,
+    species: str,
+    return_dict: bool,
+) -> Union[Dict[str, str], "pd.DataFrame"]:
+    """Translate gene IDs using NCBI Datasets API."""
+    from biodbs.fetch.NCBI.funcs import ncbi_translate_gene_ids
+
+    # Map common species names to NCBI taxon identifiers
+    species_map = {
+        "human": "human",
+        "mouse": "mouse",
+        "rat": "rat",
+        "zebrafish": "zebrafish",
+        "fly": "fruit fly",
+        "worm": "nematode",
+        "yeast": "baker's yeast",
+    }
+    taxon = species_map.get(species.lower(), species)
+
+    return ncbi_translate_gene_ids(
+        ids,
+        from_type=from_type,
+        to_type=to_type,
+        taxon=taxon,
+        return_dict=return_dict,
+    )

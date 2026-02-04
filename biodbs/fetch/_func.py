@@ -179,6 +179,17 @@ from biodbs.fetch.Reactome.funcs import (
 )
 
 # =============================================================================
+# NCBI Datasets functions
+# =============================================================================
+from biodbs.fetch.NCBI.funcs import (
+    ncbi_get_gene,
+    ncbi_symbol_to_id,
+    ncbi_id_to_symbol,
+    ncbi_get_taxonomy,
+    ncbi_translate_gene_ids,
+)
+
+# =============================================================================
 # Ensembl REST API functions
 # =============================================================================
 from biodbs.fetch.ensembl.funcs import (
@@ -309,6 +320,12 @@ __all__ = [
     "reactome_get_species",
     "reactome_get_found_entities",
     "reactome_get_database_version",
+    # NCBI
+    "ncbi_get_gene",
+    "ncbi_symbol_to_id",
+    "ncbi_id_to_symbol",
+    "ncbi_get_taxonomy",
+    "ncbi_translate_gene_ids",
     # Ensembl
     "ensembl_lookup",
     "ensembl_lookup_batch",
