@@ -221,6 +221,23 @@ from biodbs.fetch.ensembl.funcs import (
     ensembl_get_species_info,
 )
 
+# =============================================================================
+# Disease Ontology functions
+# =============================================================================
+from biodbs.fetch.DiseaseOntology.funcs import (
+    do_get_term,
+    do_get_terms,
+    do_search,
+    do_get_parents,
+    do_get_children,
+    do_get_ancestors,
+    do_get_descendants,
+    doid_to_mesh,
+    doid_to_umls,
+    doid_to_icd10,
+    do_xref_mapping,
+)
+
 __all__ = [
     # PubChem
     "pubchem_get_compound",
@@ -353,4 +370,16 @@ __all__ = [
     "ensembl_get_genetree_member",
     "ensembl_get_assembly_info",
     "ensembl_get_species_info",
+    # Disease Ontology
+    "do_get_term",
+    "do_get_terms",
+    "do_search",
+    "do_get_parents",
+    "do_get_children",
+    "do_get_ancestors",
+    "do_get_descendants",
+    "doid_to_mesh",
+    "doid_to_umls",
+    "doid_to_icd10",
+    "do_xref_mapping",
 ]

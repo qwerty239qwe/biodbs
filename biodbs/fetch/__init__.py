@@ -25,9 +25,20 @@ For analysis functions, use biodbs.analysis:
 
 from biodbs.fetch._func import *
 from biodbs.fetch import _func as funcs
+from biodbs.fetch._rate_limit import (
+    RateLimiter,
+    get_rate_limiter,
+    request_with_retry,
+    retry_with_backoff,
+)
 
 __all__ = [
     "funcs",
+    # Rate limiting utilities
+    "RateLimiter",
+    "get_rate_limiter",
+    "request_with_retry",
+    "retry_with_backoff",
     # PubChem
     "pubchem_get_compound",
     "pubchem_get_compounds",
@@ -159,4 +170,16 @@ __all__ = [
     "ensembl_get_genetree_member",
     "ensembl_get_assembly_info",
     "ensembl_get_species_info",
+    # Disease Ontology
+    "do_get_term",
+    "do_get_terms",
+    "do_search",
+    "do_get_parents",
+    "do_get_children",
+    "do_get_ancestors",
+    "do_get_descendants",
+    "doid_to_mesh",
+    "doid_to_umls",
+    "doid_to_icd10",
+    "do_xref_mapping",
 ]

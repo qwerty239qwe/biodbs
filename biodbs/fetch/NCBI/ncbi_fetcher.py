@@ -3,9 +3,9 @@
 from typing import Dict, Any, List, Optional, Union
 import logging
 import os
-import requests
 
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
+from biodbs.fetch._rate_limit import request_with_retry, get_rate_limiter
 from biodbs.data.NCBI._data_model import (
     NCBIBase,
     NCBIGeneEndpoint,
@@ -36,6 +36,13 @@ class NCBI_APIConfig(BaseAPIConfig):
         - Environment variable: NCBI_API_KEY
     """
 
+    # Host identifier for rate limiting
+    HOST = "api.ncbi.nlm.nih.gov"
+
+    # Rate limits (requests per second)
+    RATE_LIMIT_WITH_KEY = 10
+    RATE_LIMIT_WITHOUT_KEY = 5
+
     def __init__(
         self,
         base_url: str = NCBIBase.BASE.value,
@@ -44,6 +51,15 @@ class NCBI_APIConfig(BaseAPIConfig):
         super().__init__()
         self._base_url = base_url
         self._api_key = api_key or os.environ.get("NCBI_API_KEY")
+
+        # Register rate limit with global limiter
+        self._register_rate_limit()
+
+    def _register_rate_limit(self):
+        """Register rate limit with global rate limiter."""
+        limiter = get_rate_limiter()
+        rate = self.RATE_LIMIT_WITH_KEY if self._api_key else self.RATE_LIMIT_WITHOUT_KEY
+        limiter.set_rate(self.HOST, rate)
 
     def get_url(self, endpoint: str) -> str:
         """Build full URL for an endpoint."""
@@ -114,7 +130,7 @@ class NCBI_Fetcher(BaseDataFetcher):
         method: str = "GET",
         data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Make an API request.
+        """Make an API request with rate limiting and automatic retry.
 
         Args:
             endpoint: API endpoint path.
@@ -126,27 +142,30 @@ class NCBI_Fetcher(BaseDataFetcher):
             JSON response as dictionary.
 
         Raises:
-            ConnectionError: If the request fails.
+            ConnectionError: If the request fails after retries.
         """
         url = self._api_config.get_url(endpoint)
         headers = self._api_config.get_headers()
 
-        try:
-            if method == "GET":
-                response = requests.get(url, params=params, headers=headers)
-            else:
-                response = requests.post(url, params=params, headers=headers, json=data)
+        # Use rate-limited request with retry
+        response = request_with_retry(
+            url=url,
+            method=method,
+            params=params,
+            headers=headers,
+            json=data if method != "GET" else None,
+            max_retries=3,
+            initial_delay=1.0,
+            rate_limit=True,
+        )
 
-            if response.status_code != 200:
-                raise ConnectionError(
-                    f"NCBI API request failed. "
-                    f"Status: {response.status_code}, Message: {response.text}"
-                )
+        if response.status_code != 200:
+            raise ConnectionError(
+                f"NCBI API request failed. "
+                f"Status: {response.status_code}, Message: {response.text}"
+            )
 
-            return response.json()
-
-        except requests.RequestException as e:
-            raise ConnectionError(f"NCBI API request failed: {e}")
+        return response.json()
 
     # ----- Gene Methods -----
 
