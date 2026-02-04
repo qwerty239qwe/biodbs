@@ -50,7 +50,7 @@ class PathwayDatabase(str, Enum):
     KEGG = "kegg"
     GO = "go"
     ENRICHR = "enrichr"
-    # Future: REACTOME = "reactome"
+    REACTOME = "reactome"
     # Future: WIKIPATHWAYS = "wikipathways"
 
 
@@ -1056,5 +1056,122 @@ def ora_enrichr(
             "gene_set_library": gene_set_library,
             "organism": organism,
             "method": "enrichr_fetcher",
+        },
+    )
+
+
+def ora_reactome(
+    genes: List[str],
+    species: str = "Homo sapiens",
+    interactors: bool = False,
+    include_disease: bool = True,
+    min_entities: Optional[int] = None,
+    max_entities: Optional[int] = None,
+    fetch_overlap_genes: bool = False,
+) -> ORAResult:
+    """Perform over-representation analysis using Reactome pathway database.
+
+    This function uses the Reactome Analysis Service API to perform pathway
+    enrichment analysis directly on their servers.
+
+    Args:
+        genes: List of gene symbols, UniProt IDs, or other identifiers.
+        species: Species name (e.g., "Homo sapiens", "Mus musculus").
+        interactors: Include interactors in the analysis.
+        include_disease: Include disease pathways.
+        min_entities: Minimum pathway size (number of entities).
+        max_entities: Maximum pathway size.
+        fetch_overlap_genes: If True, fetch the specific overlap genes for each
+            pathway (slower due to additional API calls). Default False.
+
+    Returns:
+        ORAResult with Reactome pathway enrichment results.
+
+    Note:
+        This requires internet access to the Reactome servers.
+        Reactome performs its own FDR correction.
+
+    Example:
+        >>> genes = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"]
+        >>> result = ora_reactome(genes)
+        >>> print(result.top_terms(10).as_dataframe())
+
+        >>> # Mouse genes
+        >>> result = ora_reactome(
+        ...     ["Trp53", "Brca1", "Brca2"],
+        ...     species="Mus musculus"
+        ... )
+
+        >>> # With overlap genes (slower)
+        >>> result = ora_reactome(genes, fetch_overlap_genes=True)
+    """
+    from biodbs.fetch.Reactome import Reactome_Fetcher
+
+    # Use the Reactome fetcher
+    fetcher = Reactome_Fetcher(species=species)
+    reactome_data = fetcher.analyze(
+        identifiers=genes,
+        species=species,
+        interactors=interactors,
+        include_disease=include_disease,
+        min_entities=min_entities,
+        max_entities=max_entities,
+        page_size=500,  # Get more results
+    )
+
+    # Convert Reactome results to ORATermResult objects
+    results = []
+    for pathway in reactome_data.pathways:
+        # Get overlap genes only if requested (makes many API calls)
+        overlap_genes = []
+        if fetch_overlap_genes and reactome_data.token and pathway.found_entities > 0:
+            try:
+                found = fetcher.get_found_entities(reactome_data.token, pathway.stId)
+                overlap_genes = [e.get("id", "") for e in found if isinstance(e, dict)]
+            except Exception:
+                # If we can't get the overlap genes, continue without them
+                pass
+
+        result = ORATermResult(
+            term_id=pathway.stId,
+            term_name=pathway.name,
+            p_value=pathway.p_value,
+            adjusted_p_value=pathway.fdr,
+            overlap_count=pathway.found_entities,
+            term_size=pathway.total_entities,
+            query_size=len(genes),
+            background_size=0,  # Not directly provided by Reactome
+            fold_enrichment=pathway.entities.ratio if pathway.entities else 0.0,
+            overlap_genes=overlap_genes,
+            database="Reactome",
+        )
+        results.append(result)
+
+    # Sort by FDR
+    results.sort(key=lambda x: x.adjusted_p_value)
+
+    # Get not-found identifiers
+    unmapped = []
+    if reactome_data.token:
+        try:
+            unmapped = fetcher.get_not_found_identifiers(reactome_data.token)
+        except Exception:
+            pass
+
+    mapped_count = len(genes) - reactome_data.identifiers_not_found
+
+    return ORAResult(
+        results=results,
+        query_genes=genes,
+        mapped_genes=genes[:mapped_count] if mapped_count > 0 else [],
+        unmapped_genes=unmapped,
+        background_size=0,
+        database="Reactome",
+        parameters={
+            "species": species,
+            "interactors": interactors,
+            "include_disease": include_disease,
+            "method": "reactome_fetcher",
+            "token": reactome_data.token,
         },
     )

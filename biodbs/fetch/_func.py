@@ -167,6 +167,18 @@ from biodbs.fetch.EnrichR.funcs import (
 )
 
 # =============================================================================
+# Reactome functions
+# =============================================================================
+from biodbs.fetch.Reactome.funcs import (
+    reactome_analyze,
+    reactome_analyze_projection,
+    reactome_get_pathways_top,
+    reactome_get_species,
+    reactome_get_found_entities,
+    reactome_get_database_version,
+)
+
+# =============================================================================
 # Ensembl REST API functions
 # =============================================================================
 from biodbs.fetch.ensembl.funcs import (
@@ -290,6 +302,13 @@ __all__ = [
     "enrichr_go_cc",
     "enrichr_reactome",
     "enrichr_wikipathways",
+    # Reactome
+    "reactome_analyze",
+    "reactome_analyze_projection",
+    "reactome_get_pathways_top",
+    "reactome_get_species",
+    "reactome_get_found_entities",
+    "reactome_get_database_version",
     # Ensembl
     "ensembl_lookup",
     "ensembl_lookup_batch",
