@@ -20,6 +20,16 @@ Usage:
         to_type="cid"
     )
 
+    # Protein ID translation (via UniProt)
+    result = translate_protein_ids(
+        ["P04637", "P00533"],
+        from_type="UniProtKB_AC-ID",
+        to_type="GeneID"
+    )
+
+    # Gene to UniProt mapping
+    result = translate_gene_to_uniprot(["TP53", "BRCA1"])
+
     # Cross-database translation
     result = translate_chembl_to_pubchem(["CHEMBL25"])
 """
@@ -33,6 +43,13 @@ from biodbs._funcs.translate import (
     translate_chemical_ids_kegg,
     translate_chembl_to_pubchem,
     translate_pubchem_to_chembl,
+    # Protein translation
+    translate_protein_ids,
+    translate_gene_to_uniprot,
+    translate_uniprot_to_gene,
+    translate_uniprot_to_pdb,
+    translate_uniprot_to_ensembl,
+    translate_uniprot_to_refseq,
 )
 
 __all__ = [
@@ -44,4 +61,11 @@ __all__ = [
     "translate_chemical_ids_kegg",
     "translate_chembl_to_pubchem",
     "translate_pubchem_to_chembl",
+    # Protein translation
+    "translate_protein_ids",
+    "translate_gene_to_uniprot",
+    "translate_uniprot_to_gene",
+    "translate_uniprot_to_pdb",
+    "translate_uniprot_to_ensembl",
+    "translate_uniprot_to_refseq",
 ]

@@ -238,6 +238,21 @@ from biodbs.fetch.DiseaseOntology.funcs import (
     do_xref_mapping,
 )
 
+# =============================================================================
+# UniProt functions
+# =============================================================================
+from biodbs.fetch.uniprot.funcs import (
+    uniprot_get_entry,
+    uniprot_get_entries,
+    uniprot_search,
+    uniprot_search_by_gene,
+    uniprot_search_by_keyword,
+    gene_to_uniprot,
+    uniprot_to_gene,
+    uniprot_get_sequences,
+    uniprot_map_ids,
+)
+
 __all__ = [
     # PubChem
     "pubchem_get_compound",
@@ -382,4 +397,14 @@ __all__ = [
     "doid_to_umls",
     "doid_to_icd10",
     "do_xref_mapping",
+    # UniProt
+    "uniprot_get_entry",
+    "uniprot_get_entries",
+    "uniprot_search",
+    "uniprot_search_by_gene",
+    "uniprot_search_by_keyword",
+    "gene_to_uniprot",
+    "uniprot_to_gene",
+    "uniprot_get_sequences",
+    "uniprot_map_ids",
 ]

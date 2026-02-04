@@ -12,7 +12,7 @@ def translate_gene_ids(
     from_type: str,
     to_type: str,
     species: str = "human",
-    database: Literal["biomart", "ensembl", "ncbi"] = "biomart",
+    database: Literal["biomart", "ensembl", "ncbi", "uniprot"] = "biomart",
     return_dict: bool = False,
 ) -> Union[Dict[str, str], "pd.DataFrame"]:
     """Translate gene IDs between different identifier types.
@@ -29,6 +29,8 @@ def translate_gene_ids(
               Better for single ID lookups, returns more cross-references.
             - "ncbi": Use NCBI Datasets API.
               Best for NCBI Gene IDs (Entrez), RefSeq accessions, and symbols.
+            - "uniprot": Use UniProt ID mapping API.
+              Best for protein-centric translations (UniProt, PDB, RefSeq protein).
         return_dict: If True, return a dict mapping from_id -> to_id.
             If False (default), return a DataFrame.
 
@@ -56,6 +58,14 @@ def translate_gene_ids(
         - Output (to_type): Filter by external_db name (e.g., "HGNC", "EntrezGene",
           "Uniprot_gn", "RefSeq_mRNA", "RefSeq_peptide")
 
+    Supported ID types for UniProt:
+        - UniProtKB_AC-ID: UniProt accession (e.g., "P04637")
+        - Gene_Name: Gene symbol (e.g., "TP53")
+        - GeneID: NCBI Gene ID (e.g., "7157")
+        - Ensembl: Ensembl gene ID
+        - RefSeq_Protein: RefSeq protein ID
+        - PDB: PDB structure ID
+
     Returns:
         Dict mapping source IDs to target IDs, or DataFrame with both columns.
 
@@ -75,7 +85,7 @@ def translate_gene_ids(
         ...     database="ensembl"
         ... )
     """
-    valid_databases = {"biomart", "ensembl", "ncbi"}
+    valid_databases = {"biomart", "ensembl", "ncbi", "uniprot"}
     if database not in valid_databases:
         raise ValueError(f"Unsupported database: {database}. Valid options: {valid_databases}")
 
@@ -83,6 +93,8 @@ def translate_gene_ids(
         return _translate_via_biomart(ids, from_type, to_type, species, return_dict)
     elif database == "ensembl":
         return _translate_via_ensembl(ids, from_type, to_type, species, return_dict)
+    elif database == "uniprot":
+        return _translate_via_uniprot(ids, from_type, to_type, species, return_dict)
     else:  # ncbi
         return _translate_via_ncbi(ids, from_type, to_type, species, return_dict)
 
@@ -264,5 +276,36 @@ def _translate_via_ncbi(
         from_type=from_type,
         to_type=to_type,
         taxon=taxon,
+        return_dict=return_dict,
+    )
+
+
+def _translate_via_uniprot(
+    ids: List[str],
+    from_type: str,
+    to_type: str,
+    species: str,
+    return_dict: bool,
+) -> Union[Dict[str, str], "pd.DataFrame"]:
+    """Translate gene/protein IDs using UniProt ID mapping API."""
+    from biodbs._funcs.translate.proteins import translate_protein_ids
+
+    # Map common species names to NCBI taxonomy IDs
+    species_taxids = {
+        "human": 9606,
+        "mouse": 10090,
+        "rat": 10116,
+        "zebrafish": 7955,
+        "fly": 7227,
+        "worm": 6239,
+        "yeast": 559292,
+    }
+    organism = species_taxids.get(species.lower(), 9606)
+
+    return translate_protein_ids(
+        ids,
+        from_type=from_type,
+        to_type=to_type,
+        organism=organism,
         return_dict=return_dict,
     )

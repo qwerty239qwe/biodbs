@@ -22,6 +22,7 @@ CI_RATE_LIMITS = {
     "pubchem.ncbi.nlm.nih.gov": 2,
     "rest.ensembl.org": 5,
     "maayanlab.cloud": 5,  # EnrichR
+    "rest.uniprot.org": 5,  # UniProt
 }
 
 
