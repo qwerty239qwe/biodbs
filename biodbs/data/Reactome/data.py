@@ -6,10 +6,6 @@ from biodbs.data.Reactome._data_model import (
     EntityStatistics,
     ReactionStatistics,
     SpeciesSummary,
-    ResourceSummary,
-    AnalysisIdentifier,
-    FoundEntity,
-    SpeciesInfo,
 )
 from typing import Literal, Optional, List, Dict, Any, Union
 import pandas as pd

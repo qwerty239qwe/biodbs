@@ -340,3 +340,220 @@ def reactome_query_entry(entry_id: str) -> Dict[str, Any]:
     """
     fetcher = _get_fetcher()
     return fetcher.query_entry(entry_id=entry_id)
+
+
+# =============================================================================
+# Participants functions (for getting pathway gene members)
+# =============================================================================
+
+
+def reactome_get_participants(event_id: str) -> List[Dict[str, Any]]:
+    """Get all participants in an event (pathway/reaction).
+
+    Args:
+        event_id: Reactome stable ID (e.g., "R-HSA-69278").
+
+    Returns:
+        List of participant dictionaries.
+
+    Example:
+        >>> participants = reactome_get_participants("R-HSA-69278")
+        >>> for p in participants[:3]:
+        ...     print(p.get("displayName"))
+    """
+    fetcher = _get_fetcher()
+    return fetcher.get_participants(event_id)
+
+
+def reactome_get_participants_reference_entities(
+    event_id: str,
+) -> List[Dict[str, Any]]:
+    """Get reference entities (genes/proteins) for an event.
+
+    Returns external database references (UniProt, NCBI Gene, etc.)
+    for all participants in a pathway or reaction.
+
+    Args:
+        event_id: Reactome stable ID.
+
+    Returns:
+        List of reference entity dictionaries containing:
+            - identifier: External ID (e.g., UniProt accession)
+            - databaseName: Source database
+            - geneName: Gene symbol (if available)
+
+    Example:
+        >>> refs = reactome_get_participants_reference_entities("R-HSA-69278")
+        >>> for ref in refs[:5]:
+        ...     print(f"{ref.get('geneName')}: {ref.get('identifier')}")
+    """
+    fetcher = _get_fetcher()
+    return fetcher.get_participants_reference_entities(event_id)
+
+
+def reactome_get_pathway_genes(
+    pathway_id: str,
+    id_type: str = "gene_symbol",
+) -> List[str]:
+    """Get gene identifiers for a pathway.
+
+    Args:
+        pathway_id: Reactome pathway stable ID.
+        id_type: Type of ID to return:
+            - "gene_symbol": Gene symbols (default)
+            - "uniprot": UniProt accessions
+
+    Returns:
+        List of gene identifiers.
+
+    Example:
+        >>> genes = reactome_get_pathway_genes("R-HSA-69278")
+        >>> print(genes[:10])
+        ['TP53', 'MDM2', 'CDKN1A', ...]
+    """
+    fetcher = _get_fetcher()
+    return fetcher.get_pathway_genes(pathway_id, id_type=id_type)
+
+
+def reactome_get_all_pathways_with_genes(
+    species: str = "Homo sapiens",
+    id_type: str = "gene_symbol",
+    include_hierarchy: bool = True,
+) -> Dict[str, tuple]:
+    """Get all pathways with their gene members for a species.
+
+    Builds a complete pathway-gene mapping suitable for local
+    over-representation analysis.
+
+    Args:
+        species: Species name (e.g., "Homo sapiens").
+        id_type: Gene ID type ("gene_symbol" or "uniprot").
+        include_hierarchy: Include all pathways in hierarchy.
+
+    Returns:
+        Dict mapping pathway_id -> (pathway_name, set of gene IDs).
+
+    Example:
+        >>> pathways = reactome_get_all_pathways_with_genes("Homo sapiens")
+        >>> for pid, (name, genes) in list(pathways.items())[:3]:
+        ...     print(f"{pid}: {name} ({len(genes)} genes)")
+
+    Note:
+        This makes many API calls and may take several minutes.
+        Consider caching the results.
+    """
+    fetcher = _get_fetcher()
+    return fetcher.get_all_pathways_with_genes(
+        species=species,
+        id_type=id_type,
+        include_hierarchy=include_hierarchy,
+    )
+
+
+# =============================================================================
+# Event functions
+# =============================================================================
+
+
+def reactome_get_event_ancestors(event_id: str) -> List[Dict[str, Any]]:
+    """Get ancestor pathways for an event.
+
+    Args:
+        event_id: Reactome stable ID.
+
+    Returns:
+        List of ancestor pathway dictionaries.
+    """
+    fetcher = _get_fetcher()
+    return fetcher.get_event_ancestors(event_id)
+
+
+# =============================================================================
+# Entity functions
+# =============================================================================
+
+
+def reactome_get_complex_subunits(complex_id: str) -> List[Dict[str, Any]]:
+    """Get subunits of a complex.
+
+    Args:
+        complex_id: Reactome complex stable ID.
+
+    Returns:
+        List of subunit dictionaries.
+    """
+    fetcher = _get_fetcher()
+    return fetcher.get_complex_subunits(complex_id)
+
+
+def reactome_get_entity_component_of(entity_id: str) -> List[Dict[str, Any]]:
+    """Get complexes/sets that contain an entity.
+
+    Args:
+        entity_id: Reactome entity stable ID.
+
+    Returns:
+        List of container entity dictionaries.
+    """
+    fetcher = _get_fetcher()
+    return fetcher.get_entity_component_of(entity_id)
+
+
+# =============================================================================
+# Disease functions
+# =============================================================================
+
+
+def reactome_get_diseases() -> List[Dict[str, Any]]:
+    """Get all disease objects in Reactome.
+
+    Returns:
+        List of disease dictionaries.
+
+    Example:
+        >>> diseases = reactome_get_diseases()
+        >>> for d in diseases[:5]:
+        ...     print(d.get("displayName"))
+    """
+    fetcher = _get_fetcher()
+    return fetcher.get_diseases()
+
+
+def reactome_get_diseases_doid() -> List[str]:
+    """Get all Disease Ontology IDs (DOIDs) in Reactome.
+
+    Returns:
+        List of DOID strings.
+
+    Example:
+        >>> doids = reactome_get_diseases_doid()
+        >>> print(doids[:10])
+    """
+    fetcher = _get_fetcher()
+    return fetcher.get_diseases_doid()
+
+
+# =============================================================================
+# Mapping functions
+# =============================================================================
+
+
+def reactome_map_to_reactions(
+    identifier: str,
+    resource: str = "UniProt",
+) -> List[Dict[str, Any]]:
+    """Map an identifier to Reactome reactions.
+
+    Args:
+        identifier: External identifier (e.g., UniProt accession).
+        resource: Source database ("UniProt", "NCBI", "ENSEMBL", etc.).
+
+    Returns:
+        List of reaction dictionaries.
+
+    Example:
+        >>> reactions = reactome_map_to_reactions("P04637")  # TP53
+        >>> print(f"TP53 participates in {len(reactions)} reactions")
+    """
+    fetcher = _get_fetcher()
+    return fetcher.map_to_reactions(identifier, resource=resource)

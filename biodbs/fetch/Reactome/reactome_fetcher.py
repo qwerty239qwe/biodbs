@@ -1,6 +1,6 @@
 """Reactome API fetcher following the standardized pattern."""
 
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional
 import logging
 import requests
 
@@ -625,6 +625,406 @@ class Reactome_Fetcher(BaseDataFetcher):
         if response.status_code != 200:
             raise ConnectionError(
                 f"Failed to query entry. "
+                f"Status: {response.status_code}, Message: {response.text}"
+            )
+
+        return response.json()
+
+    # =========================================================================
+    # Participants endpoints (for getting pathway gene members)
+    # =========================================================================
+
+    def get_participants(self, event_id: str) -> List[Dict[str, Any]]:
+        """Get all participants in an event (pathway/reaction).
+
+        Args:
+            event_id: Reactome stable ID (e.g., "R-HSA-69278").
+
+        Returns:
+            List of participant dictionaries with physical entity info.
+
+        Example:
+            >>> fetcher = Reactome_Fetcher()
+            >>> participants = fetcher.get_participants("R-HSA-69278")
+            >>> for p in participants[:3]:
+            ...     print(p.get("displayName"))
+        """
+        endpoint = ReactomeContentEndpoint.PARTICIPANTS.value.format(id=event_id)
+        url = self._api_config.get_content_url(endpoint)
+
+        response = requests.get(url, headers={"Accept": "application/json"})
+
+        if response.status_code != 200:
+            raise ConnectionError(
+                f"Failed to get participants. "
+                f"Status: {response.status_code}, Message: {response.text}"
+            )
+
+        return response.json()
+
+    def get_participants_physical_entities(
+        self, event_id: str
+    ) -> List[Dict[str, Any]]:
+        """Get participating physical entities in an event.
+
+        Args:
+            event_id: Reactome stable ID.
+
+        Returns:
+            List of physical entity dictionaries.
+        """
+        endpoint = ReactomeContentEndpoint.PARTICIPANTS_PHYSICAL_ENTITIES.value.format(
+            id=event_id
+        )
+        url = self._api_config.get_content_url(endpoint)
+
+        response = requests.get(url, headers={"Accept": "application/json"})
+
+        if response.status_code != 200:
+            raise ConnectionError(
+                f"Failed to get participating physical entities. "
+                f"Status: {response.status_code}, Message: {response.text}"
+            )
+
+        return response.json()
+
+    def get_participants_reference_entities(
+        self, event_id: str
+    ) -> List[Dict[str, Any]]:
+        """Get reference entities (genes/proteins) for an event.
+
+        This returns the external database references (UniProt, NCBI Gene, etc.)
+        for all participants in a pathway or reaction.
+
+        Args:
+            event_id: Reactome stable ID (e.g., "R-HSA-69278").
+
+        Returns:
+            List of reference entity dictionaries containing:
+                - identifier: External ID (e.g., UniProt accession)
+                - databaseName: Source database (e.g., "UniProt")
+                - displayName: Human-readable name
+                - geneName: Gene symbol (if available)
+
+        Example:
+            >>> fetcher = Reactome_Fetcher()
+            >>> refs = fetcher.get_participants_reference_entities("R-HSA-69278")
+            >>> for ref in refs[:5]:
+            ...     print(f"{ref.get('geneName')}: {ref.get('identifier')}")
+        """
+        endpoint = ReactomeContentEndpoint.PARTICIPANTS_REFERENCE_ENTITIES.value.format(
+            id=event_id
+        )
+        url = self._api_config.get_content_url(endpoint)
+
+        response = requests.get(url, headers={"Accept": "application/json"})
+
+        if response.status_code != 200:
+            raise ConnectionError(
+                f"Failed to get reference entities. "
+                f"Status: {response.status_code}, Message: {response.text}"
+            )
+
+        return response.json()
+
+    def get_pathway_genes(
+        self,
+        pathway_id: str,
+        id_type: str = "gene_symbol",
+    ) -> List[str]:
+        """Get gene identifiers for a pathway.
+
+        Convenience method that extracts gene IDs from reference entities.
+
+        Args:
+            pathway_id: Reactome pathway stable ID.
+            id_type: Type of ID to return:
+                - "gene_symbol": Gene symbols (default)
+                - "uniprot": UniProt accessions
+                - "all": Return dict with all available IDs
+
+        Returns:
+            List of gene identifiers.
+
+        Example:
+            >>> fetcher = Reactome_Fetcher()
+            >>> genes = fetcher.get_pathway_genes("R-HSA-69278")
+            >>> print(genes[:10])
+            ['TP53', 'MDM2', 'CDKN1A', ...]
+        """
+        refs = self.get_participants_reference_entities(pathway_id)
+
+        if id_type == "gene_symbol":
+            genes = []
+            for ref in refs:
+                gene_name = ref.get("geneName")
+                if gene_name:
+                    # geneName can be a list or string
+                    if isinstance(gene_name, list):
+                        genes.extend(gene_name)
+                    else:
+                        genes.append(gene_name)
+            return list(set(genes))
+
+        elif id_type == "uniprot":
+            return list(set(
+                ref.get("identifier")
+                for ref in refs
+                if ref.get("databaseName") == "UniProt"
+                and ref.get("identifier")
+            ))
+
+        else:
+            raise ValueError(f"Unknown id_type: {id_type}")
+
+    def get_all_pathways_with_genes(
+        self,
+        species: Optional[str] = None,
+        id_type: str = "gene_symbol",
+        include_hierarchy: bool = True,
+    ) -> Dict[str, tuple]:
+        """Get all pathways with their gene members for a species.
+
+        This method builds a complete pathway-gene mapping suitable for
+        local over-representation analysis.
+
+        Args:
+            species: Species name (e.g., "Homo sapiens").
+            id_type: Gene ID type ("gene_symbol" or "uniprot").
+            include_hierarchy: If True, include all pathways in hierarchy.
+                If False, only top-level pathways.
+
+        Returns:
+            Dict mapping pathway_id -> (pathway_name, set of gene IDs).
+
+        Example:
+            >>> fetcher = Reactome_Fetcher()
+            >>> pathways = fetcher.get_all_pathways_with_genes("Homo sapiens")
+            >>> for pid, (name, genes) in list(pathways.items())[:3]:
+            ...     print(f"{pid}: {name} ({len(genes)} genes)")
+
+        Note:
+            This method makes many API calls and may take several minutes
+            for species with many pathways. Results should be cached.
+        """
+        species = species or self._species
+
+        # Get all pathways
+        if include_hierarchy:
+            hierarchy = self.get_events_hierarchy(species)
+            pathway_ids = self._extract_pathway_ids_from_hierarchy(hierarchy)
+        else:
+            top_pathways = self.get_pathways_top(species)
+            pathway_ids = [
+                (p.get("stId"), p.get("displayName", p.get("name", "")))
+                for p in top_pathways.pathways
+            ]
+
+        result = {}
+        for pathway_id, pathway_name in pathway_ids:
+            try:
+                genes = self.get_pathway_genes(pathway_id, id_type=id_type)
+                if genes:
+                    result[pathway_id] = (pathway_name, set(genes))
+            except ConnectionError:
+                logger.warning(f"Failed to get genes for pathway: {pathway_id}")
+                continue
+
+        return result
+
+    def _extract_pathway_ids_from_hierarchy(
+        self, hierarchy: List[Dict[str, Any]]
+    ) -> List[tuple]:
+        """Extract all pathway IDs and names from hierarchy.
+
+        Args:
+            hierarchy: Events hierarchy from get_events_hierarchy().
+
+        Returns:
+            List of (pathway_id, pathway_name) tuples.
+        """
+        pathways = []
+
+        def _extract_recursive(events: List[Dict[str, Any]]):
+            for event in events:
+                stId = event.get("stId", "")
+                name = event.get("name", "")
+                if stId and stId.startswith("R-"):
+                    pathways.append((stId, name))
+                # Recurse into children
+                children = event.get("children", [])
+                if children:
+                    _extract_recursive(children)
+
+        _extract_recursive(hierarchy)
+        return pathways
+
+    # =========================================================================
+    # Events endpoints
+    # =========================================================================
+
+    def get_event_ancestors(self, event_id: str) -> List[Dict[str, Any]]:
+        """Get ancestor pathways for an event.
+
+        Args:
+            event_id: Reactome stable ID.
+
+        Returns:
+            List of ancestor pathway dictionaries.
+        """
+        endpoint = ReactomeContentEndpoint.EVENT_ANCESTORS.value.format(id=event_id)
+        url = self._api_config.get_content_url(endpoint)
+
+        response = requests.get(url, headers={"Accept": "application/json"})
+
+        if response.status_code != 200:
+            raise ConnectionError(
+                f"Failed to get event ancestors. "
+                f"Status: {response.status_code}, Message: {response.text}"
+            )
+
+        return response.json()
+
+    # =========================================================================
+    # Entity endpoints
+    # =========================================================================
+
+    def get_complex_subunits(self, complex_id: str) -> List[Dict[str, Any]]:
+        """Get subunits of a complex.
+
+        Args:
+            complex_id: Reactome complex stable ID.
+
+        Returns:
+            List of subunit dictionaries.
+        """
+        endpoint = ReactomeContentEndpoint.COMPLEX_SUBUNITS.value.format(id=complex_id)
+        url = self._api_config.get_content_url(endpoint)
+
+        response = requests.get(url, headers={"Accept": "application/json"})
+
+        if response.status_code != 200:
+            raise ConnectionError(
+                f"Failed to get complex subunits. "
+                f"Status: {response.status_code}, Message: {response.text}"
+            )
+
+        return response.json()
+
+    def get_entity_component_of(self, entity_id: str) -> List[Dict[str, Any]]:
+        """Get complexes/sets that contain an entity.
+
+        Args:
+            entity_id: Reactome entity stable ID.
+
+        Returns:
+            List of container entity dictionaries.
+        """
+        endpoint = ReactomeContentEndpoint.ENTITY_COMPONENT_OF.value.format(id=entity_id)
+        url = self._api_config.get_content_url(endpoint)
+
+        response = requests.get(url, headers={"Accept": "application/json"})
+
+        if response.status_code != 200:
+            raise ConnectionError(
+                f"Failed to get entity containers. "
+                f"Status: {response.status_code}, Message: {response.text}"
+            )
+
+        return response.json()
+
+    def get_entity_other_forms(self, entity_id: str) -> List[Dict[str, Any]]:
+        """Get other forms of a physical entity.
+
+        Args:
+            entity_id: Reactome entity stable ID.
+
+        Returns:
+            List of other form dictionaries.
+        """
+        endpoint = ReactomeContentEndpoint.ENTITY_OTHER_FORMS.value.format(id=entity_id)
+        url = self._api_config.get_content_url(endpoint)
+
+        response = requests.get(url, headers={"Accept": "application/json"})
+
+        if response.status_code != 200:
+            raise ConnectionError(
+                f"Failed to get entity other forms. "
+                f"Status: {response.status_code}, Message: {response.text}"
+            )
+
+        return response.json()
+
+    # =========================================================================
+    # Disease endpoints
+    # =========================================================================
+
+    def get_diseases(self) -> List[Dict[str, Any]]:
+        """Get all disease objects in Reactome.
+
+        Returns:
+            List of disease dictionaries.
+        """
+        url = self._api_config.get_content_url(
+            ReactomeContentEndpoint.DISEASES.value
+        )
+
+        response = requests.get(url, headers={"Accept": "application/json"})
+
+        if response.status_code != 200:
+            raise ConnectionError(
+                f"Failed to get diseases. "
+                f"Status: {response.status_code}, Message: {response.text}"
+            )
+
+        return response.json()
+
+    def get_diseases_doid(self) -> List[str]:
+        """Get all Disease Ontology IDs (DOIDs) in Reactome.
+
+        Returns:
+            List of DOID strings.
+        """
+        url = self._api_config.get_content_url(
+            ReactomeContentEndpoint.DISEASES_DOID.value
+        )
+
+        response = requests.get(url, headers={"Accept": "application/json"})
+
+        if response.status_code != 200:
+            raise ConnectionError(
+                f"Failed to get disease DOIDs. "
+                f"Status: {response.status_code}, Message: {response.text}"
+            )
+
+        return response.json()
+
+    # =========================================================================
+    # Mapping endpoints
+    # =========================================================================
+
+    def map_to_reactions(
+        self, identifier: str, resource: str = "UniProt"
+    ) -> List[Dict[str, Any]]:
+        """Map an identifier to Reactome reactions.
+
+        Args:
+            identifier: External identifier (e.g., UniProt accession).
+            resource: Source database ("UniProt", "NCBI", "ENSEMBL", etc.).
+
+        Returns:
+            List of reaction dictionaries.
+        """
+        endpoint = ReactomeContentEndpoint.MAPPING_REACTIONS.value.format(
+            resource=resource, identifier=identifier
+        )
+        url = self._api_config.get_content_url(endpoint)
+
+        response = requests.get(url, headers={"Accept": "application/json"})
+
+        if response.status_code != 200:
+            raise ConnectionError(
+                f"Failed to map identifier to reactions. "
                 f"Status: {response.status_code}, Message: {response.text}"
             )
 

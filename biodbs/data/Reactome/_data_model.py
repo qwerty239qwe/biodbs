@@ -2,7 +2,7 @@
 
 from enum import Enum
 from typing import Dict, List, Optional, Any
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 
 class ReactomeBase(str, Enum):
@@ -59,6 +59,7 @@ class ReactomeContentEndpoint(str, Enum):
     PATHWAY_CONTAINED_EVENTS = "data/pathway/{id}/containedEvents"
     PATHWAYS_LOW_ENTITY = "data/pathways/low/entity/{id}"
     PATHWAYS_LOW_DIAGRAM = "data/pathways/low/diagram/entity/{id}"
+    PATHWAYS_LOW_ENTITY_ALL_FORMS = "data/pathways/low/entity/{id}/allForms"
 
     # Species
     SPECIES_ALL = "data/species/all"
@@ -67,9 +68,37 @@ class ReactomeContentEndpoint(str, Enum):
     # Query
     QUERY = "data/query/{id}"
     QUERY_IDS = "data/query/ids"
+    QUERY_ENHANCED = "data/query/enhanced/{id}"
 
     # Mapping
     MAPPING_PATHWAYS = "data/mapping/{resource}/{identifier}/pathways"
+    MAPPING_REACTIONS = "data/mapping/{resource}/{identifier}/reactions"
+
+    # Participants (for getting pathway members)
+    PARTICIPANTS = "data/participants/{id}"
+    PARTICIPANTS_PHYSICAL_ENTITIES = "data/participants/{id}/participatingPhysicalEntities"
+    PARTICIPANTS_REFERENCE_ENTITIES = "data/participants/{id}/referenceEntities"
+
+    # Events
+    EVENT_ANCESTORS = "data/event/{id}/ancestors"
+
+    # Entities
+    COMPLEX_SUBUNITS = "data/complex/{id}/subunits"
+    ENTITY_COMPONENT_OF = "data/entity/{id}/componentOf"
+    ENTITY_OTHER_FORMS = "data/entity/{id}/otherForms"
+
+    # Database
+    DATABASE_NAME = "data/database/name"
+    DATABASE_VERSION = "data/database/version"
+
+    # Diseases
+    DISEASES = "data/diseases"
+    DISEASES_DOID = "data/diseases/doid"
+
+    # Schema
+    SCHEMA_MODEL = "data/schema/model"
+    SCHEMA_CLASS = "data/schema/{className}"
+    SCHEMA_CLASS_COUNT = "data/schema/{className}/count"
 
 
 class EntityStatistics(BaseModel):
