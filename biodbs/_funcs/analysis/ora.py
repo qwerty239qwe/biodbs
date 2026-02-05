@@ -399,6 +399,117 @@ def multiple_test_correction(
 
 
 # =============================================================================
+# ID Type Definitions
+# =============================================================================
+
+# Supported ID types with their aliases
+ID_TYPE_ALIASES = {
+    # Gene symbols
+    "symbol": "symbol",
+    "gene_symbol": "symbol",
+    "gene_name": "symbol",
+    "hgnc_symbol": "symbol",
+    # Entrez/NCBI Gene ID
+    "entrez": "entrez",
+    "entrezgene": "entrez",
+    "entrezgene_id": "entrez",
+    "ncbi_gene": "entrez",
+    "ncbi_geneid": "entrez",
+    "gene_id": "entrez",
+    # Ensembl
+    "ensembl": "ensembl",
+    "ensembl_gene_id": "ensembl",
+    "ensembl_gene": "ensembl",
+    # UniProt
+    "uniprot": "uniprot",
+    "uniprot_id": "uniprot",
+    "uniprot_ac": "uniprot",
+    "swissprot": "uniprot",
+    # RefSeq
+    "refseq": "refseq",
+    "refseq_mrna": "refseq",
+}
+
+
+def _normalize_id_type(id_type: str) -> str:
+    """Normalize ID type to canonical form."""
+    return ID_TYPE_ALIASES.get(id_type.lower(), id_type.lower())
+
+
+def _translate_ids_for_ora(
+    genes: List[str],
+    from_type: str,
+    to_type: str,
+    species: str = "human",
+) -> Tuple[List[str], Dict[str, str], List[str]]:
+    """Translate gene IDs for ORA analysis.
+
+    Args:
+        genes: List of gene identifiers.
+        from_type: Source ID type (normalized).
+        to_type: Target ID type (normalized).
+        species: Species name.
+
+    Returns:
+        Tuple of (translated_genes, mapping_dict, unmapped_genes)
+    """
+    if from_type == to_type:
+        return genes, {g: g for g in genes}, []
+
+    # Map normalized types to BioMart attribute names
+    biomart_attrs = {
+        "symbol": "external_gene_name",
+        "entrez": "entrezgene_id",
+        "ensembl": "ensembl_gene_id",
+        "uniprot": "uniprotswissprot",
+        "refseq": "refseq_mrna",
+    }
+
+    from_attr = biomart_attrs.get(from_type)
+    to_attr = biomart_attrs.get(to_type)
+
+    if not from_attr or not to_attr:
+        # Fall back to original _map_gene_ids
+        return _map_gene_ids(genes, from_type, to_type, species)
+
+    try:
+        from biodbs._funcs.translate import translate_gene_ids
+
+        result = translate_gene_ids(
+            genes,
+            from_type=from_attr,
+            to_type=to_attr,
+            species=species,
+            database="biomart",
+            return_dict=True,
+        )
+
+        mapped = []
+        mapping = {}
+        unmapped = []
+
+        for gene in genes:
+            target = result.get(gene)
+            if target and target != "" and str(target) != "nan":
+                # Handle potential list results (take first)
+                if isinstance(target, list):
+                    target = target[0] if target else None
+                if target:
+                    mapped.append(str(target))
+                    mapping[gene] = str(target)
+                else:
+                    unmapped.append(gene)
+            else:
+                unmapped.append(gene)
+
+        return mapped, mapping, unmapped
+
+    except Exception as e:
+        warnings.warn(f"ID translation failed ({from_type} -> {to_type}): {e}")
+        return genes, {g: g for g in genes}, []
+
+
+# =============================================================================
 # Gene Set Providers
 # =============================================================================
 
@@ -816,7 +927,7 @@ def ora(
 def ora_kegg(
     genes: List[str],
     organism: str = "hsa",
-    id_type: str = "entrez",
+    from_id_type: str = "entrez",
     background: Optional[Set[str]] = None,
     min_overlap: int = 3,
     correction_method: Union[str, CorrectionMethod] = CorrectionMethod.BH,
@@ -828,11 +939,13 @@ def ora_kegg(
     Args:
         genes: List of query genes.
         organism: KEGG organism code (e.g., "hsa" for human, "mmu" for mouse).
-        id_type: Input gene ID type:
-            - "entrez": NCBI Entrez Gene ID (default)
-            - "symbol": Gene symbol (will be converted)
-            - "ensembl": Ensembl gene ID (will be converted)
-            - "kegg": KEGG gene ID (no conversion needed)
+        from_id_type: Input gene ID type. The function automatically translates
+            to Entrez IDs (required by KEGG). Supported types:
+            - "entrez" / "entrezgene" / "ncbi_gene": NCBI Entrez Gene ID (default, no conversion)
+            - "symbol" / "gene_symbol": Gene symbol (e.g., "TP53")
+            - "ensembl" / "ensembl_gene_id": Ensembl gene ID (e.g., "ENSG00000141510")
+            - "uniprot": UniProt accession (e.g., "P04637")
+            - "kegg": KEGG gene ID (e.g., "hsa:7157", strips prefix)
         background: Background gene set. If None, uses all genes in KEGG.
         min_overlap: Minimum overlap required to test a pathway.
         correction_method: Multiple testing correction method.
@@ -843,44 +956,50 @@ def ora_kegg(
         ORAResult with KEGG pathway enrichment results.
 
     Example:
-        >>> genes = ["7157", "672", "675", "7158"]  # Entrez IDs
+        >>> # Using Entrez IDs (default)
+        >>> genes = ["7157", "672", "675", "7158"]
         >>> result = ora_kegg(genes, organism="hsa")
         >>> print(result.summary())
 
-        >>> # Using gene symbols
+        >>> # Using gene symbols - automatic translation
         >>> genes = ["TP53", "BRCA1", "BRCA2", "TP73"]
-        >>> result = ora_kegg(genes, id_type="symbol")
-    """
-    # Map gene IDs if needed
-    mapped_genes = genes
-    mapping = {}
-    unmapped = []
+        >>> result = ora_kegg(genes, organism="hsa", from_id_type="symbol")
 
+        >>> # Using Ensembl IDs
+        >>> genes = ["ENSG00000141510", "ENSG00000012048"]
+        >>> result = ora_kegg(genes, organism="hsa", from_id_type="ensembl")
+    """
+    # Normalize ID type
+    from_type = _normalize_id_type(from_id_type)
+
+    # Get species name for translation
     organism_map = {
         "hsa": "human",
         "mmu": "mouse",
         "rno": "rat",
+        "dre": "zebrafish",
+        "dme": "fly",
+        "sce": "yeast",
     }
-    species = organism_map.get(organism, organism)
+    species = organism_map.get(organism, "human")
 
-    if id_type == "symbol":
-        mapped_genes, mapping, unmapped = _map_gene_ids(
-            genes,
-            from_type="external_gene_name",
-            to_type="entrezgene_id",
-            organism=species,
-        )
-    elif id_type == "ensembl":
-        mapped_genes, mapping, unmapped = _map_gene_ids(
-            genes,
-            from_type="ensembl_gene_id",
-            to_type="entrezgene_id",
-            organism=species,
-        )
-    elif id_type == "kegg":
+    # Translate IDs if needed
+    mapped_genes = genes
+    mapping = {}
+    unmapped = []
+
+    if from_type == "kegg":
         # Strip organism prefix if present
         mapped_genes = [g.replace(f"{organism}:", "") for g in genes]
         mapping = {g: g.replace(f"{organism}:", "") for g in genes}
+    elif from_type != "entrez":
+        # Translate to Entrez IDs
+        mapped_genes, mapping, unmapped = _translate_ids_for_ora(
+            genes,
+            from_type=from_type,
+            to_type="entrez",
+            species=species,
+        )
 
     # Get KEGG pathways
     pathways = _get_kegg_pathways(
@@ -914,7 +1033,7 @@ def ora_kegg(
     result.query_genes = genes
     result.unmapped_genes = unmapped
     result.parameters["organism"] = organism
-    result.parameters["id_type"] = id_type
+    result.parameters["from_id_type"] = from_id_type
 
     return result
 
@@ -922,7 +1041,7 @@ def ora_kegg(
 def ora_go(
     genes: List[str],
     taxon_id: int = 9606,
-    id_type: str = "uniprot",
+    from_id_type: str = "uniprot",
     aspect: Union[str, GOAspect] = GOAspect.BIOLOGICAL_PROCESS,
     evidence_codes: Optional[List[str]] = None,
     background: Optional[Set[str]] = None,
@@ -938,10 +1057,12 @@ def ora_go(
     Args:
         genes: List of query genes.
         taxon_id: NCBI taxonomy ID (9606 for human, 10090 for mouse).
-        id_type: Input gene ID type:
-            - "uniprot": UniProt accession (default)
-            - "symbol": Gene symbol (will be converted)
-            - "ensembl": Ensembl gene ID (will be converted)
+        from_id_type: Input gene ID type. The function automatically translates
+            to UniProt IDs (used by QuickGO). Supported types:
+            - "uniprot" / "uniprot_id": UniProt accession (default, no conversion)
+            - "symbol" / "gene_symbol": Gene symbol (e.g., "TP53")
+            - "ensembl" / "ensembl_gene_id": Ensembl gene ID
+            - "entrez" / "entrezgene": NCBI Entrez Gene ID
         aspect: GO aspect to analyze:
             - "biological_process": Biological processes
             - "molecular_function": Molecular functions
@@ -960,36 +1081,45 @@ def ora_go(
         ORAResult with GO term enrichment results.
 
     Example:
-        >>> genes = ["P04637", "P38398", "O15350"]  # UniProt IDs
+        >>> # Using UniProt IDs (default)
+        >>> genes = ["P04637", "P38398", "O15350"]
         >>> result = ora_go(genes, taxon_id=9606)
         >>> print(result.significant_terms().as_dataframe())
-    """
-    # Map gene IDs if needed
-    mapped_genes = genes
-    mapping = {}
-    unmapped = []
 
+        >>> # Using gene symbols - automatic translation
+        >>> genes = ["TP53", "BRCA1", "BRCA2"]
+        >>> result = ora_go(genes, taxon_id=9606, from_id_type="symbol")
+
+        >>> # Using Ensembl IDs
+        >>> genes = ["ENSG00000141510", "ENSG00000012048"]
+        >>> result = ora_go(genes, taxon_id=9606, from_id_type="ensembl")
+    """
+    # Normalize ID type
+    from_type = _normalize_id_type(from_id_type)
+
+    # Get species name for translation
     taxon_to_species = {
         9606: "human",
         10090: "mouse",
         10116: "rat",
+        7955: "zebrafish",
+        7227: "fly",
+        6239: "worm",
     }
     species = taxon_to_species.get(taxon_id, "human")
 
-    if id_type == "symbol":
-        # Map to UniProt
-        mapped_genes, mapping, unmapped = _map_gene_ids(
+    # Translate IDs if needed
+    mapped_genes = genes
+    mapping = {}
+    unmapped = []
+
+    if from_type != "uniprot":
+        # Translate to UniProt IDs
+        mapped_genes, mapping, unmapped = _translate_ids_for_ora(
             genes,
-            from_type="external_gene_name",
-            to_type="uniprot_gn_id",
-            organism=species,
-        )
-    elif id_type == "ensembl":
-        mapped_genes, mapping, unmapped = _map_gene_ids(
-            genes,
-            from_type="ensembl_gene_id",
-            to_type="uniprot_gn_id",
-            organism=species,
+            from_type=from_type,
+            to_type="uniprot",
+            species=species,
         )
 
     # Get GO terms
@@ -1017,7 +1147,7 @@ def ora_go(
             database="GO",
             parameters={
                 "taxon_id": taxon_id,
-                "id_type": id_type,
+                "from_id_type": from_id_type,
                 "aspect": aspect_str,
             },
         )
@@ -1039,7 +1169,7 @@ def ora_go(
     result.query_genes = genes
     result.unmapped_genes = unmapped
     result.parameters["taxon_id"] = taxon_id
-    result.parameters["id_type"] = id_type
+    result.parameters["from_id_type"] = from_id_type
     result.parameters["aspect"] = aspect_str
 
     return result
@@ -1049,6 +1179,7 @@ def ora_enrichr(
     genes: List[str],
     gene_set_library: str = "KEGG_2021_Human",
     organism: str = "human",
+    from_id_type: str = "symbol",
 ) -> ORAResult:
     """Perform over-representation analysis using EnrichR web service.
 
@@ -1056,7 +1187,7 @@ def ora_enrichr(
     which handles ID mapping and statistical testing on their servers.
 
     Args:
-        genes: List of gene symbols.
+        genes: List of gene identifiers.
         gene_set_library: EnrichR library to use. Common options:
             - "KEGG_2021_Human"
             - "GO_Biological_Process_2023"
@@ -1066,6 +1197,12 @@ def ora_enrichr(
             - "WikiPathway_2023_Human"
             - "MSigDB_Hallmark_2020"
         organism: Organism ("human", "mouse", "fly", "yeast", "worm", "fish").
+        from_id_type: Input gene ID type. The function automatically translates
+            to gene symbols (required by EnrichR). Supported types:
+            - "symbol" / "gene_symbol": Gene symbol (default, no conversion)
+            - "ensembl" / "ensembl_gene_id": Ensembl gene ID
+            - "entrez" / "entrezgene": NCBI Entrez Gene ID
+            - "uniprot": UniProt accession
 
     Returns:
         ORAResult with EnrichR enrichment results.
@@ -1075,15 +1212,40 @@ def ora_enrichr(
         Rate limits may apply for heavy usage.
 
     Example:
+        >>> # Using gene symbols (default)
         >>> genes = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"]
         >>> result = ora_enrichr(genes, "KEGG_2021_Human")
         >>> print(result.top_terms(10).as_dataframe())
+
+        >>> # Using Ensembl IDs - automatic translation
+        >>> genes = ["ENSG00000141510", "ENSG00000012048"]
+        >>> result = ora_enrichr(genes, "KEGG_2021_Human", from_id_type="ensembl")
+
+        >>> # Using Entrez IDs
+        >>> genes = ["7157", "672", "675"]
+        >>> result = ora_enrichr(genes, "KEGG_2021_Human", from_id_type="entrez")
     """
+    # Normalize ID type
+    from_type = _normalize_id_type(from_id_type)
+
+    # Translate IDs if needed
+    mapped_genes = genes
+    unmapped = []
+
+    if from_type != "symbol":
+        # Translate to gene symbols
+        mapped_genes, _, unmapped = _translate_ids_for_ora(
+            genes,
+            from_type=from_type,
+            to_type="symbol",
+            species=organism,
+        )
+
     from biodbs.fetch.EnrichR import EnrichR_Fetcher
 
     # Use the EnrichR fetcher
     fetcher = EnrichR_Fetcher(organism=organism)
-    enrichr_data = fetcher.enrich(genes, gene_set_library)
+    enrichr_data = fetcher.enrich(mapped_genes, gene_set_library)
 
     # Convert EnrichR results to ORATermResult objects
     results = []
@@ -1116,13 +1278,14 @@ def ora_enrichr(
     return ORAResult(
         results=results,
         query_genes=genes,
-        mapped_genes=genes,
-        unmapped_genes=[],
+        mapped_genes=mapped_genes,
+        unmapped_genes=unmapped,
         background_size=0,
         database=f"EnrichR:{gene_set_library}",
         parameters={
             "gene_set_library": gene_set_library,
             "organism": organism,
+            "from_id_type": from_id_type,
             "method": "enrichr_fetcher",
         },
     )
@@ -1131,6 +1294,7 @@ def ora_enrichr(
 def ora_reactome(
     genes: List[str],
     species: str = "Homo sapiens",
+    from_id_type: str = "symbol",
     interactors: bool = False,
     include_disease: bool = True,
     min_entities: Optional[int] = None,
@@ -1143,8 +1307,14 @@ def ora_reactome(
     enrichment analysis directly on their servers.
 
     Args:
-        genes: List of gene symbols, UniProt IDs, or other identifiers.
+        genes: List of gene identifiers.
         species: Species name (e.g., "Homo sapiens", "Mus musculus").
+        from_id_type: Input gene ID type. The function automatically translates
+            to gene symbols (best supported by Reactome). Supported types:
+            - "symbol" / "gene_symbol": Gene symbol (default, no conversion)
+            - "ensembl" / "ensembl_gene_id": Ensembl gene ID
+            - "entrez" / "entrezgene": NCBI Entrez Gene ID
+            - "uniprot": UniProt accession (also accepted natively by Reactome)
         interactors: Include interactors in the analysis.
         include_disease: Include disease pathways.
         min_entities: Minimum pathway size (number of entities).
@@ -1160,25 +1330,60 @@ def ora_reactome(
         Reactome performs its own FDR correction.
 
     Example:
+        >>> # Using gene symbols (default)
         >>> genes = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"]
         >>> result = ora_reactome(genes)
-        >>> print(result.top_terms(10).as_dataframe())
+        >>> print(f"Tested {len(result)} pathways")
+        Tested 172 pathways
 
-        >>> # Mouse genes
-        >>> result = ora_reactome(
-        ...     ["Trp53", "Brca1", "Brca2"],
-        ...     species="Mus musculus"
-        ... )
+        >>> # Using Ensembl IDs - automatic translation
+        >>> genes = ["ENSG00000141510", "ENSG00000012048"]
+        >>> result = ora_reactome(genes, from_id_type="ensembl")
 
-        >>> # With overlap genes (slower)
-        >>> result = ora_reactome(genes, fetch_overlap_genes=True)
+        >>> # Using Entrez IDs
+        >>> genes = ["7157", "672", "675"]
+        >>> result = ora_reactome(genes, from_id_type="entrez")
+
+        >>> # Using UniProt IDs (accepted natively by Reactome)
+        >>> genes = ["P04637", "P38398", "P51587"]
+        >>> result = ora_reactome(genes, from_id_type="uniprot")
+
+        >>> # Get significant pathways as DataFrame
+        >>> df = result.significant_terms(p_threshold=0.05).as_dataframe()
     """
+    # Normalize ID type
+    from_type = _normalize_id_type(from_id_type)
+
+    # Species to organism mapping for translation
+    species_to_organism = {
+        "Homo sapiens": "human",
+        "Mus musculus": "mouse",
+        "Rattus norvegicus": "rat",
+        "Danio rerio": "zebrafish",
+        "Drosophila melanogaster": "fly",
+        "Saccharomyces cerevisiae": "yeast",
+    }
+    organism = species_to_organism.get(species, "human")
+
+    # Translate IDs if needed (Reactome accepts symbols and UniProt natively)
+    mapped_genes = genes
+    unmapped_translate = []
+
+    if from_type not in ("symbol", "uniprot"):
+        # Translate to gene symbols for best Reactome compatibility
+        mapped_genes, _, unmapped_translate = _translate_ids_for_ora(
+            genes,
+            from_type=from_type,
+            to_type="symbol",
+            species=organism,
+        )
+
     from biodbs.fetch.Reactome import Reactome_Fetcher
 
     # Use the Reactome fetcher
     fetcher = Reactome_Fetcher(species=species)
     reactome_data = fetcher.analyze(
-        identifiers=genes,
+        identifiers=mapped_genes,
         species=species,
         interactors=interactors,
         include_disease=include_disease,
@@ -1218,25 +1423,28 @@ def ora_reactome(
     # Sort by FDR
     results.sort(key=lambda x: x.adjusted_p_value)
 
-    # Get not-found identifiers
-    unmapped = []
+    # Get not-found identifiers from Reactome
+    unmapped_reactome = []
     if reactome_data.token:
         try:
-            unmapped = fetcher.get_not_found_identifiers(reactome_data.token)
+            unmapped_reactome = fetcher.get_not_found_identifiers(reactome_data.token)
         except Exception:
             pass
 
-    mapped_count = len(genes) - reactome_data.identifiers_not_found
+    # Combine unmapped from translation and Reactome
+    all_unmapped = list(set(unmapped_translate + unmapped_reactome))
+    mapped_count = len(mapped_genes) - reactome_data.identifiers_not_found
 
     return ORAResult(
         results=results,
         query_genes=genes,
-        mapped_genes=genes[:mapped_count] if mapped_count > 0 else [],
-        unmapped_genes=unmapped,
+        mapped_genes=mapped_genes[:mapped_count] if mapped_count > 0 else [],
+        unmapped_genes=all_unmapped,
         background_size=0,
         database="Reactome",
         parameters={
             "species": species,
+            "from_id_type": from_id_type,
             "interactors": interactors,
             "include_disease": include_disease,
             "method": "reactome_api",
@@ -1248,7 +1456,7 @@ def ora_reactome(
 def ora_reactome_local(
     genes: List[str],
     species: str = "Homo sapiens",
-    id_type: str = "gene_symbol",
+    from_id_type: str = "symbol",
     background: Optional[Set[str]] = None,
     min_overlap: int = 3,
     min_term_size: int = 5,
@@ -1267,12 +1475,16 @@ def ora_reactome_local(
         - Offline analysis (after initial cache)
 
     Args:
-        genes: List of gene symbols or UniProt IDs.
+        genes: List of gene identifiers.
         species: Species name (e.g., "Homo sapiens", "Mus musculus").
-        id_type: Gene ID type matching your input:
-            - "gene_symbol": Gene symbols (default)
-            - "uniprot": UniProt accessions
-        background: Background gene set. If None, uses all genes in pathways.
+        from_id_type: Input gene ID type. The function automatically translates
+            to gene symbols for pathway matching. Supported types:
+            - "symbol" / "gene_symbol": Gene symbol (default, no conversion)
+            - "ensembl" / "ensembl_gene_id": Ensembl gene ID
+            - "entrez" / "entrezgene": NCBI Entrez Gene ID
+            - "uniprot": UniProt accession
+        background: Background gene set (as gene symbols). If None, uses all
+            genes in pathways.
         min_overlap: Minimum overlap required to test a pathway.
         min_term_size: Minimum genes per pathway.
         max_term_size: Maximum genes per pathway.
@@ -1284,28 +1496,64 @@ def ora_reactome_local(
         ORAResult with Reactome pathway enrichment results.
 
     Example:
+        >>> # Using gene symbols (default)
         >>> genes = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"]
         >>> result = ora_reactome_local(genes, species="Homo sapiens")
-        >>> print(result.summary())
+        >>> print(f"Tested {len(result)} pathways")
+        Tested 245 pathways
 
-        >>> # With custom background
-        >>> background = set(all_expressed_genes)
+        >>> # Using Ensembl IDs - automatic translation
+        >>> genes = ["ENSG00000141510", "ENSG00000012048"]
+        >>> result = ora_reactome_local(genes, from_id_type="ensembl")
+
+        >>> # Using Entrez IDs
+        >>> genes = ["7157", "672", "675"]
+        >>> result = ora_reactome_local(genes, from_id_type="entrez")
+
+        >>> # With custom background (e.g., expressed genes only)
+        >>> background = {"TP53", "BRCA1", "BRCA2", "ATM", "CHEK2", "MDM2", "CDKN1A", ...}
         >>> result = ora_reactome_local(genes, background=background)
+        >>> print(f"Background size: {result.background_size}")
+        Background size: 1000
 
-        >>> # Using UniProt IDs
-        >>> result = ora_reactome_local(
-        ...     ["P04637", "P38398", "P51587"],
-        ...     id_type="uniprot"
-        ... )
+        >>> # Using Bonferroni correction instead of BH
+        >>> result = ora_reactome_local(genes, correction_method="bonferroni")
 
     Note:
         First run downloads pathway data and may take several minutes.
         Subsequent runs use cached data for fast analysis.
     """
-    # Get Reactome pathways (cached)
+    # Normalize ID type
+    from_type = _normalize_id_type(from_id_type)
+
+    # Species to organism mapping for translation
+    species_to_organism = {
+        "Homo sapiens": "human",
+        "Mus musculus": "mouse",
+        "Rattus norvegicus": "rat",
+        "Danio rerio": "zebrafish",
+        "Drosophila melanogaster": "fly",
+        "Saccharomyces cerevisiae": "yeast",
+    }
+    organism = species_to_organism.get(species, "human")
+
+    # Translate IDs if needed (pathway data uses gene symbols)
+    mapped_genes = genes
+    unmapped = []
+
+    if from_type != "symbol":
+        # Translate to gene symbols for pathway matching
+        mapped_genes, _, unmapped = _translate_ids_for_ora(
+            genes,
+            from_type=from_type,
+            to_type="symbol",
+            species=organism,
+        )
+
+    # Get Reactome pathways (cached) - using gene symbols
     pathways = _get_reactome_pathways(
         species=species,
-        id_type=id_type,
+        id_type="gene_symbol",  # Always use gene symbols for pathway data
         use_cache=use_cache,
         cache_dir=cache_dir,
         min_term_size=min_term_size,
@@ -1323,14 +1571,14 @@ def ora_reactome_local(
             database="Reactome",
             parameters={
                 "species": species,
-                "id_type": id_type,
+                "from_id_type": from_id_type,
                 "method": "local",
             },
         )
 
-    # Run ORA
+    # Run ORA with translated genes
     result = ora(
-        genes=genes,
+        genes=mapped_genes,
         gene_sets=pathways,
         background=background,
         min_overlap=min_overlap,
@@ -1338,9 +1586,11 @@ def ora_reactome_local(
         database_name="Reactome",
     )
 
-    # Update parameters
+    # Update with original gene info
+    result.query_genes = genes
+    result.unmapped_genes = unmapped
     result.parameters["species"] = species
-    result.parameters["id_type"] = id_type
+    result.parameters["from_id_type"] = from_id_type
     result.parameters["method"] = "local"
     result.parameters["min_term_size"] = min_term_size
     result.parameters["max_term_size"] = max_term_size

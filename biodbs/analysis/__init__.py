@@ -6,32 +6,35 @@ including over-representation analysis (ORA) for pathway/gene set enrichment.
 Usage:
     from biodbs.analysis import ora_kegg, ora_go, ora_enrichr, ora_reactome
 
-    # KEGG pathway enrichment analysis
+    # KEGG pathway enrichment - automatic ID translation
     result = ora_kegg(
-        gene_list=["TP53", "BRCA1", "BRCA2", "ATM"],
+        genes=["TP53", "BRCA1", "BRCA2", "ATM"],
         organism="hsa",
-        id_type="symbol"
+        from_id_type="symbol"  # Auto-converts to Entrez IDs
     )
     print(result.summary())
     print(result.significant_terms(alpha=0.05).as_dataframe())
 
-    # GO term enrichment analysis
+    # GO term enrichment - automatic ID translation
     result = ora_go(
-        gene_list=["P04637", "P38398", "P51587"],
+        genes=["TP53", "BRCA1", "BRCA2"],
         taxon_id=9606,
+        from_id_type="symbol",  # Auto-converts to UniProt IDs
         aspect="biological_process"
     )
 
-    # EnrichR analysis (uses external service)
+    # EnrichR analysis - automatic ID translation
     result = ora_enrichr(
-        gene_list=["TP53", "BRCA1", "BRCA2"],
-        gene_set_library="KEGG_2021_Human"
+        genes=["ENSG00000141510", "ENSG00000012048"],
+        gene_set_library="KEGG_2021_Human",
+        from_id_type="ensembl"  # Auto-converts to symbols
     )
 
-    # Reactome pathway analysis
+    # Reactome pathway analysis - automatic ID translation
     result = ora_reactome(
-        genes=["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"],
-        species="Homo sapiens"
+        genes=["7157", "672", "675"],
+        species="Homo sapiens",
+        from_id_type="entrez"  # Auto-converts to symbols
     )
     print(result.top_terms(10).as_dataframe())
 
@@ -39,10 +42,10 @@ For more control, use the generic ora() function with custom pathway data:
     from biodbs.analysis import ora, hypergeometric_test
 
     result = ora(
-        gene_list=my_genes,
-        pathway_dict=my_pathways,
+        genes=my_genes,
+        gene_sets=my_pathways,
         background=my_background_genes,
-        correction="fdr_bh"
+        correction_method="bh"
     )
 """
 
