@@ -10,6 +10,8 @@ from biodbs._funcs.analysis.ora import (
     ora_kegg,
     ora_go,
     ora_enrichr,
+    ora_reactome,
+    ora_reactome_local,
     # Result class
     ORAResult,
     # Utility functions
@@ -23,6 +25,8 @@ __all__ = [
     "ora_kegg",
     "ora_go",
     "ora_enrichr",
+    "ora_reactome",
+    "ora_reactome_local",
     # Result class
     "ORAResult",
     # Utility functions

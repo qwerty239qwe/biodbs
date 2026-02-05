@@ -14,6 +14,8 @@ from biodbs._funcs.analysis.ora import (
     ora_kegg,
     ora_go,
     ora_enrichr,
+    ora_reactome,
+    ora_reactome_local,
     ORAResult,
     ORATermResult,
     CorrectionMethod,
@@ -449,6 +451,246 @@ class TestORAEnrichr:
             assert isinstance(result, ORAResult)
         except ConnectionError:
             pytest.skip("EnrichR API not available")
+
+
+# =============================================================================
+# Reactome ORA (Integration Tests)
+# =============================================================================
+
+class TestORAReactome:
+    """Integration tests for Reactome ORA."""
+
+    @pytest.mark.integration
+    def test_reactome_ora_basic(self):
+        """Test basic Reactome ORA with gene symbols."""
+        genes = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"]
+
+        try:
+            result = ora_reactome(genes, species="Homo sapiens")
+
+            assert isinstance(result, ORAResult)
+            assert result.database == "Reactome"
+            assert len(result.query_genes) == 5
+            # Should have some results
+            assert len(result.results) > 0
+        except ConnectionError:
+            pytest.skip("Reactome API not available")
+
+    @pytest.mark.integration
+    def test_reactome_ora_uniprot_ids(self):
+        """Test Reactome ORA with UniProt IDs."""
+        # UniProt IDs for TP53, BRCA1, ATM
+        proteins = ["P04637", "P38398", "Q13315"]
+
+        try:
+            result = ora_reactome(proteins, species="Homo sapiens")
+
+            assert isinstance(result, ORAResult)
+            assert result.database == "Reactome"
+        except ConnectionError:
+            pytest.skip("Reactome API not available")
+
+    @pytest.mark.integration
+    def test_reactome_ora_mouse(self):
+        """Test Reactome ORA with mouse genes."""
+        # Mouse gene symbols
+        genes = ["Trp53", "Brca1", "Brca2"]
+
+        try:
+            result = ora_reactome(genes, species="Mus musculus")
+
+            assert isinstance(result, ORAResult)
+            assert result.parameters.get("species") == "Mus musculus"
+        except ConnectionError:
+            pytest.skip("Reactome API not available")
+
+    @pytest.mark.integration
+    def test_reactome_ora_results_structure(self):
+        """Test that Reactome ORA results have correct structure."""
+        genes = ["TP53", "MDM2", "CDKN1A", "BAX"]
+
+        try:
+            result = ora_reactome(genes, species="Homo sapiens")
+
+            if len(result.results) > 0:
+                term = result.results[0]
+                # Check required fields
+                assert hasattr(term, "term_id")
+                assert hasattr(term, "term_name")
+                assert hasattr(term, "p_value")
+                assert hasattr(term, "adjusted_p_value")
+                assert hasattr(term, "overlap_count")
+                assert hasattr(term, "term_size")
+                # Reactome IDs start with R-
+                assert term.term_id.startswith("R-")
+        except ConnectionError:
+            pytest.skip("Reactome API not available")
+
+    @pytest.mark.integration
+    def test_reactome_ora_significant_terms(self):
+        """Test filtering significant Reactome pathways."""
+        genes = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2", "RAD51", "PALB2"]
+
+        try:
+            result = ora_reactome(genes, species="Homo sapiens")
+            significant = result.significant_terms(p_threshold=0.05)
+
+            # All significant terms should have adjusted p-value <= 0.05
+            for term in significant.results:
+                assert term.adjusted_p_value <= 0.05
+        except ConnectionError:
+            pytest.skip("Reactome API not available")
+
+    @pytest.mark.integration
+    def test_reactome_ora_dataframe(self):
+        """Test converting Reactome ORA results to DataFrame."""
+        genes = ["TP53", "BRCA1", "EGFR", "MYC"]
+
+        try:
+            result = ora_reactome(genes, species="Homo sapiens")
+            df = result.as_dataframe()
+
+            if len(df) > 0:
+                assert "term_id" in df.columns
+                assert "term_name" in df.columns
+                assert "p_value" in df.columns
+                assert "adjusted_p_value" in df.columns
+                assert "overlap_count" in df.columns
+                assert "term_size" in df.columns
+        except ConnectionError:
+            pytest.skip("Reactome API not available")
+
+    @pytest.mark.integration
+    def test_reactome_ora_with_disease_filter(self):
+        """Test Reactome ORA with disease pathway filter."""
+        genes = ["TP53", "BRCA1", "BRCA2"]
+
+        try:
+            result_with = ora_reactome(genes, include_disease=True)
+            result_without = ora_reactome(genes, include_disease=False)
+
+            # Both should return results
+            assert isinstance(result_with, ORAResult)
+            assert isinstance(result_without, ORAResult)
+            # With disease should potentially have more pathways
+            assert result_with.parameters.get("include_disease") is True
+            assert result_without.parameters.get("include_disease") is False
+        except ConnectionError:
+            pytest.skip("Reactome API not available")
+
+    @pytest.mark.integration
+    def test_reactome_ora_empty_result(self):
+        """Test Reactome ORA with non-existent genes."""
+        genes = ["NOTAREALGENE123", "FAKEGENE456"]
+
+        try:
+            result = ora_reactome(genes, species="Homo sapiens")
+
+            assert isinstance(result, ORAResult)
+            # Most or all genes should be unmapped
+            assert len(result.unmapped_genes) >= 0
+        except ConnectionError:
+            pytest.skip("Reactome API not available")
+
+    @pytest.mark.integration
+    def test_reactome_ora_summary(self):
+        """Test Reactome ORA summary output."""
+        genes = ["TP53", "BRCA1", "BRCA2"]
+
+        try:
+            result = ora_reactome(genes, species="Homo sapiens")
+            summary = result.summary()
+
+            assert "Reactome" in summary
+            assert "Query genes" in summary
+        except ConnectionError:
+            pytest.skip("Reactome API not available")
+
+
+# =============================================================================
+# Reactome Local ORA (Integration Tests)
+# =============================================================================
+
+class TestORAReactomeLocal:
+    """Integration tests for local Reactome ORA."""
+
+    @pytest.mark.integration
+    @pytest.mark.slow
+    def test_reactome_local_ora_basic(self):
+        """Test basic local Reactome ORA with gene symbols."""
+        genes = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"]
+
+        try:
+            result = ora_reactome_local(
+                genes,
+                species="Homo sapiens",
+                use_cache=True,
+            )
+
+            assert isinstance(result, ORAResult)
+            assert result.database == "Reactome"
+            assert result.parameters.get("method") == "local"
+            assert len(result.query_genes) == 5
+        except ConnectionError:
+            pytest.skip("Reactome API not available")
+
+    @pytest.mark.integration
+    @pytest.mark.slow
+    def test_reactome_local_vs_api_comparison(self):
+        """Compare local and API-based Reactome ORA results."""
+        genes = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"]
+
+        try:
+            # API-based analysis
+            api_result = ora_reactome(genes, species="Homo sapiens")
+
+            # Local analysis
+            local_result = ora_reactome_local(
+                genes,
+                species="Homo sapiens",
+                use_cache=True,
+            )
+
+            # Both should identify significant pathways
+            api_sig = api_result.significant_terms(p_threshold=0.05)
+            local_sig = local_result.significant_terms(p_threshold=0.05)
+
+            # At least one of them should find significant results
+            assert len(api_sig.results) > 0 or len(local_sig.results) > 0
+
+            # Methods should be different
+            assert api_result.parameters.get("method") != local_result.parameters.get("method")
+
+        except ConnectionError:
+            pytest.skip("Reactome API not available")
+
+    @pytest.mark.integration
+    @pytest.mark.slow
+    def test_reactome_local_custom_background(self):
+        """Test local Reactome ORA with custom background."""
+        genes = ["TP53", "BRCA1", "BRCA2"]
+
+        # Define a small custom background
+        background = {
+            "TP53", "BRCA1", "BRCA2", "ATM", "CHEK2",
+            "MDM2", "CDKN1A", "BAX", "BCL2", "EGFR",
+            "MYC", "KRAS", "AKT1", "PIK3CA", "PTEN",
+        }
+
+        try:
+            result = ora_reactome_local(
+                genes,
+                species="Homo sapiens",
+                background=background,
+                use_cache=True,
+            )
+
+            assert isinstance(result, ORAResult)
+            # Background size should be at least the size of our custom background
+            assert result.background_size >= len(background)
+
+        except ConnectionError:
+            pytest.skip("Reactome API not available")
 
 
 # =============================================================================

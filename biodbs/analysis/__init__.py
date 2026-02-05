@@ -4,7 +4,7 @@ This module provides high-level analysis functions for biological data,
 including over-representation analysis (ORA) for pathway/gene set enrichment.
 
 Usage:
-    from biodbs.analysis import ora_kegg, ora_go, ora_enrichr
+    from biodbs.analysis import ora_kegg, ora_go, ora_enrichr, ora_reactome
 
     # KEGG pathway enrichment analysis
     result = ora_kegg(
@@ -28,6 +28,13 @@ Usage:
         gene_set_library="KEGG_2021_Human"
     )
 
+    # Reactome pathway analysis
+    result = ora_reactome(
+        genes=["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"],
+        species="Homo sapiens"
+    )
+    print(result.top_terms(10).as_dataframe())
+
 For more control, use the generic ora() function with custom pathway data:
     from biodbs.analysis import ora, hypergeometric_test
 
@@ -45,6 +52,8 @@ from biodbs._funcs.analysis import (
     ora_kegg,
     ora_go,
     ora_enrichr,
+    ora_reactome,
+    ora_reactome_local,
     # Result class
     ORAResult,
     # Utility functions
@@ -58,6 +67,8 @@ __all__ = [
     "ora_kegg",
     "ora_go",
     "ora_enrichr",
+    "ora_reactome",
+    "ora_reactome_local",
     # Result class
     "ORAResult",
     # Utility functions

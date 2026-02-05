@@ -31,13 +31,11 @@ from typing import (
     Set,
     Tuple,
     Union,
-    Callable,
     Any,
     TYPE_CHECKING,
 )
 from enum import Enum
 import math
-from functools import lru_cache
 import warnings
 
 if TYPE_CHECKING:
@@ -570,6 +568,76 @@ def _get_go_terms(
         cache_pathways(cache_key, cache_data, cache_dir)
 
     return filtered
+
+
+def _get_reactome_pathways(
+    species: str = "Homo sapiens",
+    id_type: str = "gene_symbol",
+    use_cache: bool = True,
+    cache_dir: Optional[str] = None,
+    min_term_size: int = 5,
+    max_term_size: int = 500,
+) -> Dict[str, Tuple[str, Set[str]]]:
+    """Get Reactome pathway gene sets.
+
+    Args:
+        species: Species name (e.g., "Homo sapiens").
+        id_type: Gene ID type ("gene_symbol" or "uniprot").
+        use_cache: Whether to use cached data.
+        cache_dir: Directory for cache files.
+        min_term_size: Minimum genes per pathway.
+        max_term_size: Maximum genes per pathway.
+
+    Returns:
+        Dict mapping pathway_id -> (pathway_name, set of gene IDs)
+    """
+    from biodbs._funcs.analysis._cache import get_cached_pathways, cache_pathways
+
+    # Normalize species name for cache key
+    species_key = species.lower().replace(" ", "_")
+    cache_key = f"reactome_{species_key}_{id_type}"
+
+    if use_cache:
+        cached = get_cached_pathways(cache_key, cache_dir)
+        if cached is not None:
+            # Filter by size
+            return {
+                k: (v[0], set(v[1]))
+                for k, v in cached.items()
+                if min_term_size <= len(v[1]) <= max_term_size
+            }
+
+    from biodbs.fetch.Reactome import Reactome_Fetcher
+
+    fetcher = Reactome_Fetcher(species=species)
+
+    # Get hierarchy to extract all pathway IDs
+    try:
+        hierarchy = fetcher.get_events_hierarchy(species)
+    except Exception as e:
+        warnings.warn(f"Failed to fetch Reactome hierarchy: {e}")
+        return {}
+
+    # Extract all pathway IDs and names
+    pathway_ids = fetcher._extract_pathway_ids_from_hierarchy(hierarchy)
+
+    pathways: Dict[str, Tuple[str, Set[str]]] = {}
+
+    for pathway_id, pathway_name in pathway_ids:
+        try:
+            genes = fetcher.get_pathway_genes(pathway_id, id_type=id_type)
+            if genes and min_term_size <= len(genes) <= max_term_size:
+                pathways[pathway_id] = (pathway_name, set(genes))
+        except Exception:
+            # Skip pathways that fail
+            continue
+
+    # Cache the results
+    if use_cache and pathways:
+        cache_data = {k: (v[0], frozenset(v[1])) for k, v in pathways.items()}
+        cache_pathways(cache_key, cache_data, cache_dir)
+
+    return pathways
 
 
 def _map_gene_ids(
@@ -1171,7 +1239,110 @@ def ora_reactome(
             "species": species,
             "interactors": interactors,
             "include_disease": include_disease,
-            "method": "reactome_fetcher",
+            "method": "reactome_api",
             "token": reactome_data.token,
         },
     )
+
+
+def ora_reactome_local(
+    genes: List[str],
+    species: str = "Homo sapiens",
+    id_type: str = "gene_symbol",
+    background: Optional[Set[str]] = None,
+    min_overlap: int = 3,
+    min_term_size: int = 5,
+    max_term_size: int = 500,
+    correction_method: Union[str, CorrectionMethod] = CorrectionMethod.BH,
+    use_cache: bool = True,
+    cache_dir: Optional[str] = None,
+) -> ORAResult:
+    """Perform local over-representation analysis using Reactome pathway data.
+
+    Unlike ora_reactome() which uses the Reactome Analysis Service API,
+    this function downloads pathway-gene mappings and performs the
+    hypergeometric test locally. This allows:
+        - Custom background gene sets
+        - Different multiple testing correction methods
+        - Offline analysis (after initial cache)
+
+    Args:
+        genes: List of gene symbols or UniProt IDs.
+        species: Species name (e.g., "Homo sapiens", "Mus musculus").
+        id_type: Gene ID type matching your input:
+            - "gene_symbol": Gene symbols (default)
+            - "uniprot": UniProt accessions
+        background: Background gene set. If None, uses all genes in pathways.
+        min_overlap: Minimum overlap required to test a pathway.
+        min_term_size: Minimum genes per pathway.
+        max_term_size: Maximum genes per pathway.
+        correction_method: Multiple testing correction method.
+        use_cache: Cache pathway data (recommended, fetching is slow).
+        cache_dir: Directory for cache files.
+
+    Returns:
+        ORAResult with Reactome pathway enrichment results.
+
+    Example:
+        >>> genes = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"]
+        >>> result = ora_reactome_local(genes, species="Homo sapiens")
+        >>> print(result.summary())
+
+        >>> # With custom background
+        >>> background = set(all_expressed_genes)
+        >>> result = ora_reactome_local(genes, background=background)
+
+        >>> # Using UniProt IDs
+        >>> result = ora_reactome_local(
+        ...     ["P04637", "P38398", "P51587"],
+        ...     id_type="uniprot"
+        ... )
+
+    Note:
+        First run downloads pathway data and may take several minutes.
+        Subsequent runs use cached data for fast analysis.
+    """
+    # Get Reactome pathways (cached)
+    pathways = _get_reactome_pathways(
+        species=species,
+        id_type=id_type,
+        use_cache=use_cache,
+        cache_dir=cache_dir,
+        min_term_size=min_term_size,
+        max_term_size=max_term_size,
+    )
+
+    if not pathways:
+        warnings.warn(f"No Reactome pathways found for species: {species}")
+        return ORAResult(
+            results=[],
+            query_genes=genes,
+            mapped_genes=[],
+            unmapped_genes=genes,
+            background_size=0,
+            database="Reactome",
+            parameters={
+                "species": species,
+                "id_type": id_type,
+                "method": "local",
+            },
+        )
+
+    # Run ORA
+    result = ora(
+        genes=genes,
+        gene_sets=pathways,
+        background=background,
+        min_overlap=min_overlap,
+        correction_method=correction_method,
+        database_name="Reactome",
+    )
+
+    # Update parameters
+    result.parameters["species"] = species
+    result.parameters["id_type"] = id_type
+    result.parameters["method"] = "local"
+    result.parameters["min_term_size"] = min_term_size
+    result.parameters["max_term_size"] = max_term_size
+
+    return result

@@ -19,11 +19,10 @@ Cache expiration:
 
 from __future__ import annotations
 import json
-import os
 import sqlite3
 import time
 from pathlib import Path
-from typing import Dict, Optional, Set, Tuple, Any
+from typing import Dict, Optional, Tuple, Any
 import warnings
 
 
