@@ -7,12 +7,7 @@ from biodbs.data.KEGG._data_model import (
     KEGGOperation,
     KEGGDatabase,
     KEGGOutsideDatabase,
-    KEGGOrganism,
     KEGGGetOption,
-    KEGGCompoundFindOption,
-    KEGGDrugFindOption,
-    KEGGBriteOption,
-    KEGGLinkRDFOption,
     VALID_DATABASES_BY_OPERATION,
     SEARCH_FIELDS_BY_DATABASE,
 )

@@ -2,7 +2,6 @@ from biodbs.data._base import BaseFetchedData, BaseDBManager
 from typing import Literal
 import pandas as pd
 import polars as pl
-from copy import deepcopy
 
 
 class FDAFetchedData(BaseFetchedData):

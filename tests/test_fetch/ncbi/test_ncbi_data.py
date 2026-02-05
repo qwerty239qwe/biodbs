@@ -8,8 +8,6 @@ from biodbs.data.NCBI.data import (
 )
 from biodbs.data.NCBI._data_model import (
     GeneReport,
-    TaxonomyReport,
-    GenomeReport,
     GeneDatasetRequest,
 )
 

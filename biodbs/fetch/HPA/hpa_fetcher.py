@@ -22,8 +22,6 @@ from biodbs.data.HPA._data_model import (
     HPASearchModel,
     HPASearchDownloadModel,
     HPABulkDownloadModel,
-    HPAFormat,
-    HPASearchFormat,
     HPA_COLUMNS,
     DEFAULT_GENE_COLUMNS,
     DEFAULT_EXPRESSION_COLUMNS,
@@ -36,7 +34,6 @@ from pathlib import Path
 import logging
 import requests
 import gzip
-import io
 
 logger = logging.getLogger(__name__)
 

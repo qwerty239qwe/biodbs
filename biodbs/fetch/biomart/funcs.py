@@ -3,7 +3,7 @@
 from typing import List, Optional, Union, Dict
 import pandas as pd
 from biodbs.fetch.biomart.biomart_fetcher import BioMart_Fetcher
-from biodbs.data.BioMart import BioMartHost, BioMartDataset
+from biodbs.data.BioMart import BioMartHost
 from biodbs.data.BioMart.data import BioMartQueryData, BioMartDatasetsData
 
 # Module-level fetcher instance (lazy initialization)

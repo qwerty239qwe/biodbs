@@ -4,13 +4,9 @@ from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
 from biodbs.data.Ensembl._data_model import (
     EnsemblModel,
     EnsemblEndpoint,
-    EnsemblSequenceType,
-    EnsemblFeatureType,
-    EnsemblHomologyType,
 )
 from biodbs.data.Ensembl.data import EnsemblFetchedData, EnsemblDataManager
-from typing import Dict, Any, List, Literal, Optional, Union
-from pathlib import Path
+from typing import Dict, Any, List, Optional, Union
 import logging
 import requests
 

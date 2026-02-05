@@ -23,7 +23,6 @@ from biodbs.data.BioMart._data_model import (
     BioMartQueryModel,
     BioMartBatchQueryModel,
     DEFAULT_QUERY_ATTRIBUTES,
-    COMMON_GENE_ATTRIBUTES,
 )
 from biodbs.data.BioMart.data import (
     BioMartRegistryData,
@@ -32,9 +31,7 @@ from biodbs.data.BioMart.data import (
     BioMartQueryData,
     BioMartDataManager,
 )
-from typing import Dict, Any, List, Literal, Optional, Union
-from pathlib import Path
-from functools import lru_cache
+from typing import Dict, Any, List, Optional, Union
 import logging
 import requests
 import time

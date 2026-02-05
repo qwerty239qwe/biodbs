@@ -1,6 +1,6 @@
 """Protein ID translation functions using UniProt."""
 
-from typing import List, Dict, Union, Literal, Optional
+from typing import List, Dict, Union
 import pandas as pd
 
 from biodbs.fetch.uniprot.funcs import (

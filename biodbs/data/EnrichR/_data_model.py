@@ -1,7 +1,7 @@
 """Pydantic models for EnrichR API requests and responses."""
 
 from enum import Enum
-from typing import Dict, List, Optional, Union, Any
+from typing import List, Optional, Any
 from pydantic import BaseModel, Field, field_validator
 
 

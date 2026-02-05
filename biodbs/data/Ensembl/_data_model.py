@@ -19,8 +19,8 @@ Main endpoint categories:
 """
 
 from enum import Enum
-from pydantic import BaseModel, model_validator, ConfigDict, field_validator
-from typing import Dict, Any, Optional, List, Union, Literal
+from pydantic import BaseModel, model_validator, ConfigDict
+from typing import Dict, Any, Optional, List, Union
 
 
 class EnsemblEndpoint(str, Enum):

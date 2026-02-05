@@ -1,7 +1,7 @@
 """BioMart fetched data and data manager classes."""
 
 from biodbs.data._base import BaseFetchedData, BaseDBManager
-from typing import Literal, Optional, List, Dict, Any, Union
+from typing import Literal, Optional, List, Dict, Any
 import pandas as pd
 import polars as pl
 import xml.etree.ElementTree as ET

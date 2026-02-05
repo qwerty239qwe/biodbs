@@ -1,6 +1,6 @@
 """EnrichR API fetcher following the standardized pattern."""
 
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List
 import logging
 import requests
 
@@ -9,9 +9,6 @@ from biodbs.data.EnrichR._data_model import (
     EnrichRBase,
     EnrichREndpoint,
     EnrichRAddListModel,
-    EnrichREnrichModel,
-    EnrichRBackgroundModel,
-    EnrichRLibraryModel,
     AddListResponse,
 )
 from biodbs.data.EnrichR.data import EnrichRFetchedData, EnrichRLibrariesData

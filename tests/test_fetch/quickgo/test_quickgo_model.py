@@ -4,8 +4,6 @@ from pydantic import ValidationError
 
 from biodbs.data.QuickGO._data_model import (
     QuickGOModel,
-    QuickGOCategory,
-    OntologyType,
     GOAspect,
     GOEvidence,
     GORelation,
@@ -16,11 +14,7 @@ from biodbs.data.QuickGO._data_model import (
     OntologySearchModel,
     OntologyTermsModel,
     OntologyAncestorsDescendantsModel,
-    OntologySlimModel,
-    OntologyGraphModel,
-    OntologyChartModel,
     AnnotationSearchModel,
-    AnnotationDownloadModel,
     GeneProductSearchModel,
 )
 

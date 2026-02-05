@@ -1,7 +1,7 @@
 """ChEMBL REST API fetcher following the standardized pattern."""
 
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
-from biodbs.data.ChEMBL._data_model import ChEMBLModel, ChEMBLResource, ChEMBLFormat
+from biodbs.data.ChEMBL._data_model import ChEMBLModel
 from biodbs.data.ChEMBL.data import ChEMBLFetchedData, ChEMBLDataManager
 from typing import Dict, Any, List, Literal, Optional, Union
 from pathlib import Path

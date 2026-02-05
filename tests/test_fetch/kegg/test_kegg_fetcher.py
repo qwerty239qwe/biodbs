@@ -10,7 +10,6 @@ import pandas as pd
 import polars as pl
 
 from biodbs.fetch.KEGG.kegg_fetcher import KEGG_Fetcher
-from biodbs.data.KEGG.data import KEGGFetchedData
 
 
 @pytest.fixture

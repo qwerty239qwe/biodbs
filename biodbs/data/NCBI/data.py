@@ -270,7 +270,7 @@ class NCBITaxonomyFetchedData(BaseFetchedData):
             tax_data = report.get("taxonomy", report)
             try:
                 taxa.append(TaxonomyReport(**tax_data))
-            except Exception as e:
+            except Exception:
                 # Try to handle legacy format
                 try:
                     # Map old format to new format

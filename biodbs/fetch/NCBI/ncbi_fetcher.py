@@ -13,7 +13,6 @@ from biodbs.data.NCBI._data_model import (
     NCBIGenomeEndpoint,
     NCBIVersionEndpoint,
     GeneDatasetRequest,
-    GeneContentType,
 )
 from biodbs.data.NCBI.data import (
     NCBIGeneFetchedData,

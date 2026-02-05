@@ -8,8 +8,6 @@ import pytest
 from biodbs.fetch.biomart import BioMart_Fetcher
 from biodbs.data.BioMart import (
     BioMartHost,
-    BioMartMart,
-    BioMartDataset,
     BioMartRegistryData,
     BioMartDatasetsData,
     BioMartConfigData,

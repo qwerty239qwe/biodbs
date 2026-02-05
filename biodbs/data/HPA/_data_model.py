@@ -18,8 +18,8 @@ Reference:
 """
 
 from enum import Enum
-from pydantic import BaseModel, model_validator, field_validator, ConfigDict
-from typing import Dict, Any, Optional, List, Union
+from pydantic import BaseModel, field_validator, ConfigDict
+from typing import Dict, Any, Optional, List
 import re
 
 

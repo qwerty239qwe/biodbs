@@ -9,8 +9,6 @@ from biodbs.data.Reactome.data import (
 from biodbs.data.Reactome._data_model import (
     PathwaySummary,
     EntityStatistics,
-    ReactionStatistics,
-    SpeciesSummary,
     AnalysisRequestModel,
 )
 

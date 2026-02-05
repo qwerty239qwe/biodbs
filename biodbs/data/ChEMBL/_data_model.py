@@ -19,7 +19,7 @@ Common parameters:
 
 from enum import Enum
 from pydantic import BaseModel, model_validator, ConfigDict, field_validator
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional
 
 
 class ChEMBLResource(Enum):

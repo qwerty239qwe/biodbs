@@ -5,8 +5,6 @@ from biodbs.data.DiseaseOntology._data_model import (
     DiseaseTerm,
     DiseaseTermDetailed,
     SearchResult,
-    OntologyInfo,
-    XRef,
 )
 from typing import Literal, Optional, List, Dict, Any, Union
 import pandas as pd

@@ -7,8 +7,6 @@ from biodbs.data.HPA._data_model import (
     HPASearchDownloadModel,
     HPABulkDownloadModel,
     HPAFormat,
-    HPASearchFormat,
-    HPACompress,
     HPA_COLUMNS,
     DEFAULT_GENE_COLUMNS,
     DEFAULT_EXPRESSION_COLUMNS,

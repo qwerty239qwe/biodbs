@@ -2,9 +2,7 @@
 
 import pytest
 from biodbs.data.PubChem._data_model import (
-    PUGRestModel, PUGRestDomain, PUGRestNamespace, PUGRestOperation, PUGRestOutput,
-    PUGViewModel, PUGViewRecordType, PUGViewOutput, PUGViewHeading,
-    PUGREST_DOMAIN_NAMESPACES, PUGREST_DOMAIN_OPERATIONS, COMPOUND_PROPERTIES,
+    PUGRestModel, PUGRestDomain, PUGRestNamespace, PUGRestOperation, PUGViewModel, PUGViewOutput, PUGREST_DOMAIN_NAMESPACES, PUGREST_DOMAIN_OPERATIONS, COMPOUND_PROPERTIES,
 )
 from pydantic import ValidationError
 

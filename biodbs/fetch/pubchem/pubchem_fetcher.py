@@ -11,12 +11,7 @@ PubChem provides two REST APIs:
 
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
 from biodbs.data.PubChem._data_model import (
-    PUGRestModel, PUGRestDomain, PUGRestNamespace,
-    PUGRestOperation, PUGRestOutput, COMPOUND_PROPERTIES,
-    PUGViewModel, PUGViewRecordType, PUGViewOutput, PUGViewHeading,
-    # Backwards compatibility aliases
-    PubChemModel, PubChemDomain, PubChemNamespace,
-    PubChemOperation, PubChemOutput,
+    PUGRestModel, PUGViewModel, PUGViewHeading,
 )
 from biodbs.data.PubChem.data import (
     PUGRestFetchedData, PUGViewFetchedData,
@@ -26,7 +21,6 @@ from typing import Dict, Any, List, Literal, Optional, Union
 from pathlib import Path
 import logging
 import requests
-import time
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,5 @@
 """Tests for Disease Ontology data models and containers."""
 
-import pytest
 from biodbs.data.DiseaseOntology._data_model import (
     DOBase,
     DOEndpoint,
@@ -15,7 +14,6 @@ from biodbs.data.DiseaseOntology._data_model import (
 from biodbs.data.DiseaseOntology.data import (
     DOFetchedData,
     DOSearchFetchedData,
-    DODataManager,
 )
 
 

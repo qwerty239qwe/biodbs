@@ -2,7 +2,6 @@ from biodbs.data._base import BaseFetchedData, BaseDBManager
 from typing import Literal, Optional, Union, List, Dict, Any
 import pandas as pd
 import polars as pl
-import re
 
 
 # Column names for different KEGG operations (tab-separated responses)
