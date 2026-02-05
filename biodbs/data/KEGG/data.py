@@ -207,6 +207,24 @@ class KEGGFetchedData(BaseFetchedData):
     def __len__(self) -> int:
         return len(self.records)
 
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        n = len(self.records)
+        parts = [f"KEGGFetchedData({n} records"]
+        parts.append(f", operation='{self.operation}'")
+        parts.append(f", format='{self.format}'")
+        parts.append(")")
+        if self.records:
+            sample = self.records[0]
+            if "entry_id" in sample:
+                desc = sample.get("description", "")[:30]
+                parts.append(f"\n  First: {sample['entry_id']}")
+                if desc:
+                    parts.append(f" - {desc}...")
+            elif "ENTRY" in sample:
+                parts.append(f"\n  First: {sample['ENTRY']}")
+        return "".join(parts)
+
     def as_dict(self, columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """Return records as list of dicts, optionally filtered to columns."""
         if not columns:

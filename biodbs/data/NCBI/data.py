@@ -70,6 +70,20 @@ class NCBIGeneFetchedData(BaseFetchedData):
     def __len__(self) -> int:
         return len(self.genes)
 
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        n = len(self.genes)
+        parts = [f"NCBIGeneFetchedData({n} genes"]
+        if self.query_ids:
+            parts.append(f", query={len(self.query_ids)} ids")
+        if self.warnings:
+            parts.append(f", {len(self.warnings)} warnings")
+        parts.append(")")
+        if self.genes:
+            g = self.genes[0]
+            parts.append(f"\n  First: {g.gene_id} ({g.symbol}) - {g.description[:30] if g.description else 'N/A'}...")
+        return "".join(parts)
+
     def __iadd__(self, other: "NCBIGeneFetchedData") -> "NCBIGeneFetchedData":
         """Concatenate results from another NCBIGeneFetchedData."""
         self.genes.extend(other.genes)
@@ -288,6 +302,18 @@ class NCBITaxonomyFetchedData(BaseFetchedData):
     def __len__(self) -> int:
         return len(self.taxa)
 
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        n = len(self.taxa)
+        parts = [f"NCBITaxonomyFetchedData({n} taxa"]
+        if self.query_taxons:
+            parts.append(f", query={len(self.query_taxons)} ids")
+        parts.append(")")
+        if self.taxa:
+            t = self.taxa[0]
+            parts.append(f"\n  First: {t.tax_id} ({t.organism_name})")
+        return "".join(parts)
+
     @property
     def results(self) -> List[TaxonomyReport]:
         """Get taxonomy results."""
@@ -394,6 +420,18 @@ class NCBIGenomeFetchedData(BaseFetchedData):
 
     def __len__(self) -> int:
         return len(self.assemblies)
+
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        n = len(self.assemblies)
+        parts = [f"NCBIGenomeFetchedData({n} assemblies"]
+        if self.query_accessions:
+            parts.append(f", query={len(self.query_accessions)} accessions")
+        parts.append(")")
+        if self.assemblies:
+            a = self.assemblies[0]
+            parts.append(f"\n  First: {a.accession} ({a.organism_name})")
+        return "".join(parts)
 
     @property
     def results(self) -> List[GenomeReport]:

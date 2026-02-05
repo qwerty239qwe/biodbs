@@ -64,8 +64,14 @@ def reactome_analyze(
     Example:
         >>> genes = ["TP53", "BRCA1", "EGFR", "MYC", "KRAS"]
         >>> result = reactome_analyze(genes)
+        >>> print(f"Found {len(result.pathways)} pathways")
+        Found 172 pathways
         >>> df = result.significant_pathways(fdr_threshold=0.05).as_dataframe()
-        >>> print(df[["name", "fdr", "found", "total"]].head())
+        >>> print(df[["stId", "name", "fdr", "found", "total"]].head(3).to_string())
+                  stId                                        name           fdr  found  total
+        0  R-HSA-6796648  TP53 Regulates Transcription of DNA Repai...  1.08e-06      7     86
+        1  R-HSA-3700989              Transcriptional Regulation by TP53  6.45e-04      9    487
+        2  R-HSA-6806003  Regulation of TP53 Expression and Degradation  6.45e-04      4     46
     """
     fetcher = _get_fetcher()
     return fetcher.analyze(
@@ -226,16 +232,21 @@ def reactome_map_identifiers(
     """Map identifiers to Reactome entities without analysis.
 
     Args:
-        identifiers: List of identifiers to map.
+        identifiers: List of identifiers to map (gene symbols, UniProt IDs, etc.).
         interactors: Include interactor mapping.
 
     Returns:
-        List of mapped entity dictionaries.
+        List of mapped entity dictionaries showing Reactome mappings.
 
     Example:
         >>> mapped = reactome_map_identifiers(["TP53", "BRCA1"])
+        >>> print(f"Mapped {len(mapped)} identifiers")
+        Mapped 2 identifiers
         >>> for entity in mapped:
-        ...     print(f"{entity['identifier']} -> {entity.get('mapsTo', [])}")
+        ...     maps_to = entity.get('mapsTo', [])
+        ...     print(f"  {entity['identifier']}: {len(maps_to)} Reactome entities")
+        TP53: 48 Reactome entities
+        BRCA1: 12 Reactome entities
     """
     fetcher = _get_fetcher()
     return fetcher.map_identifiers(
@@ -257,7 +268,10 @@ def reactome_get_pathways_top(
 
     Example:
         >>> pathways = reactome_get_pathways_top("Homo sapiens")
-        >>> print(pathways.get_pathway_names())
+        >>> print(f"Found {len(pathways)} top-level pathways")
+        Found 28 top-level pathways
+        >>> print(pathways.get_pathway_names()[:5])
+        ['Autophagy', 'Cell Cycle', 'Cell-Cell communication', 'Cellular responses to stimuli', 'Chromatin organization']
     """
     fetcher = _get_fetcher()
     return fetcher.get_pathways_top(species=species)
@@ -269,14 +283,17 @@ def reactome_get_pathways_for_entity(
     """Get pathways containing a specific entity.
 
     Args:
-        entity_id: Entity identifier (UniProt, gene symbol, etc.).
+        entity_id: Entity identifier (UniProt accession, gene symbol, etc.).
 
     Returns:
-        ReactomePathwaysData with pathways containing the entity.
+        ReactomePathwaysData with lowest-level pathways containing the entity.
 
     Example:
         >>> pathways = reactome_get_pathways_for_entity("P04637")  # TP53
         >>> print(f"TP53 is in {len(pathways)} pathways")
+        TP53 is in 86 pathways
+        >>> print(pathways.get_pathway_names()[:3])
+        ['TP53 Regulates Transcription of DNA Repair Genes', 'TP53 regulates transcription of additional cell cycle genes whose exact role in the p53 pathway remain uncertain', 'TP53 Regulates Transcription of Genes Involved in G2 Cell Cycle Arrest']
     """
     fetcher = _get_fetcher()
     return fetcher.get_pathways_for_entity(entity_id=entity_id)
@@ -286,11 +303,14 @@ def reactome_get_species() -> ReactomeSpeciesData:
     """Get all species in Reactome.
 
     Returns:
-        ReactomeSpeciesData with species information.
+        ReactomeSpeciesData with all species information.
 
     Example:
         >>> species = reactome_get_species()
-        >>> print(species.get_species_names()[:10])
+        >>> print(f"Reactome contains {len(species)} species")
+        Reactome contains 17251 species
+        >>> print(species.get_species_names()[:5])
+        ['Entries without species', 'Acacia catechu', 'Acacia confusa', 'Acacia senegal', 'Acetivibrio thermocellus']
     """
     fetcher = _get_fetcher()
     return fetcher.get_species()
@@ -300,12 +320,19 @@ def reactome_get_species_main() -> ReactomeSpeciesData:
     """Get main species with curated or inferred pathways.
 
     Returns:
-        ReactomeSpeciesData with main species information.
+        ReactomeSpeciesData with main model organism species.
 
     Example:
         >>> species = reactome_get_species_main()
-        >>> for s in species.species:
-        ...     print(f"{s['displayName']}: taxId={s.get('taxId')}")
+        >>> print(f"Found {len(species)} main species")
+        Found 16 main species
+        >>> for s in species.species[:5]:
+        ...     print(f"  {s['displayName']}: taxId={s.get('taxId')}")
+        Homo sapiens: taxId=9606
+        Mus musculus: taxId=10090
+        Rattus norvegicus: taxId=10116
+        Gallus gallus: taxId=9031
+        Danio rerio: taxId=7955
     """
     fetcher = _get_fetcher()
     return fetcher.get_species_main()
@@ -315,11 +342,12 @@ def reactome_get_database_version() -> str:
     """Get current Reactome database version.
 
     Returns:
-        Database version string.
+        Database version string (integer).
 
     Example:
         >>> version = reactome_get_database_version()
         >>> print(f"Reactome version: {version}")
+        Reactome version: 89
     """
     fetcher = _get_fetcher()
     return fetcher.get_database_version()
@@ -332,11 +360,20 @@ def reactome_query_entry(entry_id: str) -> Dict[str, Any]:
         entry_id: Reactome stable ID (e.g., "R-HSA-123456").
 
     Returns:
-        Entry details dictionary.
+        Entry details dictionary with name, type, species, and other metadata.
 
     Example:
         >>> entry = reactome_query_entry("R-HSA-69278")
-        >>> print(f"{entry['displayName']}: {entry.get('summation', [{}])[0].get('text', '')[:100]}")
+        >>> print(f"Name: {entry['displayName']}")
+        Name: Cell Cycle, Mitotic
+        >>> print(f"Type: {entry['schemaClass']}")
+        Type: Pathway
+        >>> print(f"Species: {entry['species'][0]['displayName']}")
+        Species: Homo sapiens
+        >>> # Get pathway summary
+        >>> summation = entry.get('summation', [{}])[0].get('text', '')
+        >>> print(f"Summary: {summation[:100]}...")
+        Summary: The replication of the genome and the subsequent segregation of chromosomes into daughter cel...
     """
     fetcher = _get_fetcher()
     return fetcher.query_entry(entry_id=entry_id)
@@ -354,12 +391,17 @@ def reactome_get_participants(event_id: str) -> List[Dict[str, Any]]:
         event_id: Reactome stable ID (e.g., "R-HSA-69278").
 
     Returns:
-        List of participant dictionaries.
+        List of participant dictionaries containing physical entity info.
 
     Example:
         >>> participants = reactome_get_participants("R-HSA-69278")
+        >>> print(f"Found {len(participants)} participants")
+        Found 2154 participants
         >>> for p in participants[:3]:
-        ...     print(p.get("displayName"))
+        ...     print(f"  {p.get('displayName')}")
+        p21 Cip1 [cytosol]
+        Phospho-Histone H2AX [nucleoplasm]
+        AURKA [cytosol]
     """
     fetcher = _get_fetcher()
     return fetcher.get_participants(event_id)
@@ -384,8 +426,19 @@ def reactome_get_participants_reference_entities(
 
     Example:
         >>> refs = reactome_get_participants_reference_entities("R-HSA-69278")
-        >>> for ref in refs[:5]:
-        ...     print(f"{ref.get('geneName')}: {ref.get('identifier')}")
+        >>> print(f"Found {len(refs)} reference entities")
+        Found 604 reference entities
+        >>> # Filter to UniProt entries with gene names
+        >>> proteins = [r for r in refs if r.get('databaseName') == 'UniProt']
+        >>> for ref in proteins[:5]:
+        ...     gene = ref.get('geneName', ['N/A'])
+        ...     gene = gene[0] if isinstance(gene, list) else gene
+        ...     print(f"  {gene}: {ref.get('identifier')}")
+        PHLDA1: Q8WV24
+        AURKA: O14965
+        CEP63: Q96MT8
+        TUBGCP2: Q9BSJ2
+        KIF11: P52732
     """
     fetcher = _get_fetcher()
     return fetcher.get_participants_reference_entities(event_id)
@@ -404,12 +457,22 @@ def reactome_get_pathway_genes(
             - "uniprot": UniProt accessions
 
     Returns:
-        List of gene identifiers.
+        List of unique gene identifiers.
 
     Example:
+        >>> # Get genes in "Cell Cycle, Mitotic" pathway
         >>> genes = reactome_get_pathway_genes("R-HSA-69278")
+        >>> print(f"Found {len(genes)} unique genes")
+        Found 601 unique genes
         >>> print(genes[:10])
-        ['TP53', 'MDM2', 'CDKN1A', ...]
+        ['PSMD6', 'MCM4', 'PLK1', 'CCNB1', 'CDK1', 'PCNA', 'MCM7', 'ORC1', 'CDC20', 'BUB1']
+
+        >>> # Get UniProt IDs instead
+        >>> proteins = reactome_get_pathway_genes("R-HSA-69278", id_type="uniprot")
+        >>> print(f"Found {len(proteins)} unique proteins")
+        Found 575 unique proteins
+        >>> print(proteins[:5])
+        ['Q15596', 'P33991', 'P53350', 'P14635', 'P06493']
     """
     fetcher = _get_fetcher()
     return fetcher.get_pathway_genes(pathway_id, id_type=id_type)
@@ -435,12 +498,18 @@ def reactome_get_all_pathways_with_genes(
 
     Example:
         >>> pathways = reactome_get_all_pathways_with_genes("Homo sapiens")
+        >>> print(f"Found {len(pathways)} pathways with genes")
+        Found 2615 pathways with genes
+        >>> # Show first 3 pathways
         >>> for pid, (name, genes) in list(pathways.items())[:3]:
-        ...     print(f"{pid}: {name} ({len(genes)} genes)")
+        ...     print(f"  {pid}: {name[:40]}... ({len(genes)} genes)")
+        R-HSA-164843: 2-LTR circle formation... (13 genes)
+        R-HSA-73843: 5-Phosphoribose 1-diphosphate biosynthe... (3 genes)
+        R-HSA-499943: A]TP hydrolysis by myosin VI... (8 genes)
 
     Note:
-        This makes many API calls and may take several minutes.
-        Consider caching the results.
+        This makes many API calls and may take several minutes on first run.
+        Results are cached for subsequent calls.
     """
     fetcher = _get_fetcher()
     return fetcher.get_all_pathways_with_genes(
@@ -462,7 +531,16 @@ def reactome_get_event_ancestors(event_id: str) -> List[Dict[str, Any]]:
         event_id: Reactome stable ID.
 
     Returns:
-        List of ancestor pathway dictionaries.
+        List of ancestor pathway dictionaries (from root to parent).
+
+    Example:
+        >>> ancestors = reactome_get_event_ancestors("R-HSA-6796648")
+        >>> print(f"Found {len(ancestors)} ancestor chains")
+        Found 1 ancestor chains
+        >>> # Each chain is a list of ancestors from root to immediate parent
+        >>> for chain in ancestors:
+        ...     print(" -> ".join([a.get('displayName', '')[:30] for a in chain]))
+        Gene expression (Transcription -> Transcriptional Regulation b -> TP53 Regulates Transcription o
     """
     fetcher = _get_fetcher()
     return fetcher.get_event_ancestors(event_id)
@@ -480,7 +558,16 @@ def reactome_get_complex_subunits(complex_id: str) -> List[Dict[str, Any]]:
         complex_id: Reactome complex stable ID.
 
     Returns:
-        List of subunit dictionaries.
+        List of subunit dictionaries with entity details.
+
+    Example:
+        >>> # Get subunits of the p53 tetramer complex
+        >>> subunits = reactome_get_complex_subunits("R-HSA-3209194")
+        >>> print(f"Found {len(subunits)} subunits")
+        Found 1 subunits
+        >>> for s in subunits:
+        ...     print(f"  {s.get('displayName')}")
+        TP53 [nucleoplasm]
     """
     fetcher = _get_fetcher()
     return fetcher.get_complex_subunits(complex_id)
@@ -493,7 +580,18 @@ def reactome_get_entity_component_of(entity_id: str) -> List[Dict[str, Any]]:
         entity_id: Reactome entity stable ID.
 
     Returns:
-        List of container entity dictionaries.
+        List of container complexes/sets that include this entity.
+
+    Example:
+        >>> # Find complexes containing TP53 protein
+        >>> containers = reactome_get_entity_component_of("R-HSA-69488")
+        >>> print(f"TP53 is part of {len(containers)} complexes/sets")
+        TP53 is part of 15 complexes/sets
+        >>> for c in containers[:3]:
+        ...     print(f"  {c.get('displayName')}")
+        p-S15,S20-TP53 Tetramer [nucleoplasm]
+        p-S33,S46-TP53 [nucleoplasm]
+        TP53 Tetramer [nucleoplasm]
     """
     fetcher = _get_fetcher()
     return fetcher.get_entity_component_of(entity_id)
@@ -508,12 +606,19 @@ def reactome_get_diseases() -> List[Dict[str, Any]]:
     """Get all disease objects in Reactome.
 
     Returns:
-        List of disease dictionaries.
+        List of disease dictionaries with disease annotations.
 
     Example:
         >>> diseases = reactome_get_diseases()
+        >>> print(f"Reactome contains {len(diseases)} diseases")
+        Reactome contains 770 diseases
         >>> for d in diseases[:5]:
-        ...     print(d.get("displayName"))
+        ...     print(f"  {d.get('displayName')}")
+        3-Methylcrotonyl-CoA carboxylase 1 deficiency
+        3-Methylcrotonyl-CoA carboxylase 2 deficiency
+        3-hydroxyisobutryl-CoA hydrolase deficiency
+        3-methylglutaconic aciduria
+        46 XX gonadal dysgenesis
     """
     fetcher = _get_fetcher()
     return fetcher.get_diseases()
@@ -523,11 +628,14 @@ def reactome_get_diseases_doid() -> List[str]:
     """Get all Disease Ontology IDs (DOIDs) in Reactome.
 
     Returns:
-        List of DOID strings.
+        List of DOID strings for cross-referencing with Disease Ontology.
 
     Example:
         >>> doids = reactome_get_diseases_doid()
+        >>> print(f"Found {len(doids)} Disease Ontology IDs")
+        Found 478 Disease Ontology IDs
         >>> print(doids[:10])
+        ['DOID:0050674', 'DOID:0050694', 'DOID:0050697', 'DOID:0050702', ...]
     """
     fetcher = _get_fetcher()
     return fetcher.get_diseases_doid()
@@ -549,11 +657,17 @@ def reactome_map_to_reactions(
         resource: Source database ("UniProt", "NCBI", "ENSEMBL", etc.).
 
     Returns:
-        List of reaction dictionaries.
+        List of reaction dictionaries where the identifier participates.
 
     Example:
         >>> reactions = reactome_map_to_reactions("P04637")  # TP53
         >>> print(f"TP53 participates in {len(reactions)} reactions")
+        TP53 participates in 201 reactions
+        >>> for r in reactions[:3]:
+        ...     print(f"  {r.get('stId')}: {r.get('displayName')[:50]}...")
+        R-HSA-6785631: TP53 Tetramer binds the CDKN1A Gene Promoter...
+        R-HSA-6791465: TP53 Tetramer binds the TP53AIP1 Gene Promoter...
+        R-HSA-6791471: TP53 Tetramer binds the PIDD1 Gene Promoter...
     """
     fetcher = _get_fetcher()
     return fetcher.map_to_reactions(identifier, resource=resource)

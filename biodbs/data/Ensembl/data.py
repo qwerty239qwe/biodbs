@@ -140,6 +140,22 @@ class EnsemblFetchedData(BaseFetchedData):
     def __len__(self) -> int:
         return len(self.results)
 
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        n = len(self.results)
+        parts = [f"EnsemblFetchedData({n} results"]
+        if self.endpoint:
+            parts.append(f", endpoint='{self.endpoint}'")
+        parts.append(f", type='{self.content_type}'")
+        parts.append(")")
+        if self.sequence:
+            parts.append(f"\n  {len(self.sequence)} sequences")
+        elif self.results:
+            ids = self.get_ids()
+            if ids:
+                parts.append(f"\n  First: {ids[0]}")
+        return "".join(parts)
+
     def as_dict(self, columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """Return results as list of dicts, optionally filtered to columns."""
         if columns is None:

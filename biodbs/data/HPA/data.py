@@ -94,6 +94,21 @@ class HPAFetchedData(BaseFetchedData):
     def __len__(self) -> int:
         return len(self.results)
 
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        n = len(self.results)
+        parts = [f"HPAFetchedData({n} results"]
+        parts.append(f", format='{self.format}'")
+        parts.append(f", query_type='{self.query_type}'")
+        parts.append(")")
+        if self.results:
+            sample = self.results[0]
+            gene = sample.get("Gene", sample.get("g", ""))
+            ensembl = sample.get("Ensembl", sample.get("eg", ""))
+            if gene or ensembl:
+                parts.append(f"\n  First: {gene} ({ensembl})")
+        return "".join(parts)
+
     def get_ensembl_ids(self) -> List[str]:
         """Extract all Ensembl IDs from results."""
         ids = []

@@ -114,6 +114,20 @@ class PUGRestFetchedData(BaseFetchedData):
     def __len__(self) -> int:
         return len(self.results)
 
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        n = len(self.results)
+        parts = [f"PUGRestFetchedData({n} results"]
+        if self.domain:
+            parts.append(f", domain='{self.domain}'")
+        if self.operation:
+            parts.append(f", operation='{self.operation}'")
+        parts.append(")")
+        cids = self.get_cids()
+        if cids:
+            parts.append(f"\n  CIDs: {cids[:5]}{'...' if len(cids) > 5 else ''}")
+        return "".join(parts)
+
     def get_cids(self) -> List[int]:
         """Extract all CIDs from results."""
         cids = []
@@ -397,6 +411,19 @@ class PUGViewFetchedData(BaseFetchedData):
             self.record = {}
             self.sections = []
             self.record_id = None
+
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        parts = [f"PUGViewFetchedData("]
+        if self.record_type:
+            parts.append(f"type='{self.record_type}'")
+        if self.record_id:
+            parts.append(f", id={self.record_id}")
+        parts.append(f", {len(self.sections)} sections)")
+        if self.sections:
+            headings = [s.get("TOCHeading", "") for s in self.sections[:3]]
+            parts.append(f"\n  Sections: {headings}{'...' if len(self.sections) > 3 else ''}")
+        return "".join(parts)
 
     def get_section(self, heading: str) -> Optional[Dict]:
         """Get a top-level section by heading name."""

@@ -181,6 +181,23 @@ class QuickGOFetchedData(BaseFetchedData):
     def __len__(self) -> int:
         return len(self.results)
 
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        n = len(self.results)
+        total = self.get_total_hits()
+        parts = [f"QuickGOFetchedData({n} results"]
+        if total and total != n:
+            parts.append(f", total={total}")
+        parts.append(f", format='{self.format}'")
+        parts.append(f", endpoint='{self.endpoint}'")
+        parts.append(")")
+        if self.results:
+            sample = self.results[0]
+            go_id = sample.get("go_id", sample.get("goId", sample.get("id", "")))
+            if go_id:
+                parts.append(f"\n  First GO: {go_id}")
+        return "".join(parts)
+
     def as_dict(self, columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """Return results as list of dicts, optionally filtered to columns."""
         if not columns:

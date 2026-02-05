@@ -161,6 +161,19 @@ class DOFetchedData(BaseFetchedData):
     def __len__(self) -> int:
         return len(self.terms)
 
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        n = len(self.terms)
+        parts = [f"DOFetchedData({n} terms"]
+        if self.query_ids:
+            parts.append(f", query={len(self.query_ids)} ids")
+        parts.append(")")
+        if self.terms:
+            t = self.terms[0]
+            name = t.name[:30] + "..." if len(t.name) > 30 else t.name
+            parts.append(f"\n  First: {t.doid} - {name}")
+        return "".join(parts)
+
     def __iadd__(self, other: "DOFetchedData") -> "DOFetchedData":
         """Concatenate results from another DOFetchedData."""
         self.terms.extend(other.terms)
@@ -359,6 +372,21 @@ class DOSearchFetchedData(BaseFetchedData):
 
     def __len__(self) -> int:
         return len(self.results)
+
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        n = len(self.results)
+        parts = [f"DOSearchFetchedData({n} results"]
+        if self.query:
+            q = self.query[:20] + "..." if len(self.query) > 20 else self.query
+            parts.append(f", query='{q}'")
+        if self.total_count != n:
+            parts.append(f", total={self.total_count}")
+        parts.append(")")
+        if self.results:
+            r = self.results[0]
+            parts.append(f"\n  First: {r.doid} - {r.name[:30]}...")
+        return "".join(parts)
 
     def as_dict(self, columns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """Return results as list of dicts."""

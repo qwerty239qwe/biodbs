@@ -5,12 +5,23 @@ from biodbs.fetch.Reactome.reactome_fetcher import (
     Reactome_Fetcher,
 )
 from biodbs.fetch.Reactome.funcs import (
+    # Analysis
     reactome_analyze,
     reactome_analyze_projection,
-    reactome_get_pathways_top,
-    reactome_get_species,
+    reactome_analyze_single,
+    reactome_get_result_by_token,
     reactome_get_found_entities,
+    reactome_get_not_found,
+    reactome_map_identifiers,
+    # Pathways
+    reactome_get_pathways_top,
+    reactome_get_pathways_for_entity,
+    # Species
+    reactome_get_species,
+    reactome_get_species_main,
+    # Database
     reactome_get_database_version,
+    reactome_query_entry,
     # Participants (for pathway gene members)
     reactome_get_participants,
     reactome_get_participants_reference_entities,
@@ -34,10 +45,20 @@ __all__ = [
     # Analysis functions
     "reactome_analyze",
     "reactome_analyze_projection",
-    "reactome_get_pathways_top",
-    "reactome_get_species",
+    "reactome_analyze_single",
+    "reactome_get_result_by_token",
     "reactome_get_found_entities",
+    "reactome_get_not_found",
+    "reactome_map_identifiers",
+    # Pathways
+    "reactome_get_pathways_top",
+    "reactome_get_pathways_for_entity",
+    # Species
+    "reactome_get_species",
+    "reactome_get_species_main",
+    # Database
     "reactome_get_database_version",
+    "reactome_query_entry",
     # Participants (for pathway gene members)
     "reactome_get_participants",
     "reactome_get_participants_reference_entities",

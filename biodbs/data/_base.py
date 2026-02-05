@@ -14,6 +14,35 @@ class BaseFetchedData:
     def __init__(self, content):
         self._content = content  # returns of the requests
 
+    def __repr__(self) -> str:
+        """Return a human-readable representation of the fetched data."""
+        class_name = self.__class__.__name__
+
+        # Try to get result count
+        count = None
+        if hasattr(self, '__len__'):
+            try:
+                count = len(self)
+            except Exception:
+                pass
+        elif hasattr(self, 'results'):
+            try:
+                count = len(self.results)
+            except Exception:
+                pass
+        elif isinstance(self._content, list):
+            count = len(self._content)
+        elif isinstance(self._content, dict):
+            count = len(self._content)
+
+        if count is not None:
+            return f"<{class_name}: {count} results>"
+        return f"<{class_name}>"
+
+    def __str__(self) -> str:
+        """Return string representation (same as repr by default)."""
+        return self.__repr__()
+
     def to_json(self, file_name, mode="w"):
         with open(file_name, mode=mode) as f:
             json.dump(self._content, f)

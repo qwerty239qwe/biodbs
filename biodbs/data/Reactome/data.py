@@ -69,6 +69,29 @@ class ReactomeFetchedData(BaseFetchedData):
             self.warnings = []
             self._summary = {}
 
+    def __repr__(self) -> str:
+        n_pathways = len(self.pathways)
+        n_sig = len([p for p in self.pathways if p.fdr <= 0.05])
+        n_query = len(self.query_identifiers)
+
+        parts = [f"ReactomeFetchedData({n_pathways} pathways"]
+        if n_sig > 0:
+            parts.append(f", {n_sig} significant (FDR≤0.05)")
+        if n_query > 0:
+            parts.append(f", query={n_query} ids")
+        if self.identifiers_not_found > 0:
+            parts.append(f", {self.identifiers_not_found} not found")
+
+        # Show top pathway if available
+        if self.pathways:
+            top = min(self.pathways, key=lambda x: x.fdr)
+            name = top.name[:30] + "..." if len(top.name) > 30 else top.name
+            parts.append(f")\n  Top: {top.stId} '{name}' (FDR={top.fdr:.2e})")
+        else:
+            parts.append(")")
+
+        return "".join(parts)
+
     def _parse_pathways(self, pathways_data: List[Dict]) -> List[PathwaySummary]:
         """Parse pathway data into PathwaySummary objects."""
         pathways = []
@@ -370,6 +393,16 @@ class ReactomePathwaysData(BaseFetchedData):
     def __len__(self) -> int:
         return len(self.pathways)
 
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        n = len(self.pathways)
+        parts = [f"ReactomePathwaysData({n} pathways)"]
+        if self.pathways:
+            first = self.pathways[0]
+            name = first.get("displayName", first.get("name", ""))[:30]
+            parts.append(f"\n  First: {first.get('stId', '')} - {name}...")
+        return "".join(parts)
+
     @property
     def results(self) -> List[Dict[str, Any]]:
         """Get pathway results."""
@@ -430,6 +463,15 @@ class ReactomeSpeciesData(BaseFetchedData):
 
     def __len__(self) -> int:
         return len(self.species)
+
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        n = len(self.species)
+        parts = [f"ReactomeSpeciesData({n} species)"]
+        if self.species:
+            names = [s.get("displayName", "")[:20] for s in self.species[:3]]
+            parts.append(f"\n  Examples: {names}{'...' if n > 3 else ''}")
+        return "".join(parts)
 
     @property
     def results(self) -> List[Dict[str, Any]]:

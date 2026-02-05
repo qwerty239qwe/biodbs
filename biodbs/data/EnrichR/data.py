@@ -44,6 +44,25 @@ class EnrichRFetchedData(BaseFetchedData):
         """Return number of results."""
         return len(self._content)
 
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        n = len(self._content)
+        terms = self.get_enrichment_terms()
+        sig_terms = [t for t in terms if t.adjusted_p_value < 0.05]
+        parts = [f"EnrichRFetchedData({n} terms"]
+        if sig_terms:
+            parts.append(f", {len(sig_terms)} significant (adj.p<0.05)")
+        if self.library_name:
+            parts.append(f", library='{self.library_name}'")
+        if self.query_genes:
+            parts.append(f", query={len(self.query_genes)} genes")
+        parts.append(")")
+        if terms:
+            top = min(terms, key=lambda x: x.adjusted_p_value)
+            name = top.term_name[:35] + "..." if len(top.term_name) > 35 else top.term_name
+            parts.append(f"\n  Top: '{name}' (adj.p={top.adjusted_p_value:.2e})")
+        return "".join(parts)
+
     def get_enrichment_terms(self) -> List[EnrichmentTerm]:
         """Parse results as EnrichmentTerm objects.
 
@@ -175,6 +194,11 @@ class EnrichRLibrariesData(BaseFetchedData):
     def __len__(self) -> int:
         """Return number of libraries."""
         return len(self._content)
+
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        n = len(self._content)
+        return f"EnrichRLibrariesData({n} libraries)"
 
     def get_libraries(self) -> List[LibraryStatistics]:
         """Parse results as LibraryStatistics objects.

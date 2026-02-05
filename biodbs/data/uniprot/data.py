@@ -65,6 +65,22 @@ class UniProtFetchedData(BaseFetchedData):
     def __len__(self) -> int:
         return len(self.entries)
 
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        n = len(self.entries)
+        reviewed = sum(1 for e in self.entries if e.is_reviewed)
+        parts = [f"UniProtFetchedData({n} entries"]
+        if reviewed > 0:
+            parts.append(f", {reviewed} reviewed")
+        if self.query_ids:
+            parts.append(f", query={len(self.query_ids)} ids")
+        parts.append(")")
+        if self.entries:
+            e = self.entries[0]
+            name = e.protein_name[:30] + "..." if e.protein_name and len(e.protein_name) > 30 else (e.protein_name or "N/A")
+            parts.append(f"\n  First: {e.primaryAccession} ({e.gene_name or 'N/A'}) - {name}")
+        return "".join(parts)
+
     def __iadd__(self, other: "UniProtFetchedData") -> "UniProtFetchedData":
         """Concatenate results from another UniProtFetchedData."""
         self.entries.extend(other.entries)

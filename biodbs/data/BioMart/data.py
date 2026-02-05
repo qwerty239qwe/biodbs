@@ -95,6 +95,10 @@ class BioMartRegistryData(BaseFetchedData):
     def __len__(self) -> int:
         return len(self._df)
 
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        return f"BioMartRegistryData({len(self._df)} marts)"
+
 
 class BioMartDatasetsData(BaseFetchedData):
     """Fetched data from BioMart datasets list."""
@@ -166,6 +170,10 @@ class BioMartDatasetsData(BaseFetchedData):
 
     def __len__(self) -> int:
         return len(self._df)
+
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        return f"BioMartDatasetsData({len(self._df)} datasets)"
 
 
 class BioMartConfigData(BaseFetchedData):
@@ -287,6 +295,10 @@ class BioMartConfigData(BaseFetchedData):
     def __len__(self) -> int:
         return len(self._filters_df) + len(self._attributes_df)
 
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        return f"BioMartConfigData({len(self._filters_df)} filters, {len(self._attributes_df)} attributes)"
+
 
 class BioMartQueryData(BaseFetchedData):
     """Fetched data from BioMart query results."""
@@ -356,6 +368,16 @@ class BioMartQueryData(BaseFetchedData):
 
     def __len__(self) -> int:
         return len(self._df)
+
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        n = len(self._df)
+        cols = list(self._df.columns)[:3]
+        parts = [f"BioMartQueryData({n} rows"]
+        if cols:
+            parts.append(f", columns={cols}{'...' if len(self._df.columns) > 3 else ''}")
+        parts.append(")")
+        return "".join(parts)
 
     def as_dataframe(self, engine: Literal["pandas", "polars"] = "pandas"):
         """Convert to DataFrame."""

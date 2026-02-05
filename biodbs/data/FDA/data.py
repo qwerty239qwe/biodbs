@@ -10,6 +10,19 @@ class FDAFetchedData(BaseFetchedData):
         self.metadata = content.get("meta", {})
         self.results = content.get("results", [])
 
+    def __len__(self) -> int:
+        return len(self.results)
+
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        n = len(self.results)
+        total = self.metadata.get("results", {}).get("total", n)
+        parts = [f"FDAFetchedData({n} results"]
+        if total and total != n:
+            parts.append(f", total={total}")
+        parts.append(")")
+        return "".join(parts)
+
     def __iadd__(self, data: "FDAFetchedData"):
         self.results.extend(data.results)
         return self

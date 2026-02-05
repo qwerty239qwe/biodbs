@@ -85,6 +85,25 @@ class ChEMBLFetchedData(BaseFetchedData):
     def __len__(self) -> int:
         return len(self.results)
 
+    def __repr__(self) -> str:
+        """Return a human-readable representation."""
+        n = len(self.results)
+        total = self.get_total_count()
+        parts = [f"ChEMBLFetchedData({n} results"]
+        if self.resource:
+            parts.append(f", resource='{self.resource}'")
+        if total and total != n:
+            parts.append(f", total={total}")
+        parts.append(")")
+        if self.results:
+            sample = self.results[0]
+            # Try to show a meaningful ID
+            for id_field in ["molecule_chembl_id", "target_chembl_id", "assay_chembl_id"]:
+                if id_field in sample:
+                    parts.append(f"\n  First: {sample[id_field]}")
+                    break
+        return "".join(parts)
+
     def get_total_count(self) -> Optional[int]:
         """Get total count from pagination metadata."""
         return self.metadata.get("total_count")
