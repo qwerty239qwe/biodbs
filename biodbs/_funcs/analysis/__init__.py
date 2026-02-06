@@ -12,8 +12,16 @@ from biodbs._funcs.analysis.ora import (
     ora_enrichr,
     ora_reactome,
     ora_reactome_local,
-    # Result class
+    # Result classes
     ORAResult,
+    ORATermResult,
+    Pathway,
+    # Enums
+    Species,
+    GOAspect,
+    CorrectionMethod,
+    TranslationDatabase,
+    PathwayDatabase,
     # Utility functions
     hypergeometric_test,
     multiple_test_correction,
@@ -27,8 +35,16 @@ __all__ = [
     "ora_enrichr",
     "ora_reactome",
     "ora_reactome_local",
-    # Result class
+    # Result classes
     "ORAResult",
+    "ORATermResult",
+    "Pathway",
+    # Enums
+    "Species",
+    "GOAspect",
+    "CorrectionMethod",
+    "TranslationDatabase",
+    "PathwayDatabase",
     # Utility functions
     "hypergeometric_test",
     "multiple_test_correction",

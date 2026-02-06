@@ -24,6 +24,13 @@ __version__ = 0.01
 from biodbs.fetch._func import *
 
 # =============================================================================
+# Submodule namespaces (for organized imports)
+# =============================================================================
+from biodbs import fetch
+from biodbs import translate
+from biodbs import analysis
+
+# =============================================================================
 # Translate functions (ID mapping between databases)
 # =============================================================================
 from biodbs._funcs.translate import (
@@ -48,12 +55,6 @@ from biodbs._funcs.analysis import (
     multiple_test_correction,
 )
 
-# =============================================================================
-# Submodule namespaces (for organized imports)
-# =============================================================================
-from biodbs import fetch
-from biodbs import translate
-from biodbs import analysis
 
 __all__ = [
     # Submodules
