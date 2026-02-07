@@ -1,6 +1,0 @@
-pandas~=2.0.3
-tqdm
-requests~=2.25.1
-aiohttp~=3.9.4
-playwright
-numpy~=1.24.4

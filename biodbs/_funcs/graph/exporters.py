@@ -427,12 +427,10 @@ def to_rdf(
 
 def _node_type_to_rdf_type(
     node_type: NodeType,
-    OBO: "Namespace",
-    SCHEMA: "Namespace",
-) -> "URIRef":
+    OBO: Any,
+    SCHEMA: Any,
+) -> Any:
     """Map NodeType to RDF type URI."""
-    from rdflib import URIRef
-
     type_map = {
         NodeType.DISEASE: OBO.DOID_4,
         NodeType.GENE: SCHEMA.Gene,
@@ -452,10 +450,10 @@ def _node_type_to_rdf_type(
 
 def _edge_type_to_rdf_predicate(
     edge_type: EdgeType,
-    OBO: "Namespace",
-    RDFS: "Namespace",
-    BIOKG: "Namespace",
-) -> "URIRef":
+    OBO: Any,
+    RDFS: Any,
+    BIOKG: Any,
+) -> Any:
     """Map EdgeType to RDF predicate URI."""
     predicate_map = {
         EdgeType.IS_A: RDFS.subClassOf,

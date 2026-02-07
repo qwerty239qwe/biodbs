@@ -15,6 +15,12 @@ dependencies = [
     "tqdm>=4.67.1",
 ]
 
+[project.optional-dependencies]
+graph = [
+    "networkx>=3.4.2",
+    "rdflib>=7.5.0",
+]
+
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
