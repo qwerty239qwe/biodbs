@@ -1,7 +1,7 @@
 """biodbs - Biological Database Access Library.
 
 This library provides easy access to various biological databases through
-three main namespaces:
+four main namespaces:
 
 1. biodbs.fetch - Data fetching functions (low-level API wrappers)
    from biodbs.fetch import pubchem_get_compound, kegg_get, ensembl_lookup
@@ -11,6 +11,9 @@ three main namespaces:
 
 3. biodbs.analysis - Analysis functions (ORA, enrichment, etc.)
    from biodbs.analysis import ora_kegg, ora_go, ora_enrichr
+
+4. biodbs.graph - Knowledge graph construction and analysis
+   from biodbs.graph import KnowledgeGraph, build_disease_graph, to_networkx
 
 All functions are also available at the top level for convenience:
    from biodbs import pubchem_get_compound, translate_gene_ids, ora_kegg
@@ -29,6 +32,7 @@ from biodbs.fetch._func import *
 from biodbs import fetch
 from biodbs import translate
 from biodbs import analysis
+from biodbs import graph
 
 # =============================================================================
 # Translate functions (ID mapping between databases)
@@ -55,12 +59,47 @@ from biodbs._funcs.analysis import (
     multiple_test_correction,
 )
 
+# =============================================================================
+# Graph functions (knowledge graph construction and analysis)
+# =============================================================================
+from biodbs._funcs.graph import (
+    # Core classes
+    KnowledgeGraph,
+    Node,
+    Edge,
+    # Enums
+    NodeType,
+    EdgeType,
+    DataSource,
+    # Builders
+    build_graph,
+    build_disease_graph,
+    build_go_graph,
+    build_reactome_graph,
+    build_kegg_graph,
+    merge_graphs,
+    # Exporters
+    to_networkx,
+    to_json_ld,
+    to_rdf,
+    to_neo4j_csv,
+    to_cypher,
+    # Utilities
+    find_shortest_path,
+    find_all_paths,
+    get_neighborhood,
+    get_connected_component,
+    find_hub_nodes,
+    get_graph_statistics,
+)
+
 
 __all__ = [
     # Submodules
     "fetch",
     "translate",
     "analysis",
+    "graph",
 
     # ==========================================================================
     # FETCH FUNCTIONS - Low-level API wrappers
@@ -204,4 +243,36 @@ __all__ = [
     "ORAResult",
     "hypergeometric_test",
     "multiple_test_correction",
+
+    # ==========================================================================
+    # GRAPH FUNCTIONS - Knowledge graph construction and analysis
+    # ==========================================================================
+    # Core classes
+    "KnowledgeGraph",
+    "Node",
+    "Edge",
+    # Enums
+    "NodeType",
+    "EdgeType",
+    "DataSource",
+    # Builders
+    "build_graph",
+    "build_disease_graph",
+    "build_go_graph",
+    "build_reactome_graph",
+    "build_kegg_graph",
+    "merge_graphs",
+    # Exporters
+    "to_networkx",
+    "to_json_ld",
+    "to_rdf",
+    "to_neo4j_csv",
+    "to_cypher",
+    # Utilities
+    "find_shortest_path",
+    "find_all_paths",
+    "get_neighborhood",
+    "get_connected_component",
+    "find_hub_nodes",
+    "get_graph_statistics",
 ]
