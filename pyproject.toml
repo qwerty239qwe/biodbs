@@ -1,7 +1,7 @@
 [project]
 name = "biodbs"
 version = "0.1.0"
-description = "Add your description here"
+description = "biodbs is a Python library providing unified access to major biological and chemical databases with built-in support for ID translation and enrichment analysis."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
