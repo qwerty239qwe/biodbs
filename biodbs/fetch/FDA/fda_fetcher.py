@@ -23,13 +23,93 @@ class FDA_APIConfig(BaseAPIConfig):
         
 
 class FDA_Fetcher(BaseDataFetcher):
+    """Fetcher for openFDA API.
+
+    The openFDA API provides access to FDA data including:
+        - Drug adverse events (drug/event)
+        - Drug product labeling (drug/label)
+        - Drug recalls and enforcement (drug/enforcement)
+        - Device adverse events and recalls
+        - Food recalls and enforcement
+
+    Rate limits:
+        - Without API key: 240 requests/min, 1,000 requests/day per IP
+        - With API key: 240 requests/min, 120,000 requests/day per key
+
+    Examples::
+
+        fetcher = FDA_Fetcher()
+
+        # Search drug adverse events
+        events = fetcher.get(
+            category="drug",
+            endpoint="event",
+            search={"patient.drug.medicinalproduct": "aspirin"},
+            limit=10
+        )
+        df = events.as_dataframe(columns=["receivedate", "patient.patientsex"])
+
+        # Get drug labels
+        labels = fetcher.get(
+            category="drug",
+            endpoint="label",
+            search={"openfda.brand_name": "TYLENOL"},
+            limit=5
+        )
+
+        # Batch retrieval with pagination
+        all_events = fetcher.get_all(
+            category="drug",
+            endpoint="event",
+            search={"receivedate": "[20200101 TO 20201231]"},
+            max_records=5000
+        )
+        print(f"Retrieved {len(all_events)} records")
+    """
+
     def __init__(self, api_key: str = None, limit: int = None, **data_manager_kws):
+        """Initialize FDA fetcher.
+
+        Args:
+            api_key: openFDA API key for higher rate limits (optional).
+            limit: Default limit for queries. If None, uses API default.
+            **data_manager_kws: Keyword arguments for FDADataManager
+                (e.g., storage_path for stream_to_storage method).
+        """
         super().__init__(FDA_APIConfig(), FDANameSpace(), {})
         self._api_key = api_key
         self._limit = limit
         self._data_manager = FDADataManager(**data_manager_kws)
 
     def get(self, category, endpoint, stream=None, **kwargs):
+        """Fetch data from openFDA API.
+
+        Args:
+            category: FDA category (e.g., "drug", "device", "food").
+            endpoint: Category endpoint (e.g., "event", "label", "enforcement").
+            stream: If True, stream the response (for large downloads).
+            **kwargs: Query parameters including:
+                - search: Search query dict (e.g., {"field": "value"}).
+                - limit: Maximum records to return (1-1000).
+                - skip: Number of records to skip for pagination.
+                - sort: Sort field and direction.
+                - count: Field to count occurrences of.
+                - api_key: Override default API key.
+
+        Returns:
+            FDAFetchedData with query results.
+
+        Example:
+            >>> fetcher = FDA_Fetcher()
+            >>> data = fetcher.get(
+            ...     category="drug",
+            ...     endpoint="event",
+            ...     search={"patient.drug.medicinalproduct": "aspirin"},
+            ...     limit=10
+            ... )
+            >>> print(data)
+            <FDAFetchedData results=10>
+        """
         kwargs["api_key"] = self._api_key if kwargs.get("api_key") is None else kwargs.get("api_key")
         kwargs["limit"] = self._limit if kwargs.get("limit") is None else kwargs.get("limit")
 

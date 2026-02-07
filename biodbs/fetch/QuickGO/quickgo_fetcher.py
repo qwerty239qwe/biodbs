@@ -60,6 +60,17 @@ class QuickGO_APIConfig(BaseAPIConfig):
 class QuickGO_Fetcher(BaseDataFetcher):
     """Fetcher for QuickGO API (GO annotations, ontology, gene products).
 
+    QuickGO provides access to:
+        - Gene Ontology term information
+        - GO annotations for genes/proteins
+        - Gene product information
+        - Annotation downloads in various formats (GAF, GPAD, TSV)
+
+    Categories:
+        - **ontology**: GO term search and retrieval
+        - **annotation**: GO annotation search and download
+        - **geneproduct**: Gene product information
+
     Examples::
 
         fetcher = QuickGO_Fetcher()
@@ -70,6 +81,8 @@ class QuickGO_Fetcher(BaseDataFetcher):
             endpoint="search",
             query="apoptosis"
         )
+        print(data)
+        # <QuickGOFetchedData results=25 total_hits=142>
 
         # Get GO term by ID
         data = fetcher.get(
@@ -78,13 +91,14 @@ class QuickGO_Fetcher(BaseDataFetcher):
             ids=["GO:0008150", "GO:0003674"]
         )
 
-        # Search annotations
+        # Search annotations for human
         data = fetcher.get(
             category="annotation",
             endpoint="search",
-            goId="GO:0006915",
+            goId="GO:0006915",  # apoptotic process
             taxonId=9606
         )
+        df = data.as_dataframe()
 
         # Download annotations in GAF format
         data = fetcher.get(
@@ -106,6 +120,12 @@ class QuickGO_Fetcher(BaseDataFetcher):
     DEFAULT_LIMIT = 100
 
     def __init__(self, **data_manager_kws):
+        """Initialize QuickGO fetcher.
+
+        Args:
+            **data_manager_kws: Keyword arguments for QuickGODataManager
+                (e.g., storage_path for stream_to_storage method).
+        """
         super().__init__(QuickGO_APIConfig(), QuickGONameSpace(), {})
         self._data_manager = (
             QuickGODataManager(**data_manager_kws)

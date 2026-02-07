@@ -91,10 +91,66 @@ class KEGG_APIConfig(BaseAPIConfig):
 
 
 class KEGG_Fetcher(BaseDataFetcher):
+    """Fetcher for KEGG REST API.
+
+    KEGG (Kyoto Encyclopedia of Genes and Genomes) provides access to:
+        - Pathway information and diagrams
+        - Gene and protein entries
+        - Compound and drug data
+        - Disease information
+        - Organism-specific pathway lists
+        - ID conversion between databases
+
+    Operations:
+        - **info**: Get database statistics
+        - **list**: List database entries
+        - **find**: Search entries by keyword
+        - **get**: Retrieve specific entries
+        - **conv**: Convert IDs between databases
+        - **link**: Find linked entries across databases
+        - **ddi**: Drug-drug interactions
+
+    Examples::
+
+        fetcher = KEGG_Fetcher()
+
+        # Get database info
+        info = fetcher.get("info", database="pathway")
+        print(info.text)
+
+        # List human pathways
+        pathways = fetcher.get("list", database="pathway", organism="hsa")
+        print(pathways.to_dataframe())
+
+        # Search for genes
+        results = fetcher.get("find", database="genes", query="tp53")
+
+        # Get specific entries
+        entries = fetcher.get("get", dbentries=["hsa:7157", "hsa:672"])
+        for record in entries.records:
+            print(record.get("ENTRY"), record.get("NAME"))
+
+        # Convert KEGG IDs to NCBI Gene IDs
+        mapping = fetcher.get("conv", target_db="ncbi-geneid", dbentries=["hsa:7157"])
+
+        # Batch retrieval for large gene lists
+        genes = ["hsa:7157", "hsa:672", "hsa:675", ...]  # 100+ genes
+        data = fetcher.get_all("get", dbentries=genes)
+
+        # Get pathway image
+        image = fetcher.get("get", dbentries=["hsa00010"], get_option="image")
+    """
+
     # Default batch size for operations that use dbentries
     DEFAULT_BATCH_SIZE = 10  # KEGG API limit
 
     def __init__(self, **data_manager_kws):
+        """Initialize KEGG fetcher.
+
+        Args:
+            **data_manager_kws: Keyword arguments for KEGGDataManager
+                (e.g., storage_path for stream_to_storage method).
+        """
         super().__init__(KEGG_APIConfig(), KEGGNameSpace(), {})
         self._data_manager = (
             KEGGDataManager(**data_manager_kws)
