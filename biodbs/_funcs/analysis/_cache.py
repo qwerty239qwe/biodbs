@@ -1212,6 +1212,63 @@ class PathwayDBManager(BaseDBManager):
             self.logger.error("Failed to clear expired cache: %s", e)
             return 0
 
+    def clear_cache(self, key: Optional[str] = None) -> None:
+        """Clear cached pathway data.
+
+        Overrides BaseDBManager.clear_cache to also delete data from SQL database.
+
+        Args:
+            key: Specific cache_key to clear. If None, clears all cached data.
+
+        Example:
+            >>> mgr = PathwayDBManager(storage_path="/tmp/cache", backend="sqlite")
+            >>> mgr.clear_cache("kegg_hsa")  # Clear specific cache key
+            >>> mgr.clear_cache()  # Clear all cached data
+        """
+        # Call parent to clear metadata
+        super().clear_cache(key)
+
+        # Also clear from SQL database
+        if not self._is_sql_backend():
+            return
+
+        # For SQLite, check if file exists
+        if self.backend == StorageBackend.SQLITE:
+            db_path = self.storage_path / f"{self.db_name}.db"
+            if not db_path.exists():
+                return
+
+        dialect = self._get_dialect()
+        ph = dialect.placeholder
+        pathways_table = _sanitize_identifier(self.PATHWAYS_TABLE)
+        genes_table = _sanitize_identifier(self.GENES_TABLE)
+
+        try:
+            with dialect.connection() as conn:
+                cur = conn.cursor()
+
+                if key:
+                    # Delete genes for pathways with this cache_key
+                    cur.execute(
+                        f"DELETE FROM {genes_table} WHERE pathway_id IN "
+                        f"(SELECT id FROM {pathways_table} WHERE cache_key = {ph})",
+                        (key,)
+                    )
+                    # Delete pathways with this cache_key
+                    cur.execute(
+                        f"DELETE FROM {pathways_table} WHERE cache_key = {ph}",
+                        (key,)
+                    )
+                    self.logger.info("Cleared cache for key: %s", key)
+                else:
+                    # Delete all genes and pathways
+                    cur.execute(f"DELETE FROM {genes_table}")
+                    cur.execute(f"DELETE FROM {pathways_table}")
+                    self.logger.info("Cleared all pathway cache data")
+
+        except Exception as e:
+            self.logger.error("Failed to clear cache from database: %s", e)
+
 
 # =============================================================================
 # Backwards-compatible functions for existing code
