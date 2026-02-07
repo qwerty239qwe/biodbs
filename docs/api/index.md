@@ -12,28 +12,28 @@ Data fetching from biological databases.
 
 **Fetcher Classes**
 
-- `UniProt_Fetcher`
-- `PubChem_Fetcher`
-- `Ensembl_Fetcher`
-- `BioMart_Fetcher`
-- `KEGG_Fetcher`
-- `ChEMBL_Fetcher`
-- `QuickGO_Fetcher`
-- `HPA_Fetcher`
-- `NCBI_Fetcher`
-- `FDA_Fetcher`
-- `Reactome_Fetcher`
-- `DiseaseOntology_Fetcher`
-- `EnrichR_Fetcher`
+- [`UniProt_Fetcher`](fetch.md#uniprot_fetcher) - Fetch protein data from UniProt REST API
+- [`PubChem_Fetcher`](fetch.md#pubchem_fetcher) - Fetch chemical data from PubChem PUG REST/View APIs
+- [`Ensembl_Fetcher`](fetch.md#ensembl_fetcher) - Fetch genomic data from Ensembl REST API
+- [`BioMart_Fetcher`](fetch.md#biomart_fetcher) - Query Ensembl BioMart for gene annotations
+- [`KEGG_Fetcher`](fetch.md#kegg_fetcher) - Fetch pathway and gene data from KEGG API
+- [`ChEMBL_Fetcher`](fetch.md#chembl_fetcher) - Fetch bioactivity data from ChEMBL API
+- [`QuickGO_Fetcher`](fetch.md#quickgo_fetcher) - Fetch GO annotations from QuickGO API
+- [`HPA_Fetcher`](fetch.md#hpa_fetcher) - Fetch protein expression from Human Protein Atlas
+- [`NCBI_Fetcher`](fetch.md#ncbi_fetcher) - Fetch gene data from NCBI Entrez
+- [`FDA_Fetcher`](fetch.md#fda_fetcher) - Fetch drug/device data from openFDA
+- [`Reactome_Fetcher`](fetch.md#reactome_fetcher) - Fetch pathway data from Reactome
+- [`DO_Fetcher`](fetch.md#do_fetcher) - Fetch disease terms from Disease Ontology
+- [`EnrichR_Fetcher`](fetch.md#enrichr_fetcher) - Perform gene set enrichment via EnrichR
 
 **Key Functions**
 
-- [`uniprot_get_entry`][biodbs.fetch.uniprot.funcs.uniprot_get_entry]
-- [`uniprot_search`][biodbs.fetch.uniprot.funcs.uniprot_search]
-- [`pubchem_get_compound`][biodbs.fetch.pubchem.funcs.pubchem_get_compound]
-- [`ensembl_lookup`][biodbs.fetch.ensembl.funcs.ensembl_lookup]
-- [`kegg_get`][biodbs.fetch.KEGG.funcs.kegg_get]
-- [`kegg_link`][biodbs.fetch.KEGG.funcs.kegg_link]
+- [`uniprot_get_entry`](fetch.md#uniprot_get_entry) - Get a UniProt entry by accession
+- [`uniprot_search`](fetch.md#uniprot_search) - Search UniProtKB with query
+- [`pubchem_get_compound`](fetch.md#pubchem_get_compound) - Get compound by CID
+- [`ensembl_lookup`](fetch.md#ensembl_lookup) - Lookup entity by Ensembl ID
+- [`kegg_get`](fetch.md#kegg_get) - Get KEGG entry by ID
+- [`kegg_link`](fetch.md#kegg_link) - Get cross-references between databases
 
 </div>
 
@@ -49,22 +49,22 @@ ID translation between biological databases.
 
 **Gene Translation**
 
-- [`translate_gene_ids`][biodbs._funcs.translate.genes.translate_gene_ids]
-- [`translate_gene_ids_kegg`][biodbs._funcs.translate.genes.translate_gene_ids_kegg]
+- [`translate_gene_ids`](translate.md#translate_gene_ids) - Translate gene IDs between databases via BioMart
+- [`translate_gene_ids_kegg`](translate.md#translate_gene_ids_kegg) - Translate gene IDs using KEGG API
 
 **Protein Translation**
 
-- [`translate_protein_ids`][biodbs._funcs.translate.proteins.translate_protein_ids]
-- [`translate_gene_to_uniprot`][biodbs._funcs.translate.proteins.translate_gene_to_uniprot]
-- [`translate_uniprot_to_gene`][biodbs._funcs.translate.proteins.translate_uniprot_to_gene]
-- [`translate_uniprot_to_pdb`][biodbs._funcs.translate.proteins.translate_uniprot_to_pdb]
-- [`translate_uniprot_to_ensembl`][biodbs._funcs.translate.proteins.translate_uniprot_to_ensembl]
+- [`translate_protein_ids`](translate.md#translate_protein_ids) - Translate protein IDs via UniProt ID mapping
+- [`translate_gene_to_uniprot`](translate.md#translate_gene_to_uniprot) - Map gene symbols to UniProt accessions
+- [`translate_uniprot_to_gene`](translate.md#translate_uniprot_to_gene) - Map UniProt accessions to gene symbols
+- [`translate_uniprot_to_pdb`](translate.md#translate_uniprot_to_pdb) - Map UniProt accessions to PDB IDs
+- [`translate_uniprot_to_ensembl`](translate.md#translate_uniprot_to_ensembl) - Map UniProt accessions to Ensembl gene IDs
 
 **Chemical Translation**
 
-- [`translate_chemical_ids`][biodbs._funcs.translate.chem.translate_chemical_ids]
-- [`translate_chembl_to_pubchem`][biodbs._funcs.translate.chem.translate_chembl_to_pubchem]
-- [`translate_pubchem_to_chembl`][biodbs._funcs.translate.chem.translate_pubchem_to_chembl]
+- [`translate_chemical_ids`](translate.md#translate_chemical_ids) - Translate chemical IDs via PubChem
+- [`translate_chembl_to_pubchem`](translate.md#translate_chembl_to_pubchem) - Map ChEMBL IDs to PubChem CIDs
+- [`translate_pubchem_to_chembl`](translate.md#translate_pubchem_to_chembl) - Map PubChem CIDs to ChEMBL IDs
 
 </div>
 
@@ -80,25 +80,25 @@ Statistical analysis and enrichment functions.
 
 **Classes**
 
-- [`ORAResult`][biodbs._funcs.analysis.ora.ORAResult]
-- [`ORATermResult`][biodbs._funcs.analysis.ora.ORATermResult]
-- [`Pathway`][biodbs._funcs.analysis.ora.Pathway]
+- [`ORAResult`](analysis.md#oraresult) - Container for over-representation analysis results
+- [`ORATermResult`](analysis.md#oratermresult) - Single term result from ORA
+- [`Pathway`](analysis.md#pathway) - Represents a biological pathway with gene sets
 
 **Enums**
 
-- [`Species`][biodbs._funcs.analysis.ora.Species]
-- [`GOAspect`][biodbs._funcs.analysis.ora.GOAspect]
-- [`CorrectionMethod`][biodbs._funcs.analysis.ora.CorrectionMethod]
-- [`PathwayDatabase`][biodbs._funcs.analysis.ora.PathwayDatabase]
+- [`Species`](analysis.md#species) - Supported species for ORA
+- [`GOAspect`](analysis.md#goaspect) - Gene Ontology aspects (BP, MF, CC)
+- [`CorrectionMethod`](analysis.md#correctionmethod) - Multiple testing correction methods
+- [`PathwayDatabase`](analysis.md#pathwaydatabase) - Pathway database sources
 
 **Functions**
 
-- [`ora`][biodbs._funcs.analysis.ora.ora]
-- [`ora_kegg`][biodbs._funcs.analysis.ora.ora_kegg]
-- [`ora_go`][biodbs._funcs.analysis.ora.ora_go]
-- [`ora_reactome`][biodbs._funcs.analysis.ora.ora_reactome]
-- [`ora_enrichr`][biodbs._funcs.analysis.ora.ora_enrichr]
-- [`hypergeometric_test`][biodbs._funcs.analysis.ora.hypergeometric_test]
+- [`ora`](analysis.md#ora) - Generic ORA against any pathway database
+- [`ora_kegg`](analysis.md#ora_kegg) - ORA against KEGG pathways
+- [`ora_go`](analysis.md#ora_go) - ORA against Gene Ontology terms
+- [`ora_reactome`](analysis.md#ora_reactome) - ORA against Reactome pathways
+- [`ora_enrichr`](analysis.md#ora_enrichr) - ORA via EnrichR web service
+- [`hypergeometric_test`](analysis.md#hypergeometric_test) - Compute hypergeometric p-value
 
 </div>
 
@@ -114,40 +114,40 @@ Knowledge graph building and analysis.
 
 **Classes**
 
-- [`KnowledgeGraph`][biodbs._funcs.graph.core.KnowledgeGraph]
-- [`Node`][biodbs._funcs.graph.core.Node]
-- [`Edge`][biodbs._funcs.graph.core.Edge]
+- [`KnowledgeGraph`](graph.md#knowledgegraph) - Container for nodes and edges with graph operations
+- [`Node`](graph.md#node) - Represents a biological entity
+- [`Edge`](graph.md#edge) - Represents a relationship between nodes
 
 **Enums**
 
-- [`NodeType`][biodbs._funcs.graph.core.NodeType]
-- [`EdgeType`][biodbs._funcs.graph.core.EdgeType]
-- [`DataSource`][biodbs._funcs.graph.core.DataSource]
+- [`NodeType`](graph.md#nodetype) - Types of nodes (GENE, PROTEIN, DISEASE, etc.)
+- [`EdgeType`](graph.md#edgetype) - Types of edges (IS_A, PART_OF, etc.)
+- [`DataSource`](graph.md#datasource) - Data sources (DISEASE_ONTOLOGY, GENE_ONTOLOGY, etc.)
 
 **Builder Functions**
 
-- [`build_graph`][biodbs._funcs.graph.builders.build_graph]
-- [`build_disease_graph`][biodbs._funcs.graph.builders.build_disease_graph]
-- [`build_go_graph`][biodbs._funcs.graph.builders.build_go_graph]
-- [`build_reactome_graph`][biodbs._funcs.graph.builders.build_reactome_graph]
-- [`build_kegg_graph`][biodbs._funcs.graph.builders.build_kegg_graph]
-- [`merge_graphs`][biodbs._funcs.graph.builders.merge_graphs]
+- [`build_graph`](graph.md#build_graph) - Build graph from nodes and edges
+- [`build_disease_graph`](graph.md#build_disease_graph) - Build graph from Disease Ontology data
+- [`build_go_graph`](graph.md#build_go_graph) - Build graph from QuickGO data
+- [`build_reactome_graph`](graph.md#build_reactome_graph) - Build graph from Reactome data
+- [`build_kegg_graph`](graph.md#build_kegg_graph) - Build graph from KEGG data
+- [`merge_graphs`](graph.md#merge_graphs) - Merge multiple graphs
 
 **Export Functions**
 
-- [`to_networkx`][biodbs._funcs.graph.exporters.to_networkx]
-- [`to_json_ld`][biodbs._funcs.graph.exporters.to_json_ld]
-- [`to_rdf`][biodbs._funcs.graph.exporters.to_rdf]
-- [`to_neo4j_csv`][biodbs._funcs.graph.exporters.to_neo4j_csv]
-- [`to_cypher`][biodbs._funcs.graph.exporters.to_cypher]
+- [`to_networkx`](graph.md#to_networkx) - Export to NetworkX DiGraph
+- [`to_json_ld`](graph.md#to_json_ld) - Export to JSON-LD for KG-RAG
+- [`to_rdf`](graph.md#to_rdf) - Export to RDF format
+- [`to_neo4j_csv`](graph.md#to_neo4j_csv) - Export to Neo4j CSV format
+- [`to_cypher`](graph.md#to_cypher) - Generate Cypher queries
 
 **Utility Functions**
 
-- [`find_shortest_path`][biodbs._funcs.graph.utils.find_shortest_path]
-- [`find_all_paths`][biodbs._funcs.graph.utils.find_all_paths]
-- [`get_neighborhood`][biodbs._funcs.graph.utils.get_neighborhood]
-- [`find_hub_nodes`][biodbs._funcs.graph.utils.find_hub_nodes]
-- [`get_graph_statistics`][biodbs._funcs.graph.utils.get_graph_statistics]
+- [`find_shortest_path`](graph.md#find_shortest_path) - Find shortest path between nodes
+- [`find_all_paths`](graph.md#find_all_paths) - Find all paths between nodes
+- [`get_neighborhood`](graph.md#get_neighborhood) - Get nodes within N hops
+- [`find_hub_nodes`](graph.md#find_hub_nodes) - Find highly connected nodes
+- [`get_graph_statistics`](graph.md#get_graph_statistics) - Get graph statistics
 
 </div>
 

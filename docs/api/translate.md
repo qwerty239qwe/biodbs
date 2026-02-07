@@ -2,27 +2,34 @@
 
 Complete reference for `biodbs.translate` module.
 
-## Quick Import
+## Functions Summary
 
-```python
-from biodbs.translate import (
-    # Gene translation
-    translate_gene_ids,
-    translate_gene_ids_kegg,
-    # Chemical translation
-    translate_chemical_ids,
-    translate_chemical_ids_kegg,
-    translate_chembl_to_pubchem,
-    translate_pubchem_to_chembl,
-    # Protein translation
-    translate_protein_ids,
-    translate_gene_to_uniprot,
-    translate_uniprot_to_gene,
-    translate_uniprot_to_pdb,
-    translate_uniprot_to_ensembl,
-    translate_uniprot_to_refseq,
-)
-```
+### Gene Translation
+
+| Function | Description |
+|----------|-------------|
+| [`translate_gene_ids`](#translate_gene_ids) | Translate gene IDs between databases via BioMart |
+| [`translate_gene_ids_kegg`](#translate_gene_ids_kegg) | Translate gene IDs using KEGG API |
+
+### Chemical Translation
+
+| Function | Description |
+|----------|-------------|
+| [`translate_chemical_ids`](#translate_chemical_ids) | Translate chemical IDs via PubChem |
+| [`translate_chemical_ids_kegg`](#translate_chemical_ids_kegg) | Translate chemical IDs using KEGG API |
+| [`translate_chembl_to_pubchem`](#translate_chembl_to_pubchem) | Map ChEMBL IDs to PubChem CIDs |
+| [`translate_pubchem_to_chembl`](#translate_pubchem_to_chembl) | Map PubChem CIDs to ChEMBL IDs |
+
+### Protein Translation
+
+| Function | Description |
+|----------|-------------|
+| [`translate_protein_ids`](#translate_protein_ids) | Translate protein IDs via UniProt ID mapping |
+| [`translate_gene_to_uniprot`](#translate_gene_to_uniprot) | Map gene symbols to UniProt accessions |
+| [`translate_uniprot_to_gene`](#translate_uniprot_to_gene) | Map UniProt accessions to gene symbols |
+| [`translate_uniprot_to_pdb`](#translate_uniprot_to_pdb) | Map UniProt accessions to PDB IDs |
+| [`translate_uniprot_to_ensembl`](#translate_uniprot_to_ensembl) | Map UniProt accessions to Ensembl gene IDs |
+| [`translate_uniprot_to_refseq`](#translate_uniprot_to_refseq) | Map UniProt accessions to RefSeq protein IDs |
 
 ---
 

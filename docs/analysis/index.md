@@ -2,6 +2,13 @@
 
 The `biodbs.analysis` module provides statistical analysis functions for biological data.
 
+**Related sections:**
+
+- [API Reference](../api/analysis.md) - Complete function and class documentation
+- [Data Fetching](../fetch/index.md) - Fetch gene sets and pathway data
+- [ID Translation](../translate/index.md) - Convert gene IDs before analysis
+- [Knowledge Graph](../graph/index.md) - Visualize enrichment results
+
 ## Available Analyses
 
 | Analysis | Function | Description |
@@ -89,6 +96,8 @@ significant = result.significant_terms(alpha=0.1, use_fdr=True)
 
 ## Next Steps
 
-- [Detailed ORA documentation](ora.md)
-- [UniProt ID translation](../translate/proteins.md) (for GO analysis)
-- [KEGG pathway data](../fetch/kegg.md)
+- [Detailed ORA documentation](ora.md) - Complete ORA guide with examples
+- [API Reference](../api/analysis.md) - Full API documentation with enums
+- [UniProt ID translation](../translate/proteins.md) - Required for GO analysis
+- [KEGG pathway data](../fetch/kegg.md) - Fetch pathway gene sets
+- [EnrichR libraries](../fetch/enrichr.md) - 100+ gene set libraries

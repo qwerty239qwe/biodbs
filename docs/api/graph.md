@@ -2,30 +2,78 @@
 
 Complete API reference for `biodbs.graph` module.
 
-## Quick Import
+## Summary
 
-```python
-from biodbs.graph import (
-    # Core classes
-    KnowledgeGraph, Node, Edge,
-    # Enums
-    NodeType, EdgeType, DataSource,
-    # Builders
-    build_graph, build_disease_graph, build_go_graph,
-    build_reactome_graph, build_kegg_graph, merge_graphs,
-    # Exporters
-    to_networkx, to_json_ld, to_rdf, to_neo4j_csv, to_cypher,
-    # Utilities
-    find_shortest_path, find_all_paths, get_neighborhood,
-    get_connected_component, find_hub_nodes, get_graph_statistics,
-)
-```
+### Core Classes
+
+| Class | Description |
+|-------|-------------|
+| [`Node`](#node) | Immutable node representing a biological entity |
+| [`Edge`](#edge) | Immutable edge representing a relationship |
+| [`KnowledgeGraph`](#knowledgegraph) | Container for nodes and edges with graph operations |
+
+### Enums
+
+| Enum | Description |
+|------|-------------|
+| [`NodeType`](#nodetype) | Types of biological entities (gene, protein, disease, etc.) |
+| [`EdgeType`](#edgetype) | Types of relationships (is_a, part_of, regulates, etc.) |
+| [`DataSource`](#datasource) | Supported data sources for graph construction |
+
+### Builder Functions
+
+| Function | Description |
+|----------|-------------|
+| [`build_graph`](#build_graph) | Create graph from nodes and edges |
+| [`build_disease_graph`](#build_disease_graph) | Build from Disease Ontology data |
+| [`build_go_graph`](#build_go_graph) | Build from Gene Ontology data |
+| [`build_reactome_graph`](#build_reactome_graph) | Build from Reactome data |
+| [`build_kegg_graph`](#build_kegg_graph) | Build from KEGG data |
+| [`merge_graphs`](#merge_graphs) | Merge multiple graphs |
+
+### Export Functions
+
+| Function | Description |
+|----------|-------------|
+| [`to_networkx`](#to_networkx) | Export to NetworkX graph |
+| [`to_json_ld`](#to_json_ld) | Export to JSON-LD format |
+| [`to_rdf`](#to_rdf) | Export to RDF format |
+| [`to_neo4j_csv`](#to_neo4j_csv) | Export to Neo4j CSV files |
+| [`to_cypher`](#to_cypher) | Export to Cypher queries |
+
+### Utility Functions
+
+| Function | Description |
+|----------|-------------|
+| [`find_shortest_path`](#find_shortest_path) | Find shortest path between nodes |
+| [`find_all_paths`](#find_all_paths) | Find all paths up to max length |
+| [`get_neighborhood`](#get_neighborhood) | Get nodes within N hops |
+| [`get_connected_component`](#get_connected_component) | Get connected component containing node |
+| [`find_hub_nodes`](#find_hub_nodes) | Find high-degree hub nodes |
+| [`get_graph_statistics`](#get_graph_statistics) | Compute graph statistics |
 
 ---
 
 ## Enums
 
 ### NodeType
+
+Types of nodes representing biological entities.
+
+| Member | Value | Description |
+|--------|-------|-------------|
+| `GENE` | `"gene"` | Gene entity |
+| `PROTEIN` | `"protein"` | Protein entity |
+| `DISEASE` | `"disease"` | Disease entity |
+| `PATHWAY` | `"pathway"` | Biological pathway |
+| `GO_TERM` | `"go_term"` | Gene Ontology term |
+| `REACTION` | `"reaction"` | Biochemical reaction |
+| `COMPOUND` | `"compound"` | Chemical compound |
+| `DRUG` | `"drug"` | Drug/pharmaceutical |
+| `PHENOTYPE` | `"phenotype"` | Phenotype |
+| `ORGANISM` | `"organism"` | Organism/species |
+| `PUBLICATION` | `"publication"` | Scientific publication |
+| `OTHER` | `"other"` | Other entity type |
 
 ::: biodbs._funcs.graph.core.NodeType
     options:
@@ -34,12 +82,53 @@ from biodbs.graph import (
 
 ### EdgeType
 
+Types of relationships between biological entities.
+
+| Member | Value | Category |
+|--------|-------|----------|
+| `IS_A` | `"is_a"` | Ontology |
+| `PART_OF` | `"part_of"` | Ontology |
+| `HAS_PART` | `"has_part"` | Ontology |
+| `REGULATES` | `"regulates"` | Regulatory |
+| `POSITIVELY_REGULATES` | `"positively_regulates"` | Regulatory |
+| `NEGATIVELY_REGULATES` | `"negatively_regulates"` | Regulatory |
+| `PARTICIPATES_IN` | `"participates_in"` | Participation |
+| `HAS_PARTICIPANT` | `"has_participant"` | Participation |
+| `CATALYZES` | `"catalyzes"` | Participation |
+| `PRODUCES` | `"produces"` | Participation |
+| `CONSUMES` | `"consumes"` | Participation |
+| `ASSOCIATED_WITH` | `"associated_with"` | Association |
+| `INTERACTS_WITH` | `"interacts_with"` | Association |
+| `TARGETS` | `"targets"` | Association |
+| `XREF` | `"xref"` | Cross-reference |
+| `SAME_AS` | `"same_as"` | Cross-reference |
+| `ENCODES` | `"encodes"` | Sequence |
+| `TRANSCRIBES` | `"transcribes"` | Sequence |
+| `TRANSLATES` | `"translates"` | Sequence |
+| `RELATED_TO` | `"related_to"` | Other |
+| `OTHER` | `"other"` | Other |
+
 ::: biodbs._funcs.graph.core.EdgeType
     options:
       show_root_heading: true
       members_order: source
 
 ### DataSource
+
+Supported data sources for graph construction.
+
+| Member | Value | Description |
+|--------|-------|-------------|
+| `DISEASE_ONTOLOGY` | `"disease_ontology"` | Disease Ontology |
+| `GENE_ONTOLOGY` | `"gene_ontology"` | Gene Ontology |
+| `REACTOME` | `"reactome"` | Reactome pathways |
+| `KEGG` | `"kegg"` | KEGG database |
+| `QUICKGO` | `"quickgo"` | QuickGO annotations |
+| `UNIPROT` | `"uniprot"` | UniProt |
+| `ENSEMBL` | `"ensembl"` | Ensembl |
+| `PUBCHEM` | `"pubchem"` | PubChem |
+| `CHEMBL` | `"chembl"` | ChEMBL |
+| `CUSTOM` | `"custom"` | Custom data source |
 
 ::: biodbs._funcs.graph.core.DataSource
     options:

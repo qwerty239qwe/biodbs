@@ -24,6 +24,8 @@ from biodbs.graph import build_disease_graph, to_networkx
 
 ### Protein Data (UniProt)
 
+Use [`uniprot_get_entry`](../api/fetch.md#uniprot_get_entry) to fetch protein data, [`uniprot_search_by_gene`](../api/fetch.md#uniprot_search_by_gene) to search by gene name, and [`gene_to_uniprot`](../api/fetch.md#gene_to_uniprot) to map gene symbols.
+
 ```python
 from biodbs.fetch import (
     uniprot_get_entry,
@@ -48,7 +50,11 @@ print(mapping)
 # {'TP53': 'P04637', 'BRCA1': 'P38398', 'EGFR': 'P00533'}
 ```
 
+For more control, use the [`UniProt_Fetcher`](../api/fetch.md#uniprot_fetcher) class directly.
+
 ### Chemical Data (PubChem)
+
+Use [`pubchem_get_compound`](../api/fetch.md#pubchem_get_compound) to get compound data, [`pubchem_search_by_name`](../api/fetch.md#pubchem_search_by_name) to search by name, and [`pubchem_get_properties`](../api/fetch.md#pubchem_get_properties) to get specific properties.
 
 ```python
 from biodbs.fetch import (
@@ -72,7 +78,11 @@ props = pubchem_get_properties(
 )
 ```
 
+For more control, use the [`PubChem_Fetcher`](../api/fetch.md#pubchem_fetcher) class directly.
+
 ### Gene Data (Ensembl/BioMart)
+
+Use [`ensembl_lookup`](../api/fetch.md#ensembl_lookup) for gene lookups, [`biomart_get_genes`](../api/fetch.md#biomart_get_genes) for batch queries, and [`biomart_convert_ids`](../api/fetch.md#biomart_convert_ids) for ID conversion.
 
 ```python
 from biodbs.fetch import (
@@ -96,9 +106,16 @@ converted = biomart_convert_ids(
 )
 ```
 
+For more control, use the [`Ensembl_Fetcher`](../api/fetch.md#ensembl_fetcher) or [`BioMart_Fetcher`](../api/fetch.md#biomart_fetcher) classes directly.
+
 ## ID Translation
 
-Translate between different identifier systems:
+Translate between different identifier systems using functions from the [`translate`](../api/translate.md) module:
+
+- [`translate_gene_ids`](../api/translate.md#translate_gene_ids) - Gene ID conversion via BioMart
+- [`translate_protein_ids`](../api/translate.md#translate_protein_ids) - Protein ID mapping via UniProt
+- [`translate_chemical_ids`](../api/translate.md#translate_chemical_ids) - Chemical ID translation via PubChem
+- [`translate_gene_to_uniprot`](../api/translate.md#translate_gene_to_uniprot) - Gene symbols to UniProt accessions
 
 ```python
 from biodbs.translate import (
@@ -140,7 +157,12 @@ result = translate_chemical_ids(
 
 ## Enrichment Analysis
 
-Perform over-representation analysis:
+Perform over-representation analysis using the [`analysis`](../api/analysis.md) module:
+
+- [`ora_kegg`](../api/analysis.md#ora_kegg) - KEGG pathway enrichment
+- [`ora_go`](../api/analysis.md#ora_go) - Gene Ontology enrichment
+- [`ora_reactome`](../api/analysis.md#ora_reactome) - Reactome pathway enrichment
+- [`ORAResult`](../api/analysis.md#oraresult) - Result container with filtering and export methods
 
 ```python
 from biodbs.analysis import ora_kegg, ora_go
@@ -195,3 +217,4 @@ sequences = data.get_sequences()
 - Explore specific databases in [Data Fetching](../fetch/index.md)
 - See all [ID translation options](../translate/index.md)
 - Perform [enrichment analysis](../analysis/index.md)
+- Build knowledge graphs in [Graph module](../graph/index.md)

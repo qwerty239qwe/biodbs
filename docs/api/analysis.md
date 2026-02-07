@@ -2,38 +2,61 @@
 
 Complete reference for `biodbs.analysis` module.
 
-## Quick Import
+## Summary
 
-```python
-from biodbs.analysis import (
-    # Core ORA functions
-    ora,
-    ora_kegg,
-    ora_go,
-    ora_enrichr,
-    ora_reactome,
-    ora_reactome_local,
-    # Result classes
-    ORAResult,
-    ORATermResult,
-    Pathway,
-    # Enums
-    Species,
-    GOAspect,
-    CorrectionMethod,
-    TranslationDatabase,
-    PathwayDatabase,
-    # Utility functions
-    hypergeometric_test,
-    multiple_test_correction,
-)
-```
+### Classes
+
+| Class | Description |
+|-------|-------------|
+| [`ORAResult`](#oraresult) | Container for over-representation analysis results |
+| [`ORATermResult`](#oratermresult) | Single term result from ORA |
+| [`Pathway`](#pathway) | Represents a biological pathway with gene sets |
+
+### Enums
+
+| Enum | Description |
+|------|-------------|
+| [`Species`](#species) | Supported species for ORA (human, mouse, rat, etc.) |
+| [`GOAspect`](#goaspect) | Gene Ontology aspects (BP, MF, CC) |
+| [`CorrectionMethod`](#correctionmethod) | Multiple testing correction methods (FDR, Bonferroni) |
+| [`TranslationDatabase`](#translationdatabase) | Databases for automatic ID translation |
+| [`PathwayDatabase`](#pathwaydatabase) | Pathway database sources (KEGG, GO, Reactome) |
+
+### Core ORA Functions
+
+| Function | Description |
+|----------|-------------|
+| [`ora`](#ora) | Generic ORA against any pathway database |
+| [`ora_kegg`](#ora_kegg) | ORA against KEGG pathways |
+| [`ora_go`](#ora_go) | ORA against Gene Ontology terms |
+| [`ora_reactome`](#ora_reactome) | ORA against Reactome pathways (via API) |
+| [`ora_reactome_local`](#ora_reactome_local) | ORA against Reactome pathways (local calculation) |
+| [`ora_enrichr`](#ora_enrichr) | ORA via EnrichR web service |
+
+### Utility Functions
+
+| Function | Description |
+|----------|-------------|
+| [`hypergeometric_test`](#hypergeometric_test) | Compute hypergeometric p-value |
+| [`multiple_test_correction`](#multiple_test_correction) | Apply multiple testing correction |
 
 ---
 
 ## Enums
 
 ### Species
+
+Supported species for ORA. Each member contains: `(taxon_id, common_name, kegg_code, scientific_name)`.
+
+| Member | Taxon ID | KEGG Code | Scientific Name |
+|--------|----------|-----------|-----------------|
+| `HUMAN` | 9606 | `hsa` | Homo sapiens |
+| `MOUSE` | 10090 | `mmu` | Mus musculus |
+| `RAT` | 10116 | `rno` | Rattus norvegicus |
+| `ZEBRAFISH` | 7955 | `dre` | Danio rerio |
+| `FLY` | 7227 | `dme` | Drosophila melanogaster |
+| `WORM` | 6239 | `cel` | Caenorhabditis elegans |
+| `YEAST` | 559292 | `sce` | Saccharomyces cerevisiae |
 
 ::: biodbs._funcs.analysis.ora.Species
     options:
@@ -42,12 +65,31 @@ from biodbs.analysis import (
 
 ### GOAspect
 
+Gene Ontology aspects for filtering GO terms.
+
+| Member | Value | Description |
+|--------|-------|-------------|
+| `BIOLOGICAL_PROCESS` | `"biological_process"` | BP - Biological processes |
+| `MOLECULAR_FUNCTION` | `"molecular_function"` | MF - Molecular functions |
+| `CELLULAR_COMPONENT` | `"cellular_component"` | CC - Cellular components |
+| `ALL` | `"all"` | All GO aspects |
+
 ::: biodbs._funcs.analysis.ora.GOAspect
     options:
       show_root_heading: true
       members_order: source
 
 ### CorrectionMethod
+
+Multiple testing correction methods.
+
+| Member | Value | Description |
+|--------|-------|-------------|
+| `BONFERRONI` | `"bonferroni"` | Bonferroni correction (conservative) |
+| `BH` | `"benjamini_hochberg"` | Benjamini-Hochberg FDR (recommended) |
+| `BY` | `"benjamini_yekutieli"` | Benjamini-Yekutieli FDR |
+| `HOLM` | `"holm"` | Holm-Bonferroni method |
+| `NONE` | `"none"` | No correction |
 
 ::: biodbs._funcs.analysis.ora.CorrectionMethod
     options:
@@ -56,12 +98,29 @@ from biodbs.analysis import (
 
 ### TranslationDatabase
 
+Databases for automatic ID translation.
+
+| Member | Value | Description |
+|--------|-------|-------------|
+| `BIOMART` | `"biomart"` | Ensembl BioMart |
+| `UNIPROT` | `"uniprot"` | UniProt ID mapping |
+| `NCBI` | `"ncbi"` | NCBI Gene database |
+
 ::: biodbs._funcs.analysis.ora.TranslationDatabase
     options:
       show_root_heading: true
       members_order: source
 
 ### PathwayDatabase
+
+Pathway database sources.
+
+| Member | Value | Description |
+|--------|-------|-------------|
+| `KEGG` | `"kegg"` | KEGG pathways |
+| `GO` | `"go"` | Gene Ontology terms |
+| `ENRICHR` | `"enrichr"` | EnrichR libraries |
+| `REACTOME` | `"reactome"` | Reactome pathways |
 
 ::: biodbs._funcs.analysis.ora.PathwayDatabase
     options:

@@ -2,23 +2,250 @@
 
 Complete reference for `biodbs.fetch` module.
 
+## Summary
+
+### Fetcher Classes
+
+| Class | Description |
+|-------|-------------|
+| [`UniProt_Fetcher`](#uniprot_fetcher) | Fetch protein data from UniProt REST API |
+| [`PubChem_Fetcher`](#pubchem_fetcher) | Fetch chemical data from PubChem PUG REST/View APIs |
+| [`Ensembl_Fetcher`](#ensembl_fetcher) | Fetch genomic data from Ensembl REST API |
+| [`BioMart_Fetcher`](#biomart_fetcher) | Query Ensembl BioMart for gene annotations |
+| [`KEGG_Fetcher`](#kegg_fetcher) | Fetch pathway and gene data from KEGG API |
+| [`ChEMBL_Fetcher`](#chembl_fetcher) | Fetch bioactivity data from ChEMBL API |
+| [`QuickGO_Fetcher`](#quickgo_fetcher) | Fetch GO annotations from QuickGO API |
+| [`HPA_Fetcher`](#hpa_fetcher) | Fetch protein expression from Human Protein Atlas |
+| [`NCBI_Fetcher`](#ncbi_fetcher) | Fetch gene data from NCBI Entrez |
+| [`FDA_Fetcher`](#fda_fetcher) | Fetch drug/device data from openFDA |
+| [`Reactome_Fetcher`](#reactome_fetcher) | Fetch pathway data from Reactome |
+| [`DO_Fetcher`](#do_fetcher) | Fetch disease terms from Disease Ontology |
+| [`EnrichR_Fetcher`](#enrichr_fetcher) | Perform gene set enrichment via EnrichR |
+
+### UniProt Functions
+
+| Function | Description |
+|----------|-------------|
+| [`uniprot_get_entry`](#uniprot_get_entry) | Get a single UniProt entry by accession |
+| [`uniprot_search`](#uniprot_search) | Search UniProtKB with query |
+| [`uniprot_search_by_gene`](#uniprot_search_by_gene) | Search by gene name |
+| [`gene_to_uniprot`](#gene_to_uniprot) | Map gene symbols to UniProt accessions |
+| [`uniprot_map_ids`](#uniprot_map_ids) | Map IDs between databases |
+
+### PubChem Functions
+
+| Function | Description |
+|----------|-------------|
+| [`pubchem_get_compound`](#pubchem_get_compound) | Get compound record by CID |
+| [`pubchem_search_by_name`](#pubchem_search_by_name) | Search compounds by name |
+| [`pubchem_get_properties`](#pubchem_get_properties) | Get compound properties |
+
+### Ensembl Functions
+
+| Function | Description |
+|----------|-------------|
+| [`ensembl_lookup`](#ensembl_lookup) | Lookup entity by Ensembl ID |
+| [`ensembl_lookup_symbol`](#ensembl_lookup_symbol) | Lookup by gene symbol |
+| [`ensembl_get_sequence`](#ensembl_get_sequence) | Get nucleotide/protein sequence |
+| [`ensembl_get_xrefs`](#ensembl_get_xrefs) | Get cross-references |
+
+### BioMart Functions
+
+| Function | Description |
+|----------|-------------|
+| [`biomart_get_genes`](#biomart_get_genes) | Get gene annotations by Ensembl IDs |
+| [`biomart_convert_ids`](#biomart_convert_ids) | Convert between gene ID types |
+| [`biomart_query`](#biomart_query) | Custom BioMart query |
+
+### KEGG Functions
+
+| Function | Description |
+|----------|-------------|
+| [`kegg_list`](#kegg_list) | List entries in a KEGG database |
+| [`kegg_get`](#kegg_get) | Get KEGG entry by ID |
+| [`kegg_link`](#kegg_link) | Get cross-references between databases |
+| [`kegg_conv`](#kegg_conv) | Convert between KEGG and external IDs |
+
+### ChEMBL Functions
+
+| Function | Description |
+|----------|-------------|
+| [`chembl_get_molecule`](#chembl_get_molecule) | Get molecule by ChEMBL ID |
+| [`chembl_search_molecules`](#chembl_search_molecules) | Search molecules by name |
+| [`chembl_get_approved_drugs`](#chembl_get_approved_drugs) | Get approved drugs list |
+
+### QuickGO Functions
+
+| Function | Description |
+|----------|-------------|
+| [`quickgo_search_annotations`](#quickgo_search_annotations) | Search GO annotations |
+| [`quickgo_get_terms`](#quickgo_get_terms) | Get GO term details |
+
+### HPA Functions
+
+| Function | Description |
+|----------|-------------|
+| [`hpa_get_gene`](#hpa_get_gene) | Get gene expression data |
+| [`hpa_get_tissue_expression`](#hpa_get_tissue_expression) | Get tissue-level expression |
+
+### NCBI Functions
+
+| Function | Description |
+|----------|-------------|
+| [`ncbi_get_gene`](#ncbi_get_gene) | Get gene info by Entrez ID |
+| [`ncbi_symbol_to_id`](#ncbi_symbol_to_id) | Convert gene symbol to Entrez ID |
+
+### FDA Functions
+
+| Function | Description |
+|----------|-------------|
+| [`fda_search`](#fda_search) | Search openFDA endpoints |
+| [`fda_drug_events`](#fda_drug_events) | Search drug adverse events |
+
+### Reactome Functions
+
+| Function | Description |
+|----------|-------------|
+| [`reactome_analyze`](#reactome_analyze) | Analyze gene list against Reactome |
+
+### Disease Ontology Functions
+
+| Function | Description |
+|----------|-------------|
+| [`do_get_term`](#do_get_term) | Get disease term by DOID |
+| [`do_get_children`](#do_get_children) | Get child terms |
+
+### EnrichR Functions
+
+| Function | Description |
+|----------|-------------|
+| [`enrichr_enrich`](#enrichr_enrich) | Perform enrichment analysis |
+| [`enrichr_get_libraries`](#enrichr_get_libraries) | List available gene set libraries |
+
+---
+
+## Fetcher Classes
+
+### UniProt_Fetcher
+
+::: biodbs.fetch.uniprot.uniprot_fetcher.UniProt_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+      members_order: source
+      show_bases: false
+
+### PubChem_Fetcher
+
+::: biodbs.fetch.pubchem.pubchem_fetcher.PubChem_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+      members_order: source
+      show_bases: false
+
+### Ensembl_Fetcher
+
+::: biodbs.fetch.ensembl.ensembl_fetcher.Ensembl_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+      members_order: source
+      show_bases: false
+
+### BioMart_Fetcher
+
+::: biodbs.fetch.biomart.biomart_fetcher.BioMart_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+      members_order: source
+      show_bases: false
+
+### KEGG_Fetcher
+
+::: biodbs.fetch.KEGG.kegg_fetcher.KEGG_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+      members_order: source
+      show_bases: false
+
+### ChEMBL_Fetcher
+
+::: biodbs.fetch.ChEMBL.chembl_fetcher.ChEMBL_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+      members_order: source
+      show_bases: false
+
+### QuickGO_Fetcher
+
+::: biodbs.fetch.QuickGO.quickgo_fetcher.QuickGO_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+      members_order: source
+      show_bases: false
+
+### HPA_Fetcher
+
+::: biodbs.fetch.HPA.hpa_fetcher.HPA_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+      members_order: source
+      show_bases: false
+
+### NCBI_Fetcher
+
+::: biodbs.fetch.NCBI.ncbi_fetcher.NCBI_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+      members_order: source
+      show_bases: false
+
+### FDA_Fetcher
+
+::: biodbs.fetch.FDA.fda_fetcher.FDA_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+      members_order: source
+      show_bases: false
+
+### Reactome_Fetcher
+
+::: biodbs.fetch.Reactome.reactome_fetcher.Reactome_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+      members_order: source
+      show_bases: false
+
+### DO_Fetcher
+
+::: biodbs.fetch.DiseaseOntology.do_fetcher.DO_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+      members_order: source
+      show_bases: false
+
+### EnrichR_Fetcher
+
+::: biodbs.fetch.EnrichR.enrichr_fetcher.EnrichR_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+      members_order: source
+      show_bases: false
+
 ---
 
 ## UniProt
-
-```python
-from biodbs.fetch import (
-    uniprot_get_entry,
-    uniprot_get_entries,
-    uniprot_search,
-    uniprot_search_by_gene,
-    uniprot_search_by_keyword,
-    gene_to_uniprot,
-    uniprot_to_gene,
-    uniprot_get_sequences,
-    uniprot_map_ids,
-)
-```
 
 ### uniprot_get_entry
 
@@ -59,23 +286,6 @@ from biodbs.fetch import (
 
 ## PubChem
 
-```python
-from biodbs.fetch import (
-    pubchem_get_compound,
-    pubchem_get_compounds,
-    pubchem_search_by_name,
-    pubchem_search_by_smiles,
-    pubchem_search_by_inchikey,
-    pubchem_search_by_formula,
-    pubchem_get_properties,
-    pubchem_get_synonyms,
-    pubchem_get_description,
-    pubchem_get_safety,
-    pubchem_get_pharmacology,
-    pubchem_get_drug_info,
-)
-```
-
 ### pubchem_get_compound
 
 ::: biodbs.fetch.pubchem.funcs.pubchem_get_compound
@@ -100,37 +310,6 @@ from biodbs.fetch import (
 ---
 
 ## Ensembl
-
-```python
-from biodbs.fetch import (
-    ensembl_lookup,
-    ensembl_lookup_batch,
-    ensembl_lookup_symbol,
-    ensembl_get_sequence,
-    ensembl_get_sequence_batch,
-    ensembl_get_sequence_region,
-    ensembl_get_overlap_id,
-    ensembl_get_overlap_region,
-    ensembl_get_xrefs,
-    ensembl_get_xrefs_symbol,
-    ensembl_get_homology,
-    ensembl_get_homology_symbol,
-    ensembl_get_variation,
-    ensembl_vep_hgvs,
-    ensembl_vep_id,
-    ensembl_vep_region,
-    ensembl_map_assembly,
-    ensembl_get_phenotype_gene,
-    ensembl_get_phenotype_region,
-    ensembl_get_ontology_term,
-    ensembl_get_ontology_ancestors,
-    ensembl_get_ontology_descendants,
-    ensembl_get_genetree,
-    ensembl_get_genetree_member,
-    ensembl_get_assembly_info,
-    ensembl_get_species_info,
-)
-```
 
 ### ensembl_lookup
 
@@ -164,22 +343,6 @@ from biodbs.fetch import (
 
 ## BioMart
 
-```python
-from biodbs.fetch import (
-    biomart_get_genes,
-    biomart_get_genes_by_name,
-    biomart_get_genes_by_region,
-    biomart_get_transcripts,
-    biomart_get_go_annotations,
-    biomart_get_homologs,
-    biomart_convert_ids,
-    biomart_query,
-    biomart_list_datasets,
-    biomart_list_attributes,
-    biomart_list_filters,
-)
-```
-
 ### biomart_get_genes
 
 ::: biodbs.fetch.biomart.funcs.biomart_get_genes
@@ -204,19 +367,6 @@ from biodbs.fetch import (
 ---
 
 ## KEGG
-
-```python
-from biodbs.fetch import (
-    kegg_info,
-    kegg_list,
-    kegg_find,
-    kegg_get,
-    kegg_get_batch,
-    kegg_conv,
-    kegg_link,
-    kegg_ddi,
-)
-```
 
 ### kegg_list
 
@@ -250,19 +400,6 @@ from biodbs.fetch import (
 
 ## ChEMBL
 
-```python
-from biodbs.fetch import (
-    chembl_get_molecule,
-    chembl_get_target,
-    chembl_search_molecules,
-    chembl_get_activities_for_target,
-    chembl_get_activities_for_molecule,
-    chembl_get_approved_drugs,
-    chembl_get_drug_indications,
-    chembl_get_mechanisms,
-)
-```
-
 ### chembl_get_molecule
 
 ::: biodbs.fetch.ChEMBL.funcs.chembl_get_molecule
@@ -288,19 +425,6 @@ from biodbs.fetch import (
 
 ## QuickGO
 
-```python
-from biodbs.fetch import (
-    quickgo_search_terms,
-    quickgo_get_terms,
-    quickgo_get_term_children,
-    quickgo_get_term_ancestors,
-    quickgo_search_annotations,
-    quickgo_search_annotations_all,
-    quickgo_download_annotations,
-    quickgo_get_gene_product,
-)
-```
-
 ### quickgo_search_annotations
 
 ::: biodbs.fetch.QuickGO.funcs.quickgo_search_annotations
@@ -318,20 +442,6 @@ from biodbs.fetch import (
 ---
 
 ## HPA (Human Protein Atlas)
-
-```python
-from biodbs.fetch import (
-    hpa_get_gene,
-    hpa_get_genes,
-    hpa_get_tissue_expression,
-    hpa_get_blood_expression,
-    hpa_get_brain_expression,
-    hpa_get_subcellular_location,
-    hpa_get_pathology,
-    hpa_get_protein_class,
-    hpa_search,
-)
-```
 
 ### hpa_get_gene
 
@@ -351,16 +461,6 @@ from biodbs.fetch import (
 
 ## NCBI
 
-```python
-from biodbs.fetch import (
-    ncbi_get_gene,
-    ncbi_symbol_to_id,
-    ncbi_id_to_symbol,
-    ncbi_get_taxonomy,
-    ncbi_translate_gene_ids,
-)
-```
-
 ### ncbi_get_gene
 
 ::: biodbs.fetch.NCBI.funcs.ncbi_get_gene
@@ -378,28 +478,6 @@ from biodbs.fetch import (
 ---
 
 ## FDA
-
-```python
-from biodbs.fetch import (
-    fda_search,
-    fda_search_all,
-    fda_drug_events,
-    fda_drug_labels,
-    fda_drug_enforcement,
-    fda_drug_ndc,
-    fda_drug_drugsfda,
-    fda_device_events,
-    fda_device_classification,
-    fda_device_510k,
-    fda_device_pma,
-    fda_device_recall,
-    fda_device_udi,
-    fda_food_events,
-    fda_food_enforcement,
-    fda_animalandveterinary_events,
-    fda_tobacco_problem,
-)
-```
 
 ### fda_search
 
@@ -419,17 +497,6 @@ from biodbs.fetch import (
 
 ## Reactome
 
-```python
-from biodbs.fetch import (
-    reactome_analyze,
-    reactome_analyze_projection,
-    reactome_get_pathways_top,
-    reactome_get_species,
-    reactome_get_found_entities,
-    reactome_get_database_version,
-)
-```
-
 ### reactome_analyze
 
 ::: biodbs.fetch.Reactome.funcs.reactome_analyze
@@ -440,22 +507,6 @@ from biodbs.fetch import (
 ---
 
 ## Disease Ontology
-
-```python
-from biodbs.fetch import (
-    do_get_term,
-    do_get_terms,
-    do_search,
-    do_get_parents,
-    do_get_children,
-    do_get_ancestors,
-    do_get_descendants,
-    doid_to_mesh,
-    doid_to_umls,
-    doid_to_icd10,
-    do_xref_mapping,
-)
-```
 
 ### do_get_term
 
@@ -475,21 +526,6 @@ from biodbs.fetch import (
 
 ## EnrichR
 
-```python
-from biodbs.fetch import (
-    enrichr_get_libraries,
-    enrichr_enrich,
-    enrichr_enrich_multiple,
-    enrichr_enrich_with_background,
-    enrichr_kegg,
-    enrichr_go_bp,
-    enrichr_go_mf,
-    enrichr_go_cc,
-    enrichr_reactome,
-    enrichr_wikipathways,
-)
-```
-
 ### enrichr_enrich
 
 ::: biodbs.fetch.EnrichR.funcs.enrichr_enrich
@@ -506,34 +542,10 @@ from biodbs.fetch import (
 
 ---
 
-## Fetcher Classes
-
-For more control, use the fetcher classes directly:
-
-```python
-from biodbs.fetch.uniprot import UniProt_Fetcher
-from biodbs.fetch.pubchem import PubChem_Fetcher
-from biodbs.fetch.ensembl import Ensembl_Fetcher
-from biodbs.fetch.biomart import BioMart_Fetcher
-from biodbs.fetch.KEGG import KEGG_Fetcher
-from biodbs.fetch.ChEMBL import ChEMBL_Fetcher
-from biodbs.fetch.QuickGO import QuickGO_Fetcher
-from biodbs.fetch.HPA import HPA_Fetcher
-from biodbs.fetch.NCBI import NCBI_Fetcher
-from biodbs.fetch.FDA import FDA_Fetcher
-from biodbs.fetch.Reactome import Reactome_Fetcher
-from biodbs.fetch.DiseaseOntology import DiseaseOntology_Fetcher
-```
-
----
-
 ## Rate Limiting
 
-```python
-from biodbs.fetch import (
-    RateLimiter,
-    get_rate_limiter,
-    request_with_retry,
-    retry_with_backoff,
-)
-```
+| Function/Class | Description |
+|----------------|-------------|
+| `RateLimiter` | Global rate limiter for API calls |
+| `get_rate_limiter` | Get the singleton rate limiter instance |
+| `request_with_retry` | Make HTTP request with retry logic |

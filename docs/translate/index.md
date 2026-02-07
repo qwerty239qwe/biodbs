@@ -2,6 +2,13 @@
 
 The `biodbs.translate` module provides functions for mapping between different biological identifier systems.
 
+**Related sections:**
+
+- [API Reference](../api/translate.md) - Complete function documentation
+- [Data Fetching](../fetch/index.md) - Fetch data using translated IDs
+- [Analysis](../analysis/index.md) - Use translated IDs in ORA analysis
+- [Knowledge Graph](../graph/index.md) - Build graphs with cross-referenced entities
+
 ## Available Translators
 
 | Category | Functions | Description |
@@ -150,3 +157,10 @@ mapping = translate_gene_to_uniprot(
 # {'TP53': 'P04637', 'BRCA1': 'P38398'}
 # Note: 'NOT_A_GENE' is not in the result
 ```
+
+## Next Steps
+
+- [Gene ID Translation](genes.md) - Detailed gene ID mapping guide
+- [Protein ID Translation](proteins.md) - UniProt-based protein mapping
+- [Chemical ID Translation](chemicals.md) - Chemical identifier mapping
+- [ORA Analysis](../analysis/ora.md) - Use translated IDs in enrichment analysis

@@ -2,6 +2,13 @@
 
 The `biodbs.fetch` module provides unified access to biological and chemical databases.
 
+**Related sections:**
+
+- [API Reference](../api/fetch.md) - Complete function and class documentation
+- [ID Translation](../translate/index.md) - Convert between identifier systems
+- [Analysis](../analysis/index.md) - Statistical analysis of fetched data
+- [Knowledge Graph](../graph/index.md) - Build graphs from fetched data
+
 ## Available Databases
 
 | Database | Description | Key Functions |
@@ -148,7 +155,7 @@ limiter = get_rate_limiter()
 
 ## Using Fetcher Classes
 
-For more control, use fetcher classes directly:
+For more control, use [fetcher classes](../api/fetch.md#fetcher-classes) directly:
 
 ```python
 from biodbs.fetch.uniprot import UniProt_Fetcher
@@ -164,3 +171,10 @@ mapping = fetcher.gene_to_uniprot(["TP53", "BRCA1"])
 # Batch operations with concurrency
 sequences = fetcher.get_sequences(["P04637", "P00533"])
 ```
+
+## Next Steps
+
+- [UniProt Guide](uniprot.md) - Detailed UniProt fetching examples
+- [PubChem Guide](pubchem.md) - Chemical compound data
+- [ID Translation](../translate/index.md) - Map between identifier systems
+- [ORA Analysis](../analysis/ora.md) - Pathway enrichment analysis

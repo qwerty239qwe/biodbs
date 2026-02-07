@@ -1,6 +1,15 @@
 # Knowledge Graph Module
 
-The `biodbs.graph` module provides tools for building knowledge graphs from biological ontology data. These graphs can be used for:
+The `biodbs.graph` module provides tools for building knowledge graphs from biological ontology data.
+
+**Related sections:**
+
+- [API Reference](../api/graph.md) - Complete function and class documentation
+- [Data Fetching](../fetch/index.md) - Fetch ontology data for graph building
+- [Disease Ontology](../fetch/disease-ontology.md) - Disease hierarchy data
+- [Reactome](../fetch/reactome.md) - Pathway data for graphs
+
+These graphs can be used for:
 
 - **KG-RAG**: Knowledge Graph Retrieval Augmented Generation for LLM applications
 - **Network Analysis**: Identify hub genes, find paths between entities
@@ -28,7 +37,7 @@ from biodbs.graph import (
     build_disease_graph,
     to_json_ld, to_networkx
 )
-from biodbs.fetch import DO_Fetcher
+from biodbs.fetch import DO_Fetcher  # See: fetch/disease-ontology.md
 
 # Build a graph from Disease Ontology
 fetcher = DO_Fetcher()
@@ -116,4 +125,6 @@ subgraph = graph.subgraph({"DOID:162", "DOID:1612"})
 - [Building Graphs](building.md) - Create graphs from various data sources
 - [Exporting Graphs](exporting.md) - Export to different formats
 - [Graph Analysis](analysis.md) - Path finding, centrality, statistics
-- [API Reference](../api/graph.md) - Complete API documentation
+- [API Reference](../api/graph.md) - Complete API documentation with enums
+- [Disease Ontology Fetcher](../fetch/disease-ontology.md) - Fetch disease data
+- [QuickGO Fetcher](../fetch/quickgo.md) - Fetch GO annotation data

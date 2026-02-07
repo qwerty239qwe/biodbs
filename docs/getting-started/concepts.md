@@ -31,7 +31,7 @@ biodbs provides two ways to access each database:
 
 ### Convenience Functions (Recommended)
 
-Simple, stateless functions for common operations:
+Simple, stateless functions for common operations. See the full list in the [Fetch API Reference](../api/fetch.md).
 
 ```python
 from biodbs.fetch import uniprot_get_entry, uniprot_search
@@ -43,7 +43,13 @@ results = uniprot_search("gene:TP53 AND organism_id:9606")
 
 ### Fetcher Classes
 
-Object-oriented interface for more control:
+Object-oriented interface for more control. See all available fetcher classes in the [Fetch API Reference](../api/fetch.md#fetcher-classes):
+
+- [`UniProt_Fetcher`](../api/fetch.md#uniprot_fetcher) - Protein data from UniProt
+- [`PubChem_Fetcher`](../api/fetch.md#pubchem_fetcher) - Chemical data from PubChem
+- [`Ensembl_Fetcher`](../api/fetch.md#ensembl_fetcher) - Genomic data from Ensembl
+- [`BioMart_Fetcher`](../api/fetch.md#biomart_fetcher) - Gene annotations from BioMart
+- [`KEGG_Fetcher`](../api/fetch.md#kegg_fetcher) - Pathway data from KEGG
 
 ```python
 from biodbs.fetch.uniprot import UniProt_Fetcher
@@ -165,7 +171,7 @@ entry.model_dump_json()        # JSON string
 
 ## Batch Processing
 
-For large queries, use batch methods:
+For large queries, use batch methods available on the [Fetcher classes](../api/fetch.md#fetcher-classes):
 
 ```python
 from biodbs.fetch.uniprot import UniProt_Fetcher
@@ -211,3 +217,4 @@ cached = manager.load("proteins.json")
 - Learn about ID translation: [ID Translation](../translate/index.md)
 - Perform enrichment analysis: [Analysis](../analysis/index.md)
 - Build knowledge graphs: [Knowledge Graph](../graph/index.md)
+- See the complete [API Reference](../api/index.md)
