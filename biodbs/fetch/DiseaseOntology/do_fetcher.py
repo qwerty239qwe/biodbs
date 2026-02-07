@@ -70,8 +70,8 @@ class DO_Fetcher(BaseDataFetcher):
         - Direct DO API for basic metadata
         - EBI Ontology Lookup Service (OLS) for comprehensive queries
 
-    Examples::
-
+    Example:
+        ```python
         fetcher = DO_Fetcher()
 
         # Get disease term by DOID
@@ -90,6 +90,7 @@ class DO_Fetcher(BaseDataFetcher):
         term = fetcher.get_term("DOID:162")
         print(term.terms[0].mesh_id)  # Get MeSH ID
         print(term.terms[0].umls_cui)  # Get UMLS CUI
+        ```
     """
 
     def __init__(self):
@@ -234,10 +235,12 @@ class DO_Fetcher(BaseDataFetcher):
             DOFetchedData with the disease term.
 
         Example:
-            >>> fetcher = DO_Fetcher()
-            >>> term = fetcher.get_term("DOID:162")  # Cancer
-            >>> print(term.terms[0].name)
-            'cancer'
+            ```python
+            fetcher = DO_Fetcher()
+            term = fetcher.get_term("DOID:162")  # Cancer
+            print(term.terms[0].name)
+            # 'cancer'
+            ```
         """
         doid = self._normalize_doid(doid)
 
@@ -270,9 +273,11 @@ class DO_Fetcher(BaseDataFetcher):
             DOFetchedData with all disease terms.
 
         Example:
-            >>> fetcher = DO_Fetcher()
-            >>> terms = fetcher.get_terms(["DOID:162", "DOID:10283"])
-            >>> print(terms.get_names())
+            ```python
+            fetcher = DO_Fetcher()
+            terms = fetcher.get_terms(["DOID:162", "DOID:10283"])
+            print(terms.get_names())
+            ```
         """
         if not doids:
             return DOFetchedData([], query_ids=[])
@@ -333,9 +338,11 @@ class DO_Fetcher(BaseDataFetcher):
             DOSearchFetchedData with search results.
 
         Example:
-            >>> fetcher = DO_Fetcher()
-            >>> results = fetcher.search("breast cancer")
-            >>> print(results.get_doids())
+            ```python
+            fetcher = DO_Fetcher()
+            results = fetcher.search("breast cancer")
+            print(results.get_doids())
+            ```
         """
         request = DOSearchRequest(
             query=query,
@@ -367,8 +374,10 @@ class DO_Fetcher(BaseDataFetcher):
             DOSearchFetchedData with matching terms.
 
         Example:
-            >>> fetcher = DO_Fetcher()
-            >>> results = fetcher.search_by_xref("MESH", "D001943")  # Breast cancer
+            ```python
+            fetcher = DO_Fetcher()
+            results = fetcher.search_by_xref("MESH", "D001943")  # Breast cancer
+            ```
         """
         # Search using the xref format
         query = f"{database}:{external_id}"
@@ -386,10 +395,12 @@ class DO_Fetcher(BaseDataFetcher):
             DOFetchedData with parent terms.
 
         Example:
-            >>> fetcher = DO_Fetcher()
-            >>> parents = fetcher.get_parents("DOID:1612")  # Breast cancer
-            >>> for term in parents.terms:
-            ...     print(f"{term.doid}: {term.name}")
+            ```python
+            fetcher = DO_Fetcher()
+            parents = fetcher.get_parents("DOID:1612")  # Breast cancer
+            for term in parents.terms:
+                print(f"{term.doid}: {term.name}")
+            ```
         """
         doid = self._normalize_doid(doid)
         iri = self._doid_to_iri(doid)
@@ -408,9 +419,11 @@ class DO_Fetcher(BaseDataFetcher):
             DOFetchedData with child terms.
 
         Example:
-            >>> fetcher = DO_Fetcher()
-            >>> children = fetcher.get_children("DOID:162")  # Cancer
-            >>> print(f"Cancer has {len(children)} child terms")
+            ```python
+            fetcher = DO_Fetcher()
+            children = fetcher.get_children("DOID:162")  # Cancer
+            print(f"Cancer has {len(children)} child terms")
+            ```
         """
         doid = self._normalize_doid(doid)
         iri = self._doid_to_iri(doid)
@@ -492,9 +505,11 @@ class DO_Fetcher(BaseDataFetcher):
             Dictionary with ontology information.
 
         Example:
-            >>> fetcher = DO_Fetcher()
-            >>> info = fetcher.get_ontology_info()
-            >>> print(info.get("config", {}).get("title"))
+            ```python
+            fetcher = DO_Fetcher()
+            info = fetcher.get_ontology_info()
+            print(info.get("config", {}).get("title"))
+            ```
         """
         endpoint = OLSEndpoint.ONTOLOGY_INFO.value
         return self._make_ols_request(endpoint)
@@ -511,9 +526,11 @@ class DO_Fetcher(BaseDataFetcher):
             Dictionary mapping DOIDs to MeSH IDs.
 
         Example:
-            >>> fetcher = DO_Fetcher()
-            >>> mapping = fetcher.doid_to_mesh(["DOID:162", "DOID:1612"])
-            >>> print(mapping)
+            ```python
+            fetcher = DO_Fetcher()
+            mapping = fetcher.doid_to_mesh(["DOID:162", "DOID:1612"])
+            print(mapping)
+            ```
         """
         terms = self.get_terms(doids)
         return {t.doid: t.mesh_id for t in terms.terms}

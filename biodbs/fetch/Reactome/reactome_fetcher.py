@@ -45,13 +45,14 @@ class Reactome_Fetcher(BaseDataFetcher):
     """Fetcher for Reactome pathway analysis and content APIs.
 
     Reactome provides comprehensive pathway analysis including:
-        - Over-representation analysis (ORA)
-        - Expression analysis
-        - Species comparison
-        - Pathway hierarchy and content
 
-    Examples::
+    - Over-representation analysis (ORA)
+    - Expression analysis
+    - Species comparison
+    - Pathway hierarchy and content
 
+    Example:
+        ```python
         fetcher = Reactome_Fetcher()
 
         # Perform pathway analysis
@@ -69,6 +70,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         # Get species list
         species = fetcher.get_species()
         print(species.get_species_names())
+        ```
     """
 
     def __init__(self, species: str = "Homo sapiens"):

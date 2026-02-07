@@ -94,24 +94,26 @@ class KEGG_Fetcher(BaseDataFetcher):
     """Fetcher for KEGG REST API.
 
     KEGG (Kyoto Encyclopedia of Genes and Genomes) provides access to:
-        - Pathway information and diagrams
-        - Gene and protein entries
-        - Compound and drug data
-        - Disease information
-        - Organism-specific pathway lists
-        - ID conversion between databases
+
+    - Pathway information and diagrams
+    - Gene and protein entries
+    - Compound and drug data
+    - Disease information
+    - Organism-specific pathway lists
+    - ID conversion between databases
 
     Operations:
-        - **info**: Get database statistics
-        - **list**: List database entries
-        - **find**: Search entries by keyword
-        - **get**: Retrieve specific entries
-        - **conv**: Convert IDs between databases
-        - **link**: Find linked entries across databases
-        - **ddi**: Drug-drug interactions
 
-    Examples::
+    - **info**: Get database statistics
+    - **list**: List database entries
+    - **find**: Search entries by keyword
+    - **get**: Retrieve specific entries
+    - **conv**: Convert IDs between databases
+    - **link**: Find linked entries across databases
+    - **ddi**: Drug-drug interactions
 
+    Example:
+        ```python
         fetcher = KEGG_Fetcher()
 
         # Get database info
@@ -132,13 +134,7 @@ class KEGG_Fetcher(BaseDataFetcher):
 
         # Convert KEGG IDs to NCBI Gene IDs
         mapping = fetcher.get("conv", target_db="ncbi-geneid", dbentries=["hsa:7157"])
-
-        # Batch retrieval for large gene lists
-        genes = ["hsa:7157", "hsa:672", "hsa:675", ...]  # 100+ genes
-        data = fetcher.get_all("get", dbentries=genes)
-
-        # Get pathway image
-        image = fetcher.get("get", dbentries=["hsa00010"], get_option="image")
+        ```
     """
 
     # Default batch size for operations that use dbentries

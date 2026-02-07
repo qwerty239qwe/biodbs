@@ -26,18 +26,20 @@ class FDA_Fetcher(BaseDataFetcher):
     """Fetcher for openFDA API.
 
     The openFDA API provides access to FDA data including:
-        - Drug adverse events (drug/event)
-        - Drug product labeling (drug/label)
-        - Drug recalls and enforcement (drug/enforcement)
-        - Device adverse events and recalls
-        - Food recalls and enforcement
+
+    - Drug adverse events (drug/event)
+    - Drug product labeling (drug/label)
+    - Drug recalls and enforcement (drug/enforcement)
+    - Device adverse events and recalls
+    - Food recalls and enforcement
 
     Rate limits:
-        - Without API key: 240 requests/min, 1,000 requests/day per IP
-        - With API key: 240 requests/min, 120,000 requests/day per key
 
-    Examples::
+    - Without API key: 240 requests/min, 1,000 requests/day per IP
+    - With API key: 240 requests/min, 120,000 requests/day per key
 
+    Example:
+        ```python
         fetcher = FDA_Fetcher()
 
         # Search drug adverse events
@@ -56,15 +58,7 @@ class FDA_Fetcher(BaseDataFetcher):
             search={"openfda.brand_name": "TYLENOL"},
             limit=5
         )
-
-        # Batch retrieval with pagination
-        all_events = fetcher.get_all(
-            category="drug",
-            endpoint="event",
-            search={"receivedate": "[20200101 TO 20201231]"},
-            max_records=5000
-        )
-        print(f"Retrieved {len(all_events)} records")
+        ```
     """
 
     def __init__(self, api_key: str = None, limit: int = None, **data_manager_kws):

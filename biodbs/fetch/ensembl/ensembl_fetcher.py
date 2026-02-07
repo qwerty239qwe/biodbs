@@ -50,6 +50,7 @@ class Ensembl_Fetcher(BaseDataFetcher):
     """Fetcher for Ensembl REST API.
 
     Ensembl REST API provides access to genomic data including:
+
     - Gene/transcript/protein lookup and information
     - Genomic and protein sequences
     - Feature overlap queries
@@ -59,8 +60,8 @@ class Ensembl_Fetcher(BaseDataFetcher):
     - Coordinate mapping between assemblies
     - Phenotype and ontology data
 
-    Examples::
-
+    Example:
+        ```python
         fetcher = Ensembl_Fetcher()
 
         # Lookup a gene by Ensembl ID
@@ -81,6 +82,7 @@ class Ensembl_Fetcher(BaseDataFetcher):
 
         # Get variant consequences
         vep = fetcher.get_vep_hgvs("human", "ENST00000366667:c.803C>T")
+        ```
     """
 
     def __init__(self, **data_manager_kws):

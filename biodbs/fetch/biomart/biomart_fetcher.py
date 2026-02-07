@@ -74,6 +74,7 @@ class BioMart_Fetcher(BaseDataFetcher):
     """Fetcher for BioMart (Ensembl) genomic data.
 
     BioMart provides access to:
+
     - Gene information (IDs, names, descriptions, coordinates)
     - Transcript and protein data
     - Sequence data (cDNA, coding, peptide)
@@ -82,15 +83,14 @@ class BioMart_Fetcher(BaseDataFetcher):
     - GO annotations
 
     The API has a hierarchical structure:
+
     - Server: Contains multiple marts (e.g., ENSEMBL_MART_ENSEMBL)
     - Mart: Contains multiple datasets (e.g., hsapiens_gene_ensembl)
     - Dataset: Contains filters and attributes for queries
 
-    Examples::
-
+    Example:
+        ```python
         fetcher = BioMart_Fetcher()
-
-        # === Discovery ===
 
         # List available marts
         marts = fetcher.list_marts()
@@ -99,12 +99,6 @@ class BioMart_Fetcher(BaseDataFetcher):
         # List datasets in a mart
         datasets = fetcher.list_datasets()
         print(datasets.search(contain="human"))
-
-        # Get dataset configuration
-        config = fetcher.get_config("hsapiens_gene_ensembl")
-        print(config.attribute_names[:10])
-
-        # === Queries ===
 
         # Get gene info by Ensembl IDs
         data = fetcher.get_genes(
@@ -118,19 +112,7 @@ class BioMart_Fetcher(BaseDataFetcher):
             names=["TP53", "BRCA1", "BRCA2"],
             attributes=["ensembl_gene_id", "chromosome_name", "start_position"]
         )
-
-        # Get genes on a chromosome
-        data = fetcher.get_genes_by_chromosome(
-            chromosome="17",
-            start=7661779,
-            end=7687550
-        )
-
-        # Batch query with many IDs
-        data = fetcher.get_genes(
-            ids=large_gene_list,  # Automatically batched
-            attributes=["ensembl_gene_id", "external_gene_name"]
-        )
+        ```
 
     Note:
         BioMart API has rate limits and can be slow for large queries.

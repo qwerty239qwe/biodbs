@@ -63,13 +63,14 @@ class UniProt_Fetcher(BaseDataFetcher):
     """Fetcher for UniProt REST API.
 
     Provides access to UniProtKB protein data including:
-        - Entry retrieval by accession
-        - Search by query
-        - ID mapping between databases
-        - Batch retrieval
 
-    Examples::
+    - Entry retrieval by accession
+    - Search by query
+    - ID mapping between databases
+    - Batch retrieval
 
+    Example:
+        ```python
         fetcher = UniProt_Fetcher()
 
         # Get protein by accession
@@ -84,7 +85,12 @@ class UniProt_Fetcher(BaseDataFetcher):
         entries = fetcher.get_entries(["P05067", "P04637", "P00533"])
 
         # Map IDs
-        mapping = fetcher.map_ids(["P05067", "P04637"], from_db="UniProtKB_AC-ID", to_db="GeneID")
+        mapping = fetcher.map_ids(
+            ["P05067", "P04637"],
+            from_db="UniProtKB_AC-ID",
+            to_db="GeneID"
+        )
+        ```
     """
 
     def __init__(self):
@@ -181,9 +187,11 @@ class UniProt_Fetcher(BaseDataFetcher):
             UniProtFetchedData with the entry.
 
         Example:
-            >>> fetcher = UniProt_Fetcher()
-            >>> entry = fetcher.get_entry("P05067")
-            >>> print(entry.entries[0].protein_name)
+            ```python
+            fetcher = UniProt_Fetcher()
+            entry = fetcher.get_entry("P05067")
+            print(entry.entries[0].protein_name)
+            ```
         """
         endpoint = UniProtEndpoint.ENTRY.value.format(accession=accession)
         params = {}
@@ -208,9 +216,11 @@ class UniProt_Fetcher(BaseDataFetcher):
             UniProtFetchedData with all entries.
 
         Example:
-            >>> fetcher = UniProt_Fetcher()
-            >>> entries = fetcher.get_entries(["P05067", "P04637", "P00533"])
-            >>> print(entries.get_gene_names())
+            ```python
+            fetcher = UniProt_Fetcher()
+            entries = fetcher.get_entries(["P05067", "P04637", "P00533"])
+            print(entries.get_gene_names())
+            ```
         """
         if not accessions:
             return UniProtFetchedData([], query_ids=[])
@@ -244,9 +254,11 @@ class UniProt_Fetcher(BaseDataFetcher):
             UniProtSearchResult with matching entries.
 
         Example:
-            >>> fetcher = UniProt_Fetcher()
-            >>> results = fetcher.search("gene:BRCA1 AND reviewed:true")
-            >>> print(results.as_dataframe())
+            ```python
+            fetcher = UniProt_Fetcher()
+            results = fetcher.search("gene:BRCA1 AND reviewed:true")
+            print(results.as_dataframe())
+            ```
         """
         params = {
             "query": query,
@@ -352,8 +364,10 @@ class UniProt_Fetcher(BaseDataFetcher):
             UniProtSearchResult with matching entries.
 
         Example:
-            >>> fetcher = UniProt_Fetcher()
-            >>> results = fetcher.search_by_gene("TP53", organism=9606, reviewed_only=True)
+            ```python
+            fetcher = UniProt_Fetcher()
+            results = fetcher.search_by_gene("TP53", organism=9606, reviewed_only=True)
+            ```
         """
         query_parts = [f"gene:{gene_name}"]
         if organism:
@@ -446,8 +460,14 @@ class UniProt_Fetcher(BaseDataFetcher):
             Dictionary mapping input IDs to lists of output IDs.
 
         Example:
-            >>> fetcher = UniProt_Fetcher()
-            >>> mapping = fetcher.map_ids(["P05067", "P04637"], from_db="UniProtKB_AC-ID", to_db="GeneID")
+            ```python
+            fetcher = UniProt_Fetcher()
+            mapping = fetcher.map_ids(
+                ["P05067", "P04637"],
+                from_db="UniProtKB_AC-ID",
+                to_db="GeneID"
+            )
+            ```
         """
         if not ids:
             return {}
@@ -567,8 +587,10 @@ class UniProt_Fetcher(BaseDataFetcher):
             Dictionary mapping gene names to accessions.
 
         Example:
-            >>> fetcher = UniProt_Fetcher()
-            >>> mapping = fetcher.gene_to_uniprot(["TP53", "BRCA1", "EGFR"])
+            ```python
+            fetcher = UniProt_Fetcher()
+            mapping = fetcher.gene_to_uniprot(["TP53", "BRCA1", "EGFR"])
+            ```
         """
         if not gene_names:
             return {}

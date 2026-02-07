@@ -107,6 +107,7 @@ class PubChem_Fetcher(BaseDataFetcher):
     PubChem provides two REST APIs:
 
     **PUG REST** - Structured data access:
+
     - Compound records (structures, properties, synonyms)
     - Substance records (deposited data)
     - Bioassay data
@@ -114,25 +115,26 @@ class PubChem_Fetcher(BaseDataFetcher):
     - Structure searches (similarity, substructure)
 
     **PUG View** - Annotation/web page content:
+
     - Detailed compound annotations
     - Safety and hazards information
     - Pharmacology and biochemistry
     - Literature and patents
     - Drug and medication information
 
-    Examples::
-
+    Example:
+        ```python
         fetcher = PubChem_Fetcher()
-
-        # === PUG REST Examples ===
 
         # Get compound by CID
         aspirin = fetcher.get_compound(2244)
         print(aspirin.results[0])
 
         # Get compound properties
-        props = fetcher.get_properties([2244, 3672],
-            properties=["MolecularFormula", "MolecularWeight"])
+        props = fetcher.get_properties(
+            [2244, 3672],
+            properties=["MolecularFormula", "MolecularWeight"]
+        )
         df = props.as_dataframe()
 
         # Search by name
@@ -144,21 +146,12 @@ class PubChem_Fetcher(BaseDataFetcher):
             threshold=90
         )
 
-        # Get synonyms
-        synonyms = fetcher.get_synonyms(2244)
-
-        # === PUG View Examples ===
-
-        # Get full compound annotations
-        annotations = fetcher.get_view(2244)
-        print(annotations.get_all_headings())
-
         # Get safety data
         safety = fetcher.get_safety_data(2244)
-        print(safety.get_parsed_data())
 
         # Get pharmacology info
         pharma = fetcher.get_pharmacology(2244)
+        ```
     """
 
     def __init__(self, **data_manager_kws):

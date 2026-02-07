@@ -39,15 +39,16 @@ class EnrichR_Fetcher(BaseDataFetcher):
     covering pathways, ontologies, transcription factors, and more.
 
     Supported organisms:
-        - human (default)
-        - mouse
-        - fly (FlyEnrichr)
-        - yeast (YeastEnrichr)
-        - worm (WormEnrichr)
-        - fish (FishEnrichr)
 
-    Examples::
+    - human (default)
+    - mouse
+    - fly (FlyEnrichr)
+    - yeast (YeastEnrichr)
+    - worm (WormEnrichr)
+    - fish (FishEnrichr)
 
+    Example:
+        ```python
         fetcher = EnrichR_Fetcher()
 
         # Get available gene set libraries
@@ -58,14 +59,7 @@ class EnrichR_Fetcher(BaseDataFetcher):
         genes = ["TP53", "BRCA1", "EGFR", "MYC", "KRAS"]
         result = fetcher.enrich(genes, library="KEGG_2021_Human")
         print(result.significant_terms().get_term_names())
-
-        # Enrichment with custom background
-        background = ["TP53", "BRCA1", "EGFR", "MYC", "KRAS", "AKT1", "PIK3CA", ...]
-        result = fetcher.enrich_with_background(
-            genes=["TP53", "BRCA1"],
-            background=background,
-            library="GO_Biological_Process_2023"
-        )
+        ```
     """
 
     def __init__(self, organism: str = "human"):

@@ -91,8 +91,8 @@ class NCBI_Fetcher(BaseDataFetcher):
     Provides access to NCBI gene, taxonomy, and genome data via the
     Datasets REST API v2.
 
-    Examples::
-
+    Example:
+        ```python
         fetcher = NCBI_Fetcher()
 
         # Get gene information by NCBI Gene ID
@@ -108,6 +108,7 @@ class NCBI_Fetcher(BaseDataFetcher):
 
         # Translate gene symbols to IDs
         mapping = fetcher.symbol_to_id(["TP53", "BRCA1"], taxon="human")
+        ```
     """
 
     def __init__(self, api_key: Optional[str] = None):

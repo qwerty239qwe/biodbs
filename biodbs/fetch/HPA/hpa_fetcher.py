@@ -125,6 +125,7 @@ class HPA_Fetcher(BaseDataFetcher):
     """Fetcher for Human Protein Atlas data.
 
     The Human Protein Atlas provides proteomics data including:
+
     - Tissue expression (protein and RNA)
     - Subcellular location
     - Cell type expression
@@ -132,26 +133,17 @@ class HPA_Fetcher(BaseDataFetcher):
     - Brain region expression
     - Cancer/pathology data
 
-    Examples::
-
+    Example:
+        ```python
         fetcher = HPA_Fetcher()
-
-        # === Individual Gene Entry ===
 
         # Get gene data by Ensembl ID
         tp53 = fetcher.get_gene("ENSG00000141510")
         print(tp53.results[0])
 
-        # Get gene data in different formats
-        tp53_tsv = fetcher.get_gene("ENSG00000141510", format="tsv")
-
-        # === Search Queries ===
-
         # Search for genes
         results = fetcher.search("TP53")
         print(results.get_gene_names())
-
-        # === Search Download API ===
 
         # Get specific columns for genes
         data = fetcher.search_download(
@@ -165,18 +157,7 @@ class HPA_Fetcher(BaseDataFetcher):
 
         # Get subcellular location data
         loc = fetcher.get_subcellular_location("ENSG00000141510")
-
-        # === Batch Operations ===
-
-        # Fetch multiple genes
-        genes = fetcher.get_genes(["ENSG00000141510", "ENSG00000012048"])
-
-        # Batch search download
-        all_data = fetcher.get_all(
-            search="kinase",
-            columns=["g", "eg", "pc"],
-            method="concat"
-        )
+        ```
     """
 
     def __init__(self, **data_manager_kws):

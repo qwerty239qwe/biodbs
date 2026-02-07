@@ -61,18 +61,20 @@ class QuickGO_Fetcher(BaseDataFetcher):
     """Fetcher for QuickGO API (GO annotations, ontology, gene products).
 
     QuickGO provides access to:
-        - Gene Ontology term information
-        - GO annotations for genes/proteins
-        - Gene product information
-        - Annotation downloads in various formats (GAF, GPAD, TSV)
+
+    - Gene Ontology term information
+    - GO annotations for genes/proteins
+    - Gene product information
+    - Annotation downloads in various formats (GAF, GPAD, TSV)
 
     Categories:
-        - **ontology**: GO term search and retrieval
-        - **annotation**: GO annotation search and download
-        - **geneproduct**: Gene product information
 
-    Examples::
+    - **ontology**: GO term search and retrieval
+    - **annotation**: GO annotation search and download
+    - **geneproduct**: Gene product information
 
+    Example:
+        ```python
         fetcher = QuickGO_Fetcher()
 
         # Search GO terms
@@ -81,8 +83,6 @@ class QuickGO_Fetcher(BaseDataFetcher):
             endpoint="search",
             query="apoptosis"
         )
-        print(data)
-        # <QuickGOFetchedData results=25 total_hits=142>
 
         # Get GO term by ID
         data = fetcher.get(
@@ -99,22 +99,7 @@ class QuickGO_Fetcher(BaseDataFetcher):
             taxonId=9606
         )
         df = data.as_dataframe()
-
-        # Download annotations in GAF format
-        data = fetcher.get(
-            category="annotation",
-            endpoint="downloadSearch",
-            goId="GO:0006915",
-            downloadFormat="gaf"
-        )
-
-        # Get all annotations with pagination
-        data = fetcher.get_all(
-            category="annotation",
-            endpoint="search",
-            goId="GO:0006915",
-            max_records=5000
-        )
+        ```
     """
 
     DEFAULT_LIMIT = 100

@@ -55,14 +55,15 @@ class ChEMBL_Fetcher(BaseDataFetcher):
     """Fetcher for ChEMBL REST API.
 
     ChEMBL provides bioactivity data for drug-like molecules including:
+
     - Molecules and their properties
     - Bioactivity measurements
     - Targets (proteins, cell lines, organisms)
     - Assays and documents
     - Drug information and indications
 
-    Examples::
-
+    Example:
+        ```python
         fetcher = ChEMBL_Fetcher()
 
         # Get a specific molecule by ChEMBL ID
@@ -83,13 +84,6 @@ class ChEMBL_Fetcher(BaseDataFetcher):
             limit=100
         )
 
-        # Get all activities for a target with pagination
-        all_activities = fetcher.get_all(
-            resource="activity",
-            filters={"target_chembl_id": "CHEMBL240"},
-            max_records=5000
-        )
-
         # Similarity search
         similar = fetcher.get(
             resource="similarity",
@@ -97,6 +91,7 @@ class ChEMBL_Fetcher(BaseDataFetcher):
             similarity_threshold=70,
             limit=50
         )
+        ```
     """
 
     DEFAULT_LIMIT = 20
