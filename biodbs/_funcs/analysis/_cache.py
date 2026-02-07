@@ -10,13 +10,37 @@ Supported storage backends:
     - JSON: Document-based storage (portable, human-readable)
     - CSV: Tabular export (for analysis in other tools)
 
-Usage:
+Example:
     >>> from biodbs._funcs.analysis._cache import PathwayDBManager
     >>>
     >>> # Create manager with SQLite backend (default)
-    >>> mgr = PathwayDBManager(storage_path="~/.biodbs/cache", backend="sqlite")
+    >>> mgr = PathwayDBManager(storage_path="/tmp/cache", backend="sqlite")
+    >>> mgr
+    <PathwayDBManager storage_path='/tmp/cache' backend='sqlite'>
     >>>
-    >>> # Create manager with MySQL backend
+    >>> # Define pathways to cache
+    >>> pathways = {
+    ...     "hsa04110": ("Cell cycle", {"TP53", "BRCA1", "CDK1"}),
+    ...     "hsa04115": ("p53 signaling", {"TP53", "MDM2", "CDKN1A"}),
+    ... }
+    >>>
+    >>> # Save pathways
+    >>> path = mgr.save_pathways(pathways, cache_key="kegg_hsa", database="KEGG")
+    >>> print(path)
+    /tmp/cache/pathways.db
+    >>>
+    >>> # Load pathways
+    >>> loaded = mgr.load_pathways("kegg_hsa")
+    >>> loaded
+    {'hsa04110': ('Cell cycle', frozenset({'TP53', 'BRCA1', 'CDK1'})),
+     'hsa04115': ('p53 signaling', frozenset({'TP53', 'MDM2', 'CDKN1A'}))}
+    >>>
+    >>> # Query pathways containing a gene
+    >>> tp53_pathways = mgr.query_pathways(gene_id="TP53")
+    >>> print(f"TP53 is in {len(tp53_pathways)} pathways")
+    TP53 is in 2 pathways
+
+MySQL Example:
     >>> mgr = PathwayDBManager(
     ...     backend="mysql",
     ...     db_config={
@@ -27,8 +51,10 @@ Usage:
     ...         "database": "biodbs"
     ...     }
     ... )
-    >>>
-    >>> # Create manager with PostgreSQL backend
+    >>> mgr
+    <PathwayDBManager backend='mysql' host='localhost' database='biodbs'>
+
+PostgreSQL Example:
     >>> mgr = PathwayDBManager(
     ...     backend="postgresql",
     ...     db_config={
@@ -39,12 +65,8 @@ Usage:
     ...         "database": "biodbs"
     ...     }
     ... )
-    >>>
-    >>> # Save pathways
-    >>> mgr.save_pathways(pathways, cache_key="kegg_hsa", database="KEGG")
-    >>>
-    >>> # Load pathways
-    >>> pathways = mgr.load_pathways("kegg_hsa")
+    >>> mgr
+    <PathwayDBManager backend='postgresql' host='localhost' database='biodbs'>
 """
 
 from __future__ import annotations
@@ -153,9 +175,23 @@ class SQLDialect(ABC):
 
 
 class SQLiteDialect(SQLDialect):
-    """SQLite dialect implementation."""
+    """SQLite dialect implementation.
+
+    Handles SQLite-specific SQL syntax and connection management.
+    Uses '?' as parameter placeholder.
+
+    Attributes:
+        db_path: Path to the SQLite database file.
+    """
 
     def __init__(self, db_path: Path, sqlite_connection_func):
+        """Initialize SQLite dialect.
+
+        Args:
+            db_path: Path to the SQLite database file.
+            sqlite_connection_func: Function to create SQLite connections
+                (typically BaseDBManager._sqlite_connection).
+        """
         self.db_path = db_path
         self._sqlite_connection = sqlite_connection_func
 
@@ -179,9 +215,31 @@ class SQLiteDialect(SQLDialect):
 
 
 class MySQLDialect(SQLDialect):
-    """MySQL dialect implementation."""
+    """MySQL dialect implementation.
+
+    Handles MySQL-specific SQL syntax and connection management.
+    Uses '%s' as parameter placeholder and backticks for identifier quoting.
+
+    Attributes:
+        db_config: Database connection configuration dict.
+
+    Note:
+        Requires mysql-connector-python package.
+        Install with: pip install mysql-connector-python
+    """
 
     def __init__(self, db_config: DBConfig):
+        """Initialize MySQL dialect.
+
+        Args:
+            db_config: Database configuration with keys:
+                - host: Server hostname (default: "localhost")
+                - port: Server port (default: 3306)
+                - user: Database username (required)
+                - password: Database password (required)
+                - database: Database name (required)
+                - charset: Character set (default: "utf8mb4")
+        """
         self.db_config = db_config
 
     @property
@@ -215,9 +273,30 @@ class MySQLDialect(SQLDialect):
 
 
 class PostgreSQLDialect(SQLDialect):
-    """PostgreSQL dialect implementation."""
+    """PostgreSQL dialect implementation.
+
+    Handles PostgreSQL-specific SQL syntax and connection management.
+    Uses '%s' as parameter placeholder and double quotes for identifier quoting.
+
+    Attributes:
+        db_config: Database connection configuration dict.
+
+    Note:
+        Requires psycopg2 package.
+        Install with: pip install psycopg2-binary
+    """
 
     def __init__(self, db_config: DBConfig):
+        """Initialize PostgreSQL dialect.
+
+        Args:
+            db_config: Database configuration with keys:
+                - host: Server hostname (default: "localhost")
+                - port: Server port (default: 5432)
+                - user: Database username (required)
+                - password: Database password (required)
+                - database: Database name (required)
+        """
         self.db_config = db_config
 
     @property
@@ -334,6 +413,24 @@ class PathwayDBManager(BaseDBManager):
 
         # Initialize dialect for SQL backends
         self._dialect: Optional[SQLDialect] = None
+
+    def __repr__(self) -> str:
+        """Return a string representation of the PathwayDBManager.
+
+        Returns:
+            str: A human-readable representation showing backend and connection info.
+
+        Example:
+            >>> mgr = PathwayDBManager(storage_path="/tmp/cache", backend="sqlite")
+            >>> repr(mgr)
+            "<PathwayDBManager storage_path='/tmp/cache' backend='sqlite'>"
+        """
+        if self.backend in (StorageBackend.MYSQL, StorageBackend.POSTGRESQL):
+            host = self.db_config.get("host", "localhost")
+            db = self.db_config.get("database", "unknown")
+            return f"<PathwayDBManager backend='{self.backend.value}' host='{host}' database='{db}'>"
+        else:
+            return f"<PathwayDBManager storage_path='{self.storage_path}' backend='{self.backend.value}'>"
 
     def _get_dialect(self) -> SQLDialect:
         """Get the SQL dialect for the current backend.
@@ -479,15 +576,32 @@ class PathwayDBManager(BaseDBManager):
         """Save pathway data to the configured backend.
 
         Args:
-            pathways: Dict of pathway_id -> (name, genes) or Pathway objects.
-            cache_key: Unique key for this pathway set (e.g., "kegg_hsa").
-            database: Source database name (KEGG, Reactome, GO, etc.).
-            species: Species name (optional).
-            gene_type: Type of gene IDs (symbol, entrez, uniprot, etc.).
-            expiry_seconds: Cache expiry in seconds (None = use default).
+            pathways: Dict mapping pathway_id to either:
+                - Tuple of (name, gene_set): e.g., ("Cell Cycle", {"TP53", "BRCA1"})
+                - Pathway object with name and genes attributes
+            cache_key: Unique key for this pathway set (e.g., "kegg_hsa", "reactome_human").
+            database: Source database name (e.g., "KEGG", "Reactome", "GO").
+            species: Species name (e.g., "Homo sapiens", "Mus musculus").
+            gene_type: Type of gene IDs stored (e.g., "symbol", "entrez", "uniprot").
+            expiry_seconds: Cache expiry in seconds. None uses default (7 days).
 
         Returns:
-            Path to the storage file.
+            Path: Path to the storage file or database URI.
+                - SQLite: PosixPath('/home/user/.biodbs/cache/pathways.db')
+                - MySQL: PosixPath('mysql://localhost/biodbs')
+                - PostgreSQL: PosixPath('postgresql://localhost/biodbs')
+                - JSON: PosixPath('/home/user/.biodbs/cache/kegg_hsa.json')
+                - CSV: PosixPath('/home/user/.biodbs/cache/kegg_hsa.csv')
+
+        Example:
+            >>> mgr = PathwayDBManager(storage_path="/tmp/cache", backend="sqlite")
+            >>> pathways = {
+            ...     "hsa04110": ("Cell cycle", {"TP53", "BRCA1", "CDK1"}),
+            ...     "hsa04115": ("p53 signaling", {"TP53", "MDM2", "CDKN1A"}),
+            ... }
+            >>> path = mgr.save_pathways(pathways, cache_key="kegg_hsa", database="KEGG")
+            >>> print(path)
+            /tmp/cache/pathways.db
         """
         if self._is_sql_backend():
             return self._save_pathways_sql(
@@ -680,12 +794,35 @@ class PathwayDBManager(BaseDBManager):
         """Load pathway data from storage.
 
         Args:
-            cache_key: Cache key for the pathway set.
-            use_cache: Check cache expiry before loading.
-            as_pathway_objects: Return Pathway objects instead of tuples.
+            cache_key: Unique key for the pathway set (e.g., "kegg_hsa").
+            use_cache: If True, check cache expiry and return None if expired.
+                If False, load data regardless of expiry.
+            as_pathway_objects: If True, return Pathway objects instead of tuples.
 
         Returns:
-            Dict of pathway_id -> (name, frozenset of genes), or None if not found.
+            Dict[str, Tuple[str, FrozenSet[str]]] or None:
+                - If found: Dict mapping pathway_id to (name, frozenset of genes)
+                - If not found or expired: None
+
+            When as_pathway_objects=True:
+                Dict[str, Pathway]: Dict mapping pathway_id to Pathway objects
+
+        Example:
+            >>> mgr = PathwayDBManager(storage_path="/tmp/cache", backend="sqlite")
+            >>> pathways = mgr.load_pathways("kegg_hsa")
+            >>> pathways
+            {'hsa04110': ('Cell cycle', frozenset({'TP53', 'BRCA1', 'CDK1'})),
+             'hsa04115': ('p53 signaling', frozenset({'TP53', 'MDM2', 'CDKN1A'}))}
+
+            >>> # Access individual pathway
+            >>> name, genes = pathways["hsa04110"]
+            >>> print(f"{name}: {len(genes)} genes")
+            Cell cycle: 3 genes
+
+            >>> # Load as Pathway objects
+            >>> pathways = mgr.load_pathways("kegg_hsa", as_pathway_objects=True)
+            >>> pathways["hsa04110"]
+            Pathway(id='hsa04110', name='Cell cycle', genes=3, database='KEGG')
         """
         if self._is_sql_backend():
             return self._load_pathways_sql(cache_key, use_cache, as_pathway_objects)
@@ -708,9 +845,9 @@ class PathwayDBManager(BaseDBManager):
             db_path = self.storage_path / f"{self.db_name}.db"
             if not db_path.exists():
                 return None
-            if use_cache and not self._is_cache_valid(cache_key):
-                self.logger.info("Cache expired for key: %s", cache_key)
-                return None
+            # Note: We don't check _is_cache_valid here because the database
+            # stores expires_at directly, which we check below. This avoids
+            # issues when a new manager instance is created without metadata.
 
         dialect = self._get_dialect()
         ph = dialect.placeholder
@@ -870,17 +1007,52 @@ class PathwayDBManager(BaseDBManager):
         min_size: Optional[int] = None,
         max_size: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
-        """Query pathways from storage.
+        """Query pathways from storage with optional filters.
+
+        Only supported for SQL backends (SQLite, MySQL, PostgreSQL).
 
         Args:
-            gene_id: Filter by gene (find pathways containing this gene).
-            database: Filter by database (KEGG, Reactome, etc.).
-            species: Filter by species.
-            min_size: Minimum pathway size.
-            max_size: Maximum pathway size.
+            gene_id: Filter by gene ID. Returns only pathways containing this gene.
+            database: Filter by source database (e.g., "KEGG", "Reactome", "GO").
+            species: Filter by species (e.g., "Homo sapiens").
+            min_size: Minimum number of genes in pathway.
+            max_size: Maximum number of genes in pathway.
 
         Returns:
-            List of pathway dictionaries.
+            List[Dict[str, Any]]: List of pathway dictionaries, each containing:
+                - id: Pathway identifier (e.g., "hsa04110")
+                - name: Pathway name (e.g., "Cell cycle")
+                - database: Source database
+                - species: Species name
+                - url: Pathway URL (if available)
+                - gene_count: Number of genes in pathway
+                - cache_key: Cache key used when saving
+
+            Results are sorted by gene_count in descending order.
+            Returns empty list if no pathways match or database doesn't exist.
+
+        Raises:
+            ValueError: If backend is JSON or CSV (not supported).
+
+        Example:
+            >>> mgr = PathwayDBManager(storage_path="/tmp/cache", backend="sqlite")
+            >>> # Find all KEGG pathways
+            >>> pathways = mgr.query_pathways(database="KEGG")
+            >>> pathways
+            [{'id': 'hsa04110', 'name': 'Cell cycle', 'database': 'KEGG',
+              'species': 'Homo sapiens', 'url': None, 'gene_count': 124,
+              'cache_key': 'kegg_hsa'},
+             {'id': 'hsa04115', 'name': 'p53 signaling', 'database': 'KEGG',
+              'species': 'Homo sapiens', 'url': None, 'gene_count': 72,
+              'cache_key': 'kegg_hsa'}]
+
+            >>> # Find pathways containing TP53
+            >>> tp53_pathways = mgr.query_pathways(gene_id="TP53")
+            >>> print(f"TP53 is in {len(tp53_pathways)} pathways")
+            TP53 is in 15 pathways
+
+            >>> # Find medium-sized pathways
+            >>> medium = mgr.query_pathways(min_size=50, max_size=200)
         """
         if not self._is_sql_backend():
             raise ValueError(f"query_pathways not supported with {self.backend.value} backend")
@@ -934,11 +1106,25 @@ class PathwayDBManager(BaseDBManager):
     def get_genes_for_pathway(self, pathway_id: str) -> Set[str]:
         """Get all genes for a specific pathway.
 
+        Only supported for SQL backends (SQLite, MySQL, PostgreSQL).
+
         Args:
-            pathway_id: Pathway identifier.
+            pathway_id: Pathway identifier (e.g., "hsa04110", "R-HSA-69620").
 
         Returns:
-            Set of gene IDs.
+            Set[str]: Set of gene IDs in the pathway.
+                Returns empty set if pathway not found or database doesn't exist.
+
+        Raises:
+            ValueError: If backend is JSON or CSV (not supported).
+
+        Example:
+            >>> mgr = PathwayDBManager(storage_path="/tmp/cache", backend="sqlite")
+            >>> genes = mgr.get_genes_for_pathway("hsa04110")
+            >>> genes
+            {'TP53', 'BRCA1', 'CDK1', 'CDK2', 'CCND1', ...}
+            >>> print(f"Cell cycle has {len(genes)} genes")
+            Cell cycle has 124 genes
         """
         if not self._is_sql_backend():
             raise ValueError(f"get_genes_for_pathway not supported with {self.backend.value} backend")
@@ -966,10 +1152,21 @@ class PathwayDBManager(BaseDBManager):
             return set()
 
     def clear_expired(self) -> int:
-        """Remove expired cache entries.
+        """Remove expired cache entries from the database.
+
+        Only supported for SQL backends (SQLite, MySQL, PostgreSQL).
+        JSON and CSV backends return 0 (no operation performed).
 
         Returns:
-            Number of pathways removed.
+            int: Number of pathways removed.
+                Returns 0 if no expired entries or database doesn't exist.
+
+        Example:
+            >>> mgr = PathwayDBManager(storage_path="/tmp/cache", backend="sqlite")
+            >>> # Remove all expired pathways
+            >>> removed = mgr.clear_expired()
+            >>> print(f"Removed {removed} expired pathways")
+            Removed 5 expired pathways
         """
         if not self._is_sql_backend():
             # JSON and CSV don't support this operation
