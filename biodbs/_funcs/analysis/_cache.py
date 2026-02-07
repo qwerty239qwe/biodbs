@@ -1327,14 +1327,46 @@ def get_cache_info(
         cache_dir: Directory for cache files.
 
     Returns:
-        Dict with cache information.
+        Dict with cache information including:
+            - db_exists: Whether the database file exists
+            - entries: List of cache entries with metadata
+            - storage_path, db_name, total_size_bytes, etc.
     """
     if cache_dir:
         mgr = PathwayDBManager(storage_path=cache_dir)
     else:
         mgr = _get_default_manager()
 
-    return mgr.get_storage_info()
+    info = mgr.get_storage_info()
+
+    # Add backwards-compatible keys
+    db_path = mgr.storage_path / f"{mgr.db_name}.db"
+    info["db_exists"] = db_path.exists()
+
+    # Build entries list from cached pathways in the database
+    entries = []
+    if info["db_exists"]:
+        try:
+            dialect = mgr._get_dialect()
+            pathways_table = _sanitize_identifier(mgr.PATHWAYS_TABLE)
+            with dialect.connection() as conn:
+                cur = dialect.get_dict_cursor(conn)
+                cur.execute(
+                    f"SELECT DISTINCT cache_key, created_at, expires_at "
+                    f"FROM {pathways_table}"
+                )
+                for row in cur.fetchall():
+                    entries.append({
+                        "cache_key": row["cache_key"],
+                        "created_at": row["created_at"],
+                        "expires_at": row["expires_at"],
+                    })
+        except Exception:
+            pass  # Return empty entries on error
+
+    info["entries"] = entries
+
+    return info
 
 
 def set_cache_expiry(
