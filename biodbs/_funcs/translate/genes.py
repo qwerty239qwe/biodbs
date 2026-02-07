@@ -70,20 +70,35 @@ def translate_gene_ids(
         Dict mapping source IDs to target IDs, or DataFrame with both columns.
 
     Example:
-        >>> # Gene symbols to Ensembl IDs (using BioMart)
-        >>> result = translate_gene_ids(
-        ...     ["TP53", "BRCA1", "EGFR"],
-        ...     from_type="external_gene_name",
-        ...     to_type="ensembl_gene_id"
-        ... )
+        Gene symbols to Ensembl IDs (using BioMart):
 
-        >>> # Ensembl IDs to HGNC (using Ensembl REST API)
-        >>> result = translate_gene_ids(
-        ...     ["ENSG00000141510", "ENSG00000012048"],
-        ...     from_type="ensembl_gene_id",
-        ...     to_type="HGNC",
-        ...     database="ensembl"
-        ... )
+        ```python
+        result = translate_gene_ids(
+            ["TP53", "BRCA1", "EGFR"],
+            from_type="external_gene_name",
+            to_type="ensembl_gene_id",
+        )
+        print(result)
+        #   external_gene_name    ensembl_gene_id
+        # 0               TP53  ENSG00000141510
+        # 1              BRCA1  ENSG00000012048
+        # 2               EGFR  ENSG00000146648
+        ```
+
+        Ensembl IDs to HGNC (using Ensembl REST API):
+
+        ```python
+        result = translate_gene_ids(
+            ["ENSG00000141510", "ENSG00000012048"],
+            from_type="ensembl_gene_id",
+            to_type="HGNC",
+            database="ensembl",
+        )
+        print(result)
+        #      ensembl_gene_id   HGNC     dbname
+        # 0  ENSG00000141510  11998       HGNC
+        # 1  ENSG00000012048   1100       HGNC
+        ```
     """
     valid_databases = {"biomart", "ensembl", "ncbi", "uniprot"}
     if database not in valid_databases:
@@ -230,15 +245,30 @@ def translate_gene_ids_kegg(
         DataFrame with source and target ID columns.
 
     Example:
-        >>> # KEGG gene IDs to NCBI Entrez
-        >>> result = translate_gene_ids_kegg(
-        ...     ["hsa:7157", "hsa:672"],
-        ...     from_db="hsa",
-        ...     to_db="ncbi-geneid"
-        ... )
+        KEGG gene IDs to NCBI Entrez:
 
-        >>> # Convert entire organism's genes
-        >>> result = translate_gene_ids_kegg([], from_db="hsa", to_db="uniprot")
+        ```python
+        result = translate_gene_ids_kegg(
+            ["hsa:7157", "hsa:672"],
+            from_db="hsa",
+            to_db="ncbi-geneid",
+        )
+        print(result)
+        #       source           target
+        # 0  hsa:7157  ncbi-geneid:7157
+        # 1   hsa:672   ncbi-geneid:672
+        ```
+
+        Convert entire organism's genes to UniProt:
+
+        ```python
+        result = translate_gene_ids_kegg([], from_db="hsa", to_db="uniprot")
+        print(result.head())
+        #       source              target
+        # 0    hsa:1    up:P04217
+        # 1    hsa:2    up:P01023
+        # ...
+        ```
     """
 
     if ids:

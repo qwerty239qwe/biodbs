@@ -1,0 +1,131 @@
+site_name: biodbs
+site_description: Unified Python interface for biological and chemical databases
+# site_url: https://qwerty239qwe.github.io/biodbs/  # Uncomment for production
+repo_url: https://github.com/qwerty239qwe/biodbs
+repo_name: biodbs
+use_directory_urls: false
+
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.instant
+    - navigation.instant.prefetch
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - autorefs:
+      resolve_closest: true
+      link_titles: auto
+      strip_title_tags: auto
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [.]
+          options:
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            members_order: source
+            docstring_style: google
+            docstring_options:
+              ignore_init_summary: false
+            docstring_section_style: table
+            merge_init_into_class: true
+            show_signature_annotations: true
+            separate_signature: true
+            signature_crossrefs: true
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - tables
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+    - Concepts: getting-started/concepts.md
+  - Data Fetching:
+    - Overview: fetch/index.md
+    - UniProt: fetch/uniprot.md
+    - PubChem: fetch/pubchem.md
+    - Ensembl: fetch/ensembl.md
+    - BioMart: fetch/biomart.md
+    - KEGG: fetch/kegg.md
+    - ChEMBL: fetch/chembl.md
+    - QuickGO: fetch/quickgo.md
+    - HPA: fetch/hpa.md
+    - NCBI: fetch/ncbi.md
+    - FDA: fetch/fda.md
+    - Reactome: fetch/reactome.md
+    - EnrichR: fetch/enrichr.md
+    - Disease Ontology: fetch/disease-ontology.md
+  - ID Translation:
+    - Overview: translate/index.md
+    - Gene IDs: translate/genes.md
+    - Protein IDs: translate/proteins.md
+    - Chemical IDs: translate/chemicals.md
+  - Analysis:
+    - Overview: analysis/index.md
+    - Over-Representation Analysis: analysis/ora.md
+  - Knowledge Graph:
+    - Overview: graph/index.md
+    - Building Graphs: graph/building.md
+    - Exporting Graphs: graph/exporting.md
+    - Graph Analysis: graph/analysis.md
+  - API Reference:
+    - Overview: api/index.md
+    - Fetch Module: api/fetch.md
+    - Translate Module: api/translate.md
+    - Analysis Module: api/analysis.md
+    - Graph Module: api/graph.md
+  - Contributing: contributing.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/qwerty239qwe/biodbs
+
+extra_css:
+  - stylesheets/extra.css

@@ -49,26 +49,33 @@ def translate_protein_ids(
         Dict mapping source IDs to target IDs, or DataFrame with mapping.
 
     Example:
-        >>> # UniProt to NCBI Gene ID
-        >>> result = translate_protein_ids(
-        ...     ["P04637", "P00533"],
-        ...     from_type="UniProtKB_AC-ID",
-        ...     to_type="GeneID"
-        ... )
+        UniProt to NCBI Gene ID:
 
-        >>> # Gene names to UniProt
-        >>> result = translate_protein_ids(
-        ...     ["TP53", "EGFR"],
-        ...     from_type="Gene_Name",
-        ...     to_type="UniProtKB"
-        ... )
+        ```python
+        result = translate_protein_ids(
+            ["P04637", "P00533"],
+            from_type="UniProtKB_AC-ID",
+            to_type="GeneID",
+        )
+        print(result)
+        #      from     to
+        # 0  P04637   7157
+        # 1  P00533   1956
+        ```
 
-        >>> # UniProt to Ensembl
-        >>> result = translate_protein_ids(
-        ...     ["P04637"],
-        ...     from_type="UniProtKB_AC-ID",
-        ...     to_type="Ensembl"
-        ... )
+        Gene names to UniProt:
+
+        ```python
+        result = translate_protein_ids(
+            ["TP53", "EGFR"],
+            from_type="Gene_Name",
+            to_type="UniProtKB",
+        )
+        print(result)
+        #    from       to
+        # 0  TP53  P04637
+        # 1  EGFR  P00533
+        ```
     """
     if not ids:
         return {} if return_dict else pd.DataFrame()
@@ -129,9 +136,11 @@ def translate_gene_to_uniprot(
         Dict or DataFrame mapping gene names to UniProt accessions.
 
     Example:
-        >>> mapping = translate_gene_to_uniprot(["TP53", "BRCA1", "EGFR"])
-        >>> print(mapping)
-        {'TP53': 'P04637', 'BRCA1': 'P38398', 'EGFR': 'P00533'}
+        ```python
+        mapping = translate_gene_to_uniprot(["TP53", "BRCA1", "EGFR"])
+        print(mapping)
+        # {'TP53': 'P04637', 'BRCA1': 'P38398', 'EGFR': 'P00533'}
+        ```
     """
     mapping = gene_to_uniprot(
         gene_names, organism=organism, reviewed_only=reviewed_only
@@ -158,9 +167,11 @@ def translate_uniprot_to_gene(
         Dict or DataFrame mapping UniProt accessions to gene names.
 
     Example:
-        >>> mapping = translate_uniprot_to_gene(["P04637", "P00533"])
-        >>> print(mapping)
-        {'P04637': 'TP53', 'P00533': 'EGFR'}
+        ```python
+        mapping = translate_uniprot_to_gene(["P04637", "P00533"])
+        print(mapping)
+        # {'P04637': 'TP53', 'P00533': 'EGFR'}
+        ```
     """
     mapping = uniprot_to_gene(accessions)
 
@@ -187,9 +198,11 @@ def translate_uniprot_to_pdb(
         Dict mapping accessions to lists of PDB IDs, or DataFrame.
 
     Example:
-        >>> result = translate_uniprot_to_pdb(["P04637"])
-        >>> print(result)
-        {'P04637': ['1A1U', '1AIE', ...]}
+        ```python
+        result = translate_uniprot_to_pdb(["P04637"])
+        print(result)
+        # {'P04637': ['1A1U', '1AIE', '1C26', '1DT7', ...]}
+        ```
     """
     mapping = uniprot_map_ids(accessions, from_db="UniProtKB_AC-ID", to_db="PDB")
 
@@ -221,9 +234,11 @@ def translate_uniprot_to_ensembl(
         Dict or DataFrame mapping UniProt accessions to Ensembl IDs.
 
     Example:
-        >>> result = translate_uniprot_to_ensembl(["P04637", "P00533"])
-        >>> print(result)
-        {'P04637': 'ENSG00000141510', 'P00533': 'ENSG00000146648'}
+        ```python
+        result = translate_uniprot_to_ensembl(["P04637", "P00533"])
+        print(result)
+        # {'P04637': 'ENSG00000141510', 'P00533': 'ENSG00000146648'}
+        ```
     """
     mapping = uniprot_map_ids(accessions, from_db="UniProtKB_AC-ID", to_db="Ensembl")
 
@@ -252,9 +267,11 @@ def translate_uniprot_to_refseq(
         Dict mapping accessions to lists of RefSeq IDs, or DataFrame.
 
     Example:
-        >>> result = translate_uniprot_to_refseq(["P04637"])
-        >>> print(result)
-        {'P04637': ['NP_000537.3', ...]}
+        ```python
+        result = translate_uniprot_to_refseq(["P04637"])
+        print(result)
+        # {'P04637': ['NP_000537.3', 'NP_001119584.1', ...]}
+        ```
     """
     mapping = uniprot_map_ids(
         accessions, from_db="UniProtKB_AC-ID", to_db="RefSeq_Protein"

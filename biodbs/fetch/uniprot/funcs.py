@@ -17,8 +17,11 @@ def uniprot_get_entry(accession: str) -> UniProtFetchedData:
         UniProtFetchedData with the entry.
 
     Example:
-        >>> entry = uniprot_get_entry("P05067")
-        >>> print(entry.entries[0].protein_name)
+        ```python
+        entry = uniprot_get_entry("P05067")
+        print(entry.entries[0].protein_name)
+        # Amyloid-beta precursor protein
+        ```
     """
     fetcher = UniProt_Fetcher()
     return fetcher.get_entry(accession)
@@ -34,8 +37,11 @@ def uniprot_get_entries(accessions: List[str]) -> UniProtFetchedData:
         UniProtFetchedData with all entries.
 
     Example:
-        >>> entries = uniprot_get_entries(["P05067", "P04637", "P00533"])
-        >>> print(entries.get_gene_names())
+        ```python
+        entries = uniprot_get_entries(["P05067", "P04637", "P00533"])
+        print(entries.get_gene_names())
+        # ['APP', 'TP53', 'EGFR']
+        ```
     """
     fetcher = UniProt_Fetcher()
     return fetcher.get_entries(accessions)
@@ -57,8 +63,13 @@ def uniprot_search(
         UniProtSearchResult with matching entries.
 
     Example:
-        >>> results = uniprot_search("kinase AND organism_id:9606", reviewed_only=True)
-        >>> print(results.as_dataframe())
+        ```python
+        results = uniprot_search("kinase AND organism_id:9606", reviewed_only=True)
+        print(results.as_dataframe()[["accession", "gene_name"]].head())
+        #   accession gene_name
+        # 0    P00533      EGFR
+        # 1    P04629      NTRK1
+        ```
     """
     fetcher = UniProt_Fetcher()
     if reviewed_only:
@@ -82,8 +93,11 @@ def uniprot_search_by_gene(
         UniProtSearchResult with matching entries.
 
     Example:
-        >>> results = uniprot_search_by_gene("TP53")
-        >>> print(results.entries[0].accession)
+        ```python
+        results = uniprot_search_by_gene("TP53")
+        print(results.entries[0].accession)
+        # P04637
+        ```
     """
     fetcher = UniProt_Fetcher()
     return fetcher.search_by_gene(gene_name, organism=organism, reviewed_only=reviewed_only)
@@ -107,7 +121,11 @@ def uniprot_search_by_keyword(
         UniProtSearchResult with matching entries.
 
     Example:
-        >>> results = uniprot_search_by_keyword("apoptosis", organism=9606)
+        ```python
+        results = uniprot_search_by_keyword("apoptosis", organism=9606)
+        print(len(results.entries))
+        # 25
+        ```
     """
     fetcher = UniProt_Fetcher()
     return fetcher.search_by_keyword(
@@ -133,9 +151,11 @@ def gene_to_uniprot(
         Dictionary or DataFrame mapping gene names to accessions.
 
     Example:
-        >>> mapping = gene_to_uniprot(["TP53", "BRCA1", "EGFR"])
-        >>> print(mapping)
-        {'TP53': 'P04637', 'BRCA1': 'P38398', 'EGFR': 'P00533'}
+        ```python
+        mapping = gene_to_uniprot(["TP53", "BRCA1", "EGFR"])
+        print(mapping)
+        # {'TP53': 'P04637', 'BRCA1': 'P38398', 'EGFR': 'P00533'}
+        ```
     """
     fetcher = UniProt_Fetcher()
     mapping = fetcher.gene_to_uniprot(gene_names, organism=organism, reviewed_only=reviewed_only)
@@ -161,9 +181,11 @@ def uniprot_to_gene(
         Dictionary or DataFrame mapping accessions to gene names.
 
     Example:
-        >>> mapping = uniprot_to_gene(["P04637", "P38398", "P00533"])
-        >>> print(mapping)
-        {'P04637': 'TP53', 'P38398': 'BRCA1', 'P00533': 'EGFR'}
+        ```python
+        mapping = uniprot_to_gene(["P04637", "P38398", "P00533"])
+        print(mapping)
+        # {'P04637': 'TP53', 'P38398': 'BRCA1', 'P00533': 'EGFR'}
+        ```
     """
     fetcher = UniProt_Fetcher()
     mapping = fetcher.uniprot_to_gene(accessions)
@@ -189,8 +211,11 @@ def uniprot_get_sequences(
         Dictionary mapping accessions to sequences, or FASTA string.
 
     Example:
-        >>> seqs = uniprot_get_sequences(["P04637", "P00533"])
-        >>> print(seqs["P04637"][:50])
+        ```python
+        seqs = uniprot_get_sequences(["P04637", "P00533"])
+        print(seqs["P04637"][:50])
+        # MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDD
+        ```
     """
     fetcher = UniProt_Fetcher()
 
@@ -226,7 +251,11 @@ def uniprot_map_ids(
         - RefSeq_Protein: RefSeq protein ID
 
     Example:
-        >>> mapping = uniprot_map_ids(["P05067", "P04637"], "UniProtKB_AC-ID", "GeneID")
+        ```python
+        mapping = uniprot_map_ids(["P05067", "P04637"], "UniProtKB_AC-ID", "GeneID")
+        print(mapping)
+        # {'P05067': ['351'], 'P04637': ['7157']}
+        ```
     """
     fetcher = UniProt_Fetcher()
     return fetcher.map_ids(ids, from_db=from_db, to_db=to_db)

@@ -10,16 +10,21 @@ Supported pathway databases:
     - Reactome: Curated biological pathways
 
 Example:
-    >>> from biodbs._funcs.analysis import ora_kegg, ora_go
-    >>>
-    >>> # KEGG pathway enrichment
-    >>> genes = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"]
-    >>> result = ora_kegg(genes, organism="hsa", from_id_type="symbol")
-    >>> print(result.as_dataframe().head())
-    >>>
-    >>> # GO enrichment
-    >>> result = ora_go(genes, taxon_id=9606, aspect="biological_process")
-    >>> print(result.significant_terms())
+    KEGG pathway enrichment:
+
+    ```python
+    from biodbs.analysis import ora_kegg, ora_go
+
+    genes = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"]
+    result = ora_kegg(genes, organism="hsa", from_id_type="symbol")
+    print(result.summary())
+    # ORA Results Summary (KEGG)
+    # ========================================
+    # Query genes: 5
+    # Mapped genes: 5
+    # Terms tested: 350
+    # Significant (adj.p <= 0.05): 12
+    ```
 """
 
 from __future__ import annotations
@@ -978,8 +983,19 @@ def ora_kegg(
         ORAResult with KEGG pathway enrichment results.
 
     Example:
-        >>> genes = ["TP53", "BRCA1", "BRCA2"]
-        >>> result = ora_kegg(genes, organism="hsa", from_id_type="symbol")
+        ```python
+        genes = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"]
+        result = ora_kegg(genes, organism="hsa", from_id_type="symbol")
+        print(result.summary())
+        # ORA Results Summary (KEGG)
+        # ========================================
+        # Query genes: 5
+        # Mapped genes: 5
+        # Significant (adj.p <= 0.05): 8
+        #
+        # Top 5 terms:
+        #   hsa03440: Homologous recombination... (p=1.2e-06, 3/41)
+        ```
     """
     # Get species from KEGG code
     species = Species.from_kegg_code(organism)
@@ -1082,8 +1098,14 @@ def ora_go(
         ValueError: If taxon_id is not supported.
 
     Example:
-        >>> genes = ["TP53", "BRCA1", "BRCA2"]
-        >>> result = ora_go(genes, taxon_id=9606, from_id_type="symbol")
+        ```python
+        genes = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"]
+        result = ora_go(genes, taxon_id=9606, from_id_type="symbol")
+        print(result.significant_terms().as_dataframe().head())
+        #         term_id                              term_name     p_value
+        # 0  GO:0006281                             DNA repair  1.23e-08
+        # 1  GO:0006974  cellular response to DNA damage stimulus  2.45e-07
+        ```
     """
     # Get species from taxon ID
     species = Species.from_taxon_id(taxon_id)
@@ -1179,8 +1201,14 @@ def ora_enrichr(
         ORAResult with EnrichR enrichment results.
 
     Example:
-        >>> genes = ["ENSG00000141510", "ENSG00000012048"]
-        >>> result = ora_enrichr(genes, "KEGG_2021_Human", from_id_type="ensembl")
+        ```python
+        genes = ["TP53", "BRCA1", "BRCA2", "ATM"]
+        result = ora_enrichr(genes, "KEGG_2021_Human")
+        print(result.as_dataframe()[["term_name", "adjusted_p_value"]].head())
+        #                               term_name  adjusted_p_value
+        # 0  Homologous recombination_Homo sapiens         0.00012
+        # 1           Breast cancer_Homo sapiens         0.00045
+        ```
     """
     # Get species from organism name
     species = Species.from_name(organism)
@@ -1279,8 +1307,16 @@ def ora_reactome(
         ORAResult with Reactome pathway enrichment results.
 
     Example:
-        >>> genes = ["7157", "672", "675"]
-        >>> result = ora_reactome(genes, from_id_type="entrez")
+        ```python
+        genes = ["TP53", "BRCA1", "BRCA2", "ATM"]
+        result = ora_reactome(genes, species="Homo sapiens")
+        print(result.summary())
+        # ORA Results Summary (Reactome)
+        # ========================================
+        # Query genes: 4
+        # Mapped genes: 4
+        # Significant (adj.p <= 0.05): 15
+        ```
     """
     # Get species from name
     species_enum = Species.from_name(species)

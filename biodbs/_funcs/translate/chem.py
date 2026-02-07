@@ -42,20 +42,32 @@ def translate_chemical_ids(
         Dict or DataFrame with translated IDs.
 
     Example:
-        >>> # Names to CIDs
-        >>> result = translate_chemical_ids(
-        ...     ["aspirin", "ibuprofen"],
-        ...     from_type="name",
-        ...     to_type="cid"
-        ... )
+        Names to CIDs:
 
-        >>> # CIDs to SMILES
-        >>> result = translate_chemical_ids(
-        ...     ["2244", "3672"],
-        ...     from_type="cid",
-        ...     to_type="smiles",
-        ...     return_dict=True
-        ... )
+        ```python
+        result = translate_chemical_ids(
+            ["aspirin", "ibuprofen"],
+            from_type="name",
+            to_type="cid",
+        )
+        print(result)
+        #    name   cid    cid
+        # 0  aspirin  2244  2244
+        # 1  ibuprofen 3672  3672
+        ```
+
+        CIDs to SMILES:
+
+        ```python
+        result = translate_chemical_ids(
+            ["2244", "3672"],
+            from_type="cid",
+            to_type="smiles",
+            return_dict=True,
+        )
+        print(result)
+        # {'2244': 'CC(=O)OC1=CC=CC=C1C(=O)O', '3672': 'CC(C)CC1=CC=C(C=C1)C(C)C(=O)O'}
+        ```
     """
     # Supported from_types
     valid_from_types = {"cid", "name", "smiles", "inchikey"}
@@ -164,12 +176,19 @@ def translate_chemical_ids_kegg(
         DataFrame with source and target ID columns.
 
     Example:
-        >>> # KEGG compound to PubChem
-        >>> result = translate_chemical_ids_kegg(
-        ...     ["cpd:C00022", "cpd:C00031"],
-        ...     from_db="compound",
-        ...     to_db="pubchem"
-        ... )
+        KEGG compound to PubChem:
+
+        ```python
+        result = translate_chemical_ids_kegg(
+            ["cpd:C00022", "cpd:C00031"],
+            from_db="compound",
+            to_db="pubchem",
+        )
+        print(result)
+        #         source          target
+        # 0  cpd:C00022  pubchem:3324
+        # 1  cpd:C00031  pubchem:5793
+        ```
     """
     
     if ids:
@@ -194,7 +213,13 @@ def translate_chembl_to_pubchem(
         Dict or DataFrame with ChEMBL IDs and corresponding PubChem CIDs.
 
     Example:
-        >>> result = translate_chembl_to_pubchem(["CHEMBL25", "CHEMBL1201585"])
+        ```python
+        result = translate_chembl_to_pubchem(["CHEMBL25", "CHEMBL1201585"])
+        print(result)
+        #       chembl_id  pubchem_cid
+        # 0       CHEMBL25         2244
+        # 1  CHEMBL1201585      5284616
+        ```
     """
 
     results = []
@@ -250,7 +275,13 @@ def translate_pubchem_to_chembl(
         Dict or DataFrame with PubChem CIDs and corresponding ChEMBL IDs.
 
     Example:
-        >>> result = translate_pubchem_to_chembl([2244, 3672])
+        ```python
+        result = translate_pubchem_to_chembl([2244, 3672])
+        print(result)
+        #    pubchem_cid    chembl_id
+        # 0         2244     CHEMBL25
+        # 1         3672    CHEMBL521
+        ```
     """
 
     results = []

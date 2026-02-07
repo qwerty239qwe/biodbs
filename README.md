@@ -5,10 +5,11 @@
 ## Features
 
 - **Unified API**: Consistent interface across all supported databases
-- **Three Namespaces**: Clear separation of concerns
+- **Four Namespaces**: Clear separation of concerns
   - `biodbs.fetch` - Data retrieval from external databases
   - `biodbs.translate` - ID mapping between databases
   - `biodbs.analysis` - Statistical analysis (ORA, enrichment)
+  - `biodbs.graph` - Knowledge graph building and export
 - **Multiple Output Formats**: pandas/Polars DataFrames, CSV, JSON, SQLite
 - **Enrichment Analysis**: Over-representation analysis with KEGG, GO, and EnrichR
 - **Batch Processing**: Efficient handling of large queries
@@ -26,6 +27,10 @@
 | **QuickGO** | Gene Ontology annotations and relationships |
 | **HPA** | Human Protein Atlas - protein expression |
 | **FDA** | Drug events, labels, recalls, device data |
+| **UniProt** | Protein sequences, annotations, and ID mapping |
+| **NCBI** | Gene information, taxonomy, and genome assemblies |
+| **Reactome** | Pathway analysis and biological reactions |
+| **Disease Ontology** | Disease terms and cross-references |
 
 ## Installation
 
@@ -39,10 +44,10 @@ pip install biodbs
 
 ```python
 # Data fetching - low-level API wrappers
-from biodbs.fetch import pubchem_get_compound, kegg_get, ensembl_lookup
+from biodbs.fetch import pubchem_get_compound, kegg_get, ensembl_lookup, uniprot_get_entry
 
 # ID translation - mapping between databases
-from biodbs.translate import translate_gene_ids, translate_chemical_ids
+from biodbs.translate import translate_gene_ids, translate_chemical_ids, translate_protein_ids
 
 # Analysis - enrichment and statistics
 from biodbs.analysis import ora_kegg, ora_go, ora_enrichr
@@ -60,6 +65,8 @@ from biodbs.fetch import (
     hpa_get_tissue_expression,
     fda_drug_events,
     ensembl_lookup,
+    uniprot_get_entry,
+    uniprot_search_by_gene,
 )
 
 # PubChem - Get compound information
@@ -87,6 +94,13 @@ events = fda_drug_events(search="aspirin", limit=10)
 
 # Ensembl - Lookup gene and get sequence
 gene = ensembl_lookup("ENSG00000141510")  # TP53
+
+# UniProt - Get protein entry
+protein = uniprot_get_entry("P04637")  # TP53 protein
+print(protein.entries[0].protein_name)
+
+# UniProt - Search by gene name
+results = uniprot_search_by_gene("BRCA1", organism=9606)
 ```
 
 ### ID Translation
@@ -95,6 +109,9 @@ gene = ensembl_lookup("ENSG00000141510")  # TP53
 from biodbs.translate import (
     translate_gene_ids,
     translate_chemical_ids,
+    translate_protein_ids,
+    translate_gene_to_uniprot,
+    translate_uniprot_to_gene,
     translate_chembl_to_pubchem,
     translate_pubchem_to_chembl,
 )
@@ -112,6 +129,19 @@ result = translate_chemical_ids(
     from_type="name",
     to_type="cid"
 )
+
+# Gene symbols to UniProt accessions
+mapping = translate_gene_to_uniprot(["TP53", "BRCA1", "EGFR"])
+# {'TP53': 'P04637', 'BRCA1': 'P38398', 'EGFR': 'P00533'}
+
+# UniProt to NCBI Gene IDs
+mapping = translate_protein_ids(
+    ["P04637", "P00533"],
+    from_type="UniProtKB_AC-ID",
+    to_type="GeneID",
+    return_dict=True
+)
+# {'P04637': '7157', 'P00533': '1956'}
 
 # Get as dictionary
 mapping = translate_gene_ids(
@@ -358,6 +388,55 @@ labels = fda_drug_labels(search="aspirin")
 all_results = fda_search_all(endpoint="drug/event", search="aspirin", max_results=500)
 ```
 
+### UniProt
+
+```python
+from biodbs.fetch import (
+    uniprot_get_entry,
+    uniprot_get_entries,
+    uniprot_search,
+    uniprot_search_by_gene,
+    gene_to_uniprot,
+    uniprot_to_gene,
+    uniprot_get_sequences,
+    uniprot_map_ids,
+)
+
+# Get protein entry by accession
+entry = uniprot_get_entry("P04637")  # TP53
+print(entry.entries[0].protein_name)  # "Cellular tumor antigen p53"
+print(entry.entries[0].gene_name)     # "TP53"
+
+# Get multiple entries
+entries = uniprot_get_entries(["P04637", "P00533", "P38398"])
+df = entries.as_dataframe()
+
+# Search UniProtKB
+results = uniprot_search("gene:BRCA1 AND organism_id:9606 AND reviewed:true")
+
+# Search by gene name
+results = uniprot_search_by_gene("TP53", organism=9606, reviewed_only=True)
+
+# Map gene names to UniProt accessions
+mapping = gene_to_uniprot(["TP53", "BRCA1", "EGFR"])
+# {'TP53': 'P04637', 'BRCA1': 'P38398', 'EGFR': 'P00533'}
+
+# Map UniProt to gene names
+mapping = uniprot_to_gene(["P04637", "P00533"])
+# {'P04637': 'TP53', 'P00533': 'EGFR'}
+
+# Get protein sequences
+sequences = uniprot_get_sequences(["P04637", "P00533"])
+
+# ID mapping between databases
+mapping = uniprot_map_ids(
+    ["P04637", "P00533"],
+    from_db="UniProtKB_AC-ID",
+    to_db="GeneID"
+)
+# {'P04637': ['7157'], 'P00533': ['1956']}
+```
+
 ## Using Fetcher Classes
 
 For more control, use the fetcher classes directly:
@@ -366,6 +445,7 @@ For more control, use the fetcher classes directly:
 from biodbs.fetch.pubchem import PubChem_Fetcher
 from biodbs.fetch.biomart import BioMart_Fetcher
 from biodbs.fetch.ensembl import Ensembl_Fetcher
+from biodbs.fetch.uniprot import UniProt_Fetcher
 
 # PubChem
 fetcher = PubChem_Fetcher()
@@ -382,6 +462,11 @@ data = fetcher.query(
 # Ensembl REST
 fetcher = Ensembl_Fetcher()
 data = fetcher.lookup("ENSG00000141510", expand=True)
+
+# UniProt
+fetcher = UniProt_Fetcher()
+data = fetcher.get_entry("P04637")
+results = fetcher.search_by_gene("TP53", organism=9606)
 ```
 
 ## Supported ID Types
@@ -405,16 +490,31 @@ data = fetcher.lookup("ENSG00000141510", expand=True)
 | `smiles` | SMILES string | CC(=O)OC1=CC=CC=C1C(=O)O |
 | `inchikey` | InChIKey | BSYNRYMUTXBXSQ-UHFFFAOYSA-N |
 
+### Protein IDs (via UniProt)
+
+| ID Type | Description | Example |
+|---------|-------------|---------|
+| `UniProtKB_AC-ID` | UniProt accession | P04637 |
+| `Gene_Name` | Gene symbol | TP53 |
+| `GeneID` | NCBI Gene ID | 7157 |
+| `Ensembl` | Ensembl gene ID | ENSG00000141510 |
+| `RefSeq_Protein` | RefSeq protein ID | NP_000537.3 |
+| `PDB` | PDB structure ID | 1TUP |
+
 ## Requirements
+
+**Core dependencies** (installed automatically):
 
 - Python 3.10+
 - pandas
+- polars
 - pydantic
 - requests
+- scipy
 
-Optional:
-- polars (for Polars DataFrame support)
-- scipy (for local ORA calculations)
+**Optional dependencies**:
+
+- `networkx` and `rdflib` - for graph module exports (`pip install biodbs[graph]`)
 
 ## License
 
