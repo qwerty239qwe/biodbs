@@ -41,6 +41,13 @@ from biodbs._funcs.translate import (
     translate_chemical_ids_kegg,
     translate_chembl_to_pubchem,
     translate_pubchem_to_chembl,
+    # Protein translation
+    translate_protein_ids,
+    translate_gene_to_uniprot,
+    translate_uniprot_to_gene,
+    translate_uniprot_to_pdb,
+    translate_uniprot_to_ensembl,
+    translate_uniprot_to_refseq,
 )
 
 from biodbs._funcs.analysis import (
@@ -65,6 +72,13 @@ __all__ = [
     "translate_chemical_ids_kegg",
     "translate_chembl_to_pubchem",
     "translate_pubchem_to_chembl",
+    # Protein translation
+    "translate_protein_ids",
+    "translate_gene_to_uniprot",
+    "translate_uniprot_to_gene",
+    "translate_uniprot_to_pdb",
+    "translate_uniprot_to_ensembl",
+    "translate_uniprot_to_refseq",
     # Over-representation analysis
     "ora",
     "ora_kegg",
