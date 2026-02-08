@@ -4,6 +4,12 @@ version = "0.2.0"
 description = "biodbs is a Python library providing unified access to major biological and chemical databases with built-in support for ID translation and enrichment analysis."
 readme = "README.md"
 requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
 dependencies = [
     "aiohttp>=3.13.3",
     "pandas>=2.3.3",
