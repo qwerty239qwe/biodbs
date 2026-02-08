@@ -1,0 +1,40 @@
+[project]
+name = "biodbs"
+version = "0.2.0"
+description = "biodbs is a Python library providing unified access to major biological and chemical databases with built-in support for ID translation and enrichment analysis."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "aiohttp>=3.13.3",
+    "pandas>=2.3.3",
+    "polars>=1.37.1",
+    "pydantic>=2.12.5",
+    "pyyaml>=6.0.3",
+    "requests>=2.32.5",
+    "scipy>=1.15.3",
+    "tqdm>=4.67.1",
+]
+
+[project.optional-dependencies]
+graph = [
+    "networkx>=3.4.2",
+    "rdflib>=7.5.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.8.0",
+]
+docs = [
+    "mkdocs>=1.6.1",
+    "mkdocs-autorefs>=1.4.3",
+    "mkdocs-material>=9.7.1",
+    "mkdocstrings[python]>=0.24.0",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests requiring network access",
+]

@@ -1,0 +1,83 @@
+/* API Reference Summary Styling */
+.doc-summary ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0.5rem 0;
+}
+
+.doc-summary li {
+  padding: 0.25rem 0.5rem;
+  margin: 0.125rem 0;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s ease;
+}
+
+.doc-summary li:hover {
+  background-color: var(--md-code-bg-color);
+}
+
+.doc-summary a {
+  display: block;
+  text-decoration: none;
+}
+
+.doc-summary a code {
+  background: transparent;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+/* Autorefs hover tooltip styling */
+.autorefs-tooltip {
+  max-width: 600px;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Section headers in API summary */
+.doc-summary strong {
+  display: block;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+  color: var(--md-default-fg-color--light);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.doc-summary strong:first-child {
+  margin-top: 0;
+}
+
+/* Module section cards */
+.md-typeset h3 + p {
+  color: var(--md-default-fg-color--light);
+  margin-bottom: 0.5rem;
+}
+
+/* Button styling */
+.md-button {
+  margin-top: 1rem;
+}
+
+/* Horizontal rule styling */
+.md-typeset hr {
+  margin: 2rem 0;
+}
+
+/* Symbol type badges in mkdocstrings */
+.doc-symbol-type {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+/* Better code block in lists */
+.doc-summary code {
+  font-family: var(--md-code-font-family);
+}

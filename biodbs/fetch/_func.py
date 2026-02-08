@@ -1,0 +1,410 @@
+"""Convenience functions for fetching data from biological databases.
+
+This module provides easy-to-use functions for common data fetching operations
+without needing to instantiate fetcher classes directly.
+
+Usage:
+    from biodbs.fetch import funcs
+
+    # PubChem
+    compound = funcs.pubchem_get_compound(2244)  # Aspirin
+
+    # BioMart/Ensembl
+    genes = funcs.biomart_get_genes(["ENSG00000141510", "ENSG00000012048"])
+
+    # HPA
+    expression = funcs.hpa_get_tissue_expression("TP53")
+
+    # ChEMBL
+    molecule = funcs.chembl_get_molecule("CHEMBL25")
+
+    # KEGG
+    pathway = funcs.kegg_get("hsa00010")
+
+    # QuickGO
+    terms = funcs.quickgo_search_terms("apoptosis")
+
+    # FDA
+    events = funcs.fda_drug_events(search="aspirin", limit=10)
+
+    # Ensembl
+    gene = funcs.ensembl_lookup("ENSG00000141510")
+    seq = funcs.ensembl_get_sequence("ENST00000269305", sequence_type="cds")
+
+For ID translation functions, use biodbs._funcs:
+    from biodbs._funcs import translate_gene_ids, translate_chemical_ids
+"""
+
+# =============================================================================
+# PubChem functions
+# =============================================================================
+from biodbs.fetch.pubchem.funcs import (
+    pubchem_get_compound,
+    pubchem_get_compounds,
+    pubchem_search_by_name,
+    pubchem_search_by_smiles,
+    pubchem_search_by_inchikey,
+    pubchem_search_by_formula,
+    pubchem_get_properties,
+    pubchem_get_synonyms,
+    pubchem_get_description,
+    pubchem_get_safety,
+    pubchem_get_pharmacology,
+    pubchem_get_drug_info,
+)
+
+# =============================================================================
+# BioMart/Ensembl functions
+# =============================================================================
+from biodbs.fetch.biomart.funcs import (
+    biomart_get_genes,
+    biomart_get_genes_by_name,
+    biomart_get_genes_by_region,
+    biomart_get_transcripts,
+    biomart_get_go_annotations,
+    biomart_get_homologs,
+    biomart_convert_ids,
+    biomart_query,
+    biomart_list_datasets,
+    biomart_list_attributes,
+    biomart_list_filters,
+)
+
+# =============================================================================
+# Human Protein Atlas (HPA) functions
+# =============================================================================
+from biodbs.fetch.HPA.funcs import (
+    hpa_get_gene,
+    hpa_get_genes,
+    hpa_get_tissue_expression,
+    hpa_get_blood_expression,
+    hpa_get_brain_expression,
+    hpa_get_subcellular_location,
+    hpa_get_pathology,
+    hpa_get_protein_class,
+    hpa_search,
+)
+
+# =============================================================================
+# ChEMBL functions
+# =============================================================================
+from biodbs.fetch.ChEMBL.funcs import (
+    chembl_get_molecule,
+    chembl_get_target,
+    chembl_search_molecules,
+    chembl_get_activities_for_target,
+    chembl_get_activities_for_molecule,
+    chembl_get_approved_drugs,
+    chembl_get_drug_indications,
+    chembl_get_mechanisms,
+)
+
+# =============================================================================
+# KEGG functions
+# =============================================================================
+from biodbs.fetch.KEGG.funcs import (
+    kegg_info,
+    kegg_list,
+    kegg_find,
+    kegg_get,
+    kegg_get_batch,
+    kegg_conv,
+    kegg_link,
+    kegg_ddi,
+)
+
+# =============================================================================
+# QuickGO functions
+# =============================================================================
+from biodbs.fetch.QuickGO.funcs import (
+    quickgo_search_terms,
+    quickgo_get_terms,
+    quickgo_get_term_children,
+    quickgo_get_term_ancestors,
+    quickgo_search_annotations,
+    quickgo_search_annotations_all,
+    quickgo_download_annotations,
+    quickgo_get_gene_product,
+)
+
+# =============================================================================
+# FDA functions
+# =============================================================================
+from biodbs.fetch.FDA.funcs import (
+    fda_search,
+    fda_search_all,
+    fda_drug_events,
+    fda_drug_labels,
+    fda_drug_enforcement,
+    fda_drug_ndc,
+    fda_drug_drugsfda,
+    fda_device_events,
+    fda_device_classification,
+    fda_device_510k,
+    fda_device_pma,
+    fda_device_recall,
+    fda_device_udi,
+    fda_food_events,
+    fda_food_enforcement,
+    fda_animalandveterinary_events,
+    fda_tobacco_problem,
+)
+
+# =============================================================================
+# EnrichR functions
+# =============================================================================
+from biodbs.fetch.EnrichR.funcs import (
+    enrichr_get_libraries,
+    enrichr_enrich,
+    enrichr_enrich_multiple,
+    enrichr_enrich_with_background,
+    enrichr_kegg,
+    enrichr_go_bp,
+    enrichr_go_mf,
+    enrichr_go_cc,
+    enrichr_reactome,
+    enrichr_wikipathways,
+)
+
+# =============================================================================
+# Reactome functions
+# =============================================================================
+from biodbs.fetch.Reactome.funcs import (
+    reactome_analyze,
+    reactome_analyze_projection,
+    reactome_get_pathways_top,
+    reactome_get_species,
+    reactome_get_found_entities,
+    reactome_get_database_version,
+)
+
+# =============================================================================
+# NCBI Datasets functions
+# =============================================================================
+from biodbs.fetch.NCBI.funcs import (
+    ncbi_get_gene,
+    ncbi_symbol_to_id,
+    ncbi_id_to_symbol,
+    ncbi_get_taxonomy,
+    ncbi_translate_gene_ids,
+)
+
+# =============================================================================
+# Ensembl REST API functions
+# =============================================================================
+from biodbs.fetch.ensembl.funcs import (
+    ensembl_lookup,
+    ensembl_lookup_batch,
+    ensembl_lookup_symbol,
+    ensembl_get_sequence,
+    ensembl_get_sequence_batch,
+    ensembl_get_sequence_region,
+    ensembl_get_overlap_id,
+    ensembl_get_overlap_region,
+    ensembl_get_xrefs,
+    ensembl_get_xrefs_symbol,
+    ensembl_get_homology,
+    ensembl_get_homology_symbol,
+    ensembl_get_variation,
+    ensembl_vep_hgvs,
+    ensembl_vep_id,
+    ensembl_vep_region,
+    ensembl_map_assembly,
+    ensembl_get_phenotype_gene,
+    ensembl_get_phenotype_region,
+    ensembl_get_ontology_term,
+    ensembl_get_ontology_ancestors,
+    ensembl_get_ontology_descendants,
+    ensembl_get_genetree,
+    ensembl_get_genetree_member,
+    ensembl_get_assembly_info,
+    ensembl_get_species_info,
+)
+
+# =============================================================================
+# Disease Ontology functions
+# =============================================================================
+from biodbs.fetch.DiseaseOntology.funcs import (
+    do_get_term,
+    do_get_terms,
+    do_search,
+    do_get_parents,
+    do_get_children,
+    do_get_ancestors,
+    do_get_descendants,
+    doid_to_mesh,
+    doid_to_umls,
+    doid_to_icd10,
+    do_xref_mapping,
+)
+
+# =============================================================================
+# UniProt functions
+# =============================================================================
+from biodbs.fetch.uniprot.funcs import (
+    uniprot_get_entry,
+    uniprot_get_entries,
+    uniprot_search,
+    uniprot_search_by_gene,
+    uniprot_search_by_keyword,
+    gene_to_uniprot,
+    uniprot_to_gene,
+    uniprot_get_sequences,
+    uniprot_map_ids,
+)
+
+__all__ = [
+    # PubChem
+    "pubchem_get_compound",
+    "pubchem_get_compounds",
+    "pubchem_search_by_name",
+    "pubchem_search_by_smiles",
+    "pubchem_search_by_inchikey",
+    "pubchem_search_by_formula",
+    "pubchem_get_properties",
+    "pubchem_get_synonyms",
+    "pubchem_get_description",
+    "pubchem_get_safety",
+    "pubchem_get_pharmacology",
+    "pubchem_get_drug_info",
+    # BioMart/Ensembl
+    "biomart_get_genes",
+    "biomart_get_genes_by_name",
+    "biomart_get_genes_by_region",
+    "biomart_get_transcripts",
+    "biomart_get_go_annotations",
+    "biomart_get_homologs",
+    "biomart_convert_ids",
+    "biomart_query",
+    "biomart_list_datasets",
+    "biomart_list_attributes",
+    "biomart_list_filters",
+    # HPA
+    "hpa_get_gene",
+    "hpa_get_genes",
+    "hpa_get_tissue_expression",
+    "hpa_get_blood_expression",
+    "hpa_get_brain_expression",
+    "hpa_get_subcellular_location",
+    "hpa_get_pathology",
+    "hpa_get_protein_class",
+    "hpa_search",
+    # ChEMBL
+    "chembl_get_molecule",
+    "chembl_get_target",
+    "chembl_search_molecules",
+    "chembl_get_activities_for_target",
+    "chembl_get_activities_for_molecule",
+    "chembl_get_approved_drugs",
+    "chembl_get_drug_indications",
+    "chembl_get_mechanisms",
+    # KEGG
+    "kegg_info",
+    "kegg_list",
+    "kegg_find",
+    "kegg_get",
+    "kegg_get_batch",
+    "kegg_conv",
+    "kegg_link",
+    "kegg_ddi",
+    # QuickGO
+    "quickgo_search_terms",
+    "quickgo_get_terms",
+    "quickgo_get_term_children",
+    "quickgo_get_term_ancestors",
+    "quickgo_search_annotations",
+    "quickgo_search_annotations_all",
+    "quickgo_download_annotations",
+    "quickgo_get_gene_product",
+    # FDA
+    "fda_search",
+    "fda_search_all",
+    "fda_drug_events",
+    "fda_drug_labels",
+    "fda_drug_enforcement",
+    "fda_drug_ndc",
+    "fda_drug_drugsfda",
+    "fda_device_events",
+    "fda_device_classification",
+    "fda_device_510k",
+    "fda_device_pma",
+    "fda_device_recall",
+    "fda_device_udi",
+    "fda_food_events",
+    "fda_food_enforcement",
+    "fda_animalandveterinary_events",
+    "fda_tobacco_problem",
+    # EnrichR
+    "enrichr_get_libraries",
+    "enrichr_enrich",
+    "enrichr_enrich_multiple",
+    "enrichr_enrich_with_background",
+    "enrichr_kegg",
+    "enrichr_go_bp",
+    "enrichr_go_mf",
+    "enrichr_go_cc",
+    "enrichr_reactome",
+    "enrichr_wikipathways",
+    # Reactome
+    "reactome_analyze",
+    "reactome_analyze_projection",
+    "reactome_get_pathways_top",
+    "reactome_get_species",
+    "reactome_get_found_entities",
+    "reactome_get_database_version",
+    # NCBI
+    "ncbi_get_gene",
+    "ncbi_symbol_to_id",
+    "ncbi_id_to_symbol",
+    "ncbi_get_taxonomy",
+    "ncbi_translate_gene_ids",
+    # Ensembl
+    "ensembl_lookup",
+    "ensembl_lookup_batch",
+    "ensembl_lookup_symbol",
+    "ensembl_get_sequence",
+    "ensembl_get_sequence_batch",
+    "ensembl_get_sequence_region",
+    "ensembl_get_overlap_id",
+    "ensembl_get_overlap_region",
+    "ensembl_get_xrefs",
+    "ensembl_get_xrefs_symbol",
+    "ensembl_get_homology",
+    "ensembl_get_homology_symbol",
+    "ensembl_get_variation",
+    "ensembl_vep_hgvs",
+    "ensembl_vep_id",
+    "ensembl_vep_region",
+    "ensembl_map_assembly",
+    "ensembl_get_phenotype_gene",
+    "ensembl_get_phenotype_region",
+    "ensembl_get_ontology_term",
+    "ensembl_get_ontology_ancestors",
+    "ensembl_get_ontology_descendants",
+    "ensembl_get_genetree",
+    "ensembl_get_genetree_member",
+    "ensembl_get_assembly_info",
+    "ensembl_get_species_info",
+    # Disease Ontology
+    "do_get_term",
+    "do_get_terms",
+    "do_search",
+    "do_get_parents",
+    "do_get_children",
+    "do_get_ancestors",
+    "do_get_descendants",
+    "doid_to_mesh",
+    "doid_to_umls",
+    "doid_to_icd10",
+    "do_xref_mapping",
+    # UniProt
+    "uniprot_get_entry",
+    "uniprot_get_entries",
+    "uniprot_search",
+    "uniprot_search_by_gene",
+    "uniprot_search_by_keyword",
+    "gene_to_uniprot",
+    "uniprot_to_gene",
+    "uniprot_get_sequences",
+    "uniprot_map_ids",
+]

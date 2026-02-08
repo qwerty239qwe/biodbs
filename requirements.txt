@@ -1,4 +1,0 @@
-pandas~=1.2.4
-tqdm~=4.60.0
-requests~=2.25.1
-aiohttp~=3.7.4.post0
