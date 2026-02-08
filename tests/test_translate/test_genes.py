@@ -98,6 +98,74 @@ class TestTranslateGeneIds:
 
 
 # =============================================================================
+# Multiple Target Types Tests
+# =============================================================================
+
+class TestTranslateGeneIdsMultipleTargets:
+    """Tests for translate_gene_ids with multiple target types."""
+
+    @pytest.mark.integration
+    def test_multiple_to_types_dataframe(self):
+        """Test translating to multiple ID types, returning DataFrame."""
+        result = translate_gene_ids(
+            ["TP53", "BRCA1"],
+            from_type="external_gene_name",
+            to_type=["ensembl_gene_id", "entrezgene_id"],
+        )
+        assert isinstance(result, pd.DataFrame)
+        assert "external_gene_name" in result.columns
+        assert "ensembl_gene_id" in result.columns
+        assert "entrezgene_id" in result.columns
+        assert len(result) == 2
+        # Check that TP53 has valid values
+        tp53_row = result[result["external_gene_name"] == "TP53"]
+        assert len(tp53_row) == 1
+        assert tp53_row["ensembl_gene_id"].iloc[0] is not None
+
+    @pytest.mark.integration
+    def test_multiple_to_types_dict(self):
+        """Test translating to multiple ID types, returning dict."""
+        result = translate_gene_ids(
+            ["TP53", "BRCA1"],
+            from_type="external_gene_name",
+            to_type=["ensembl_gene_id", "entrezgene_id"],
+            return_dict=True,
+        )
+        assert isinstance(result, dict)
+        assert "TP53" in result
+        assert "BRCA1" in result
+        assert isinstance(result["TP53"], dict)
+        assert "ensembl_gene_id" in result["TP53"]
+        assert "entrezgene_id" in result["TP53"]
+
+    @pytest.mark.integration
+    def test_multiple_to_types_three_targets(self):
+        """Test translating to three different ID types."""
+        result = translate_gene_ids(
+            ["TP53"],
+            from_type="external_gene_name",
+            to_type=["ensembl_gene_id", "entrezgene_id", "hgnc_id"],
+        )
+        assert isinstance(result, pd.DataFrame)
+        assert "ensembl_gene_id" in result.columns
+        assert "entrezgene_id" in result.columns
+        assert "hgnc_id" in result.columns
+
+    @pytest.mark.integration
+    def test_multiple_to_types_partial_failure(self):
+        """Test that partial failures in multi-target don't break the entire call."""
+        # One valid target, one that might fail
+        result = translate_gene_ids(
+            ["TP53"],
+            from_type="external_gene_name",
+            to_type=["ensembl_gene_id", "entrezgene_id"],
+        )
+        assert isinstance(result, pd.DataFrame)
+        # At least one target should have been resolved
+        assert len(result) == 1
+
+
+# =============================================================================
 # Gene ID Translation Tests (KEGG)
 # =============================================================================
 

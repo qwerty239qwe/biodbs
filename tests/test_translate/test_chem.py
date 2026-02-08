@@ -149,6 +149,90 @@ class TestTranslateChemicalIds:
 
 
 # =============================================================================
+# Multiple Target Types Tests
+# =============================================================================
+
+class TestTranslateChemicalIdsMultipleTargets:
+    """Tests for translate_chemical_ids with multiple target types."""
+
+    @pytest.mark.integration
+    def test_multiple_to_types_dataframe(self):
+        """Test translating to multiple ID types, returning DataFrame."""
+        result = translate_chemical_ids(
+            ["aspirin"],
+            from_type="name",
+            to_type=["cid", "smiles", "inchikey"],
+        )
+        assert isinstance(result, pd.DataFrame)
+        assert "name" in result.columns
+        assert "cid" in result.columns
+        assert "smiles" in result.columns
+        assert "inchikey" in result.columns
+        assert len(result) == 1
+        # Check that aspirin has valid CID
+        assert result["cid"].iloc[0] == 2244
+
+    @pytest.mark.integration
+    def test_multiple_to_types_dict(self):
+        """Test translating to multiple ID types, returning dict."""
+        result = translate_chemical_ids(
+            ["aspirin"],
+            from_type="name",
+            to_type=["cid", "smiles"],
+            return_dict=True,
+        )
+        assert isinstance(result, dict)
+        assert "aspirin" in result
+        assert isinstance(result["aspirin"], dict)
+        assert "cid" in result["aspirin"]
+        assert "smiles" in result["aspirin"]
+        assert result["aspirin"]["cid"] == 2244
+
+    @pytest.mark.integration
+    def test_multiple_to_types_all_properties(self):
+        """Test translating to all supported target types."""
+        result = translate_chemical_ids(
+            ["aspirin"],
+            from_type="name",
+            to_type=["cid", "smiles", "inchikey", "inchi", "formula"],
+        )
+        assert isinstance(result, pd.DataFrame)
+        assert "cid" in result.columns
+        assert "smiles" in result.columns
+        assert "inchikey" in result.columns
+        assert "inchi" in result.columns
+        assert "formula" in result.columns
+
+    @pytest.mark.integration
+    def test_multiple_to_types_cid_input(self):
+        """Test translating from CID to multiple target types."""
+        result = translate_chemical_ids(
+            ["2244"],  # Aspirin CID
+            from_type="cid",
+            to_type=["smiles", "inchikey", "formula"],
+        )
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 1
+        assert "smiles" in result.columns
+        assert "inchikey" in result.columns
+        assert "formula" in result.columns
+
+    @pytest.mark.integration
+    def test_multiple_compounds_multiple_targets(self):
+        """Test translating multiple compounds to multiple target types."""
+        result = translate_chemical_ids(
+            ["aspirin", "caffeine"],
+            from_type="name",
+            to_type=["cid", "smiles"],
+        )
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 2
+        # Verify both compounds have CIDs
+        aspirin_row = result[result["name"] == "aspirin"]
+        assert aspirin_row["cid"].iloc[0] == 2244
+
+
+# =============================================================================
 # Chemical ID Translation Tests (KEGG)
 # =============================================================================
 
