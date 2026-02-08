@@ -10,17 +10,18 @@ from biodbs.fetch.KEGG.funcs import kegg_conv
 def translate_gene_ids(
     ids: List[str],
     from_type: str,
-    to_type: str,
+    to_type: Union[str, List[str]],
     species: str = "human",
     database: Literal["biomart", "ensembl", "ncbi", "uniprot"] = "biomart",
     return_dict: bool = False,
-) -> Union[Dict[str, str], "pd.DataFrame"]:
+) -> Union[Dict[str, str], Dict[str, Dict[str, str]], "pd.DataFrame"]:
     """Translate gene IDs between different identifier types.
 
     Args:
         ids: List of gene IDs to translate.
         from_type: Source ID type.
-        to_type: Target ID type.
+        to_type: Target ID type(s). Can be a single string or a list of strings.
+            When a list is provided, multiple target IDs are returned.
         species: Species name ("human", "mouse", "rat", etc.). Defaults to "human".
         database: Database to use for translation:
             - "biomart": Use BioMart/Ensembl query interface (default).
@@ -31,8 +32,8 @@ def translate_gene_ids(
               Best for NCBI Gene IDs (Entrez), RefSeq accessions, and symbols.
             - "uniprot": Use UniProt ID mapping API.
               Best for protein-centric translations (UniProt, PDB, RefSeq protein).
-        return_dict: If True, return a dict mapping from_id -> to_id.
-            If False (default), return a DataFrame.
+        return_dict: If True, return a dict mapping from_id -> to_id (or dict of to_ids
+            when to_type is a list). If False (default), return a DataFrame.
 
     Supported ID types for NCBI:
         - symbol / gene_symbol: Gene symbol (e.g., "TP53")
@@ -67,7 +68,11 @@ def translate_gene_ids(
         - PDB: PDB structure ID
 
     Returns:
-        Dict mapping source IDs to target IDs, or DataFrame with both columns.
+        When to_type is a string:
+            Dict mapping source IDs to target IDs, or DataFrame with both columns.
+        When to_type is a list:
+            Dict mapping source IDs to dicts of {target_type: target_id}, or
+            DataFrame with from_type column and one column per target type.
 
     Example:
         Gene symbols to Ensembl IDs (using BioMart):
@@ -99,10 +104,30 @@ def translate_gene_ids(
         # 0  ENSG00000141510  11998       HGNC
         # 1  ENSG00000012048   1100       HGNC
         ```
+
+        Multiple target types (BioMart):
+
+        ```python
+        result = translate_gene_ids(
+            ["TP53", "BRCA1"],
+            from_type="external_gene_name",
+            to_type=["ensembl_gene_id", "entrezgene_id"],
+        )
+        print(result)
+        #   external_gene_name    ensembl_gene_id  entrezgene_id
+        # 0               TP53  ENSG00000141510           7157
+        # 1              BRCA1  ENSG00000012048            672
+        ```
     """
     valid_databases = {"biomart", "ensembl", "ncbi", "uniprot"}
     if database not in valid_databases:
         raise ValueError(f"Unsupported database: {database}. Valid options: {valid_databases}")
+
+    # Handle multiple target types
+    if isinstance(to_type, list):
+        return _translate_multiple_targets(
+            ids, from_type, to_type, species, database, return_dict
+        )
 
     if database == "biomart":
         return _translate_via_biomart(ids, from_type, to_type, species, return_dict)
@@ -112,6 +137,45 @@ def translate_gene_ids(
         return _translate_via_uniprot(ids, from_type, to_type, species, return_dict)
     else:  # ncbi
         return _translate_via_ncbi(ids, from_type, to_type, species, return_dict)
+
+
+def _translate_multiple_targets(
+    ids: List[str],
+    from_type: str,
+    to_types: List[str],
+    species: str,
+    database: str,
+    return_dict: bool,
+) -> Union[Dict[str, Dict[str, str]], "pd.DataFrame"]:
+    """Translate gene IDs to multiple target types."""
+    # Collect results for each target type
+    all_results: Dict[str, Dict[str, str]] = {id_val: {} for id_val in ids}
+
+    for target_type in to_types:
+        try:
+            result = translate_gene_ids(
+                ids, from_type, target_type, species, database, return_dict=True
+            )
+            for from_id, to_id in result.items():
+                if from_id in all_results:
+                    all_results[from_id][target_type] = to_id
+        except Exception:
+            # If a target type fails, set None for all IDs
+            for from_id in ids:
+                if from_id in all_results:
+                    all_results[from_id][target_type] = None
+
+    if return_dict:
+        return all_results
+
+    # Convert to DataFrame
+    records = []
+    for from_id, targets in all_results.items():
+        record = {from_type: from_id}
+        record.update(targets)
+        records.append(record)
+
+    return pd.DataFrame(records)
 
 
 def _translate_via_biomart(

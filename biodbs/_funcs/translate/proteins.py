@@ -13,10 +13,10 @@ from biodbs.fetch.uniprot.funcs import (
 def translate_protein_ids(
     ids: List[str],
     from_type: str,
-    to_type: str,
+    to_type: Union[str, List[str]],
     organism: int = 9606,
     return_dict: bool = False,
-) -> Union[Dict[str, str], "pd.DataFrame"]:
+) -> Union[Dict[str, str], Dict[str, Dict[str, str]], "pd.DataFrame"]:
     """Translate protein/gene IDs using UniProt ID mapping service.
 
     This function provides comprehensive ID translation between various
@@ -31,7 +31,9 @@ def translate_protein_ids(
             - "Ensembl": Ensembl gene ID (e.g., "ENSG00000141510")
             - "RefSeq_Protein": RefSeq protein ID
             - "PDB": PDB structure ID
-        to_type: Target ID type. Common options:
+        to_type: Target ID type(s). Can be a single string or a list of strings.
+            When a list is provided, multiple target IDs are returned.
+            Common options:
             - "UniProtKB": UniProt entry (returns accession)
             - "UniProtKB_AC-ID": UniProt accession
             - "GeneID": NCBI Gene ID
@@ -43,10 +45,15 @@ def translate_protein_ids(
             - "ChEMBL": ChEMBL target ID
         organism: NCBI taxonomy ID (default: 9606 for human).
             Only used for Gene_Name -> UniProt mapping.
-        return_dict: If True, return dict. If False, return DataFrame.
+        return_dict: If True, return dict mapping from_id -> to_id (or dict of to_ids
+            when to_type is a list). If False, return DataFrame.
 
     Returns:
-        Dict mapping source IDs to target IDs, or DataFrame with mapping.
+        When to_type is a string:
+            Dict mapping source IDs to target IDs, or DataFrame with mapping.
+        When to_type is a list:
+            Dict mapping source IDs to dicts of {target_type: target_id}, or
+            DataFrame with from column and one column per target type.
 
     Example:
         UniProt to NCBI Gene ID:
@@ -76,9 +83,27 @@ def translate_protein_ids(
         # 0  TP53  P04637
         # 1  EGFR  P00533
         ```
+
+        Multiple target types:
+
+        ```python
+        result = translate_protein_ids(
+            ["P04637", "P00533"],
+            from_type="UniProtKB_AC-ID",
+            to_type=["GeneID", "Ensembl", "Gene_Name"],
+        )
+        print(result)
+        #      from  GeneID           Ensembl Gene_Name
+        # 0  P04637    7157  ENSG00000141510      TP53
+        # 1  P00533    1956  ENSG00000146648      EGFR
+        ```
     """
     if not ids:
         return {} if return_dict else pd.DataFrame()
+
+    # Handle multiple target types
+    if isinstance(to_type, list):
+        return _translate_protein_multiple_targets(ids, from_type, to_type, organism, return_dict)
 
     # Special case: Gene_Name to UniProt uses optimized search
     if from_type == "Gene_Name" and to_type in ("UniProtKB", "UniProtKB_AC-ID"):
@@ -111,6 +136,44 @@ def translate_protein_ids(
                 records.append({"from": from_id, "to": to_id})
         else:
             records.append({"from": from_id, "to": None})
+
+    return pd.DataFrame(records)
+
+
+def _translate_protein_multiple_targets(
+    ids: List[str],
+    from_type: str,
+    to_types: List[str],
+    organism: int,
+    return_dict: bool,
+) -> Union[Dict[str, Dict[str, str]], "pd.DataFrame"]:
+    """Translate protein IDs to multiple target types."""
+    # Collect results for each target type
+    all_results: Dict[str, Dict[str, str]] = {id_val: {} for id_val in ids}
+
+    for target_type in to_types:
+        try:
+            result = translate_protein_ids(
+                ids, from_type, target_type, organism, return_dict=True
+            )
+            for from_id, to_id in result.items():
+                if from_id in all_results:
+                    all_results[from_id][target_type] = to_id
+        except Exception:
+            # If a target type fails, set None for all IDs
+            for from_id in ids:
+                if from_id in all_results:
+                    all_results[from_id][target_type] = None
+
+    if return_dict:
+        return all_results
+
+    # Convert to DataFrame
+    records = []
+    for from_id, targets in all_results.items():
+        record = {"from": from_id}
+        record.update(targets)
+        records.append(record)
 
     return pd.DataFrame(records)
 

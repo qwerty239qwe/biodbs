@@ -17,9 +17,9 @@ from biodbs.fetch.ChEMBL.funcs import chembl_get_molecule, chembl_search_molecul
 def translate_chemical_ids(
     ids: List[str],
     from_type: str,
-    to_type: str,
+    to_type: Union[str, List[str]],
     return_dict: bool = False,
-) -> Union[Dict[str, str], "pd.DataFrame"]:
+) -> Union[Dict[str, str], Dict[str, Dict[str, str]], "pd.DataFrame"]:
     """Translate chemical/compound IDs between different identifier types.
 
     Uses PubChem for ID conversion.
@@ -35,11 +35,18 @@ def translate_chemical_ids(
     Args:
         ids: List of compound identifiers to translate.
         from_type: Source ID type ("cid", "name", "smiles", "inchikey").
-        to_type: Target ID type ("cid", "name", "smiles", "inchikey", "inchi", "formula").
-        return_dict: If True, return dict mapping from_id -> to_id.
+        to_type: Target ID type(s). Can be a single string or a list of strings.
+            When a list is provided, multiple target IDs are returned.
+            Valid types: "cid", "name", "smiles", "inchikey", "inchi", "formula".
+        return_dict: If True, return dict mapping from_id -> to_id (or dict of to_ids
+            when to_type is a list).
 
     Returns:
-        Dict or DataFrame with translated IDs.
+        When to_type is a string:
+            Dict or DataFrame with translated IDs.
+        When to_type is a list:
+            Dict mapping source IDs to dicts of {target_type: target_id}, or
+            DataFrame with from_type column and one column per target type.
 
     Example:
         Names to CIDs:
@@ -68,11 +75,28 @@ def translate_chemical_ids(
         print(result)
         # {'2244': 'CC(=O)OC1=CC=CC=C1C(=O)O', '3672': 'CC(C)CC1=CC=C(C=C1)C(C)C(=O)O'}
         ```
+
+        Multiple target types:
+
+        ```python
+        result = translate_chemical_ids(
+            ["aspirin"],
+            from_type="name",
+            to_type=["cid", "smiles", "inchikey"],
+        )
+        print(result)
+        #      name   cid                      smiles                    inchikey
+        # 0  aspirin  2244  CC(=O)OC1=CC=CC=C1C(=O)O  BSYNRYMUTXBXSQ-UHFFFAOYSA-N
+        ```
     """
     # Supported from_types
     valid_from_types = {"cid", "name", "smiles", "inchikey"}
     if from_type not in valid_from_types:
         raise ValueError(f"Unsupported from_type: {from_type}. Valid types: {valid_from_types}")
+
+    # Handle multiple target types
+    if isinstance(to_type, list):
+        return _translate_chemical_multiple_targets(ids, from_type, to_type, return_dict)
 
     # Map to_type to PubChem property names (for request)
     property_map = {
@@ -147,6 +171,112 @@ def translate_chemical_ids(
 
     if return_dict:
         return dict(zip(df[from_type], df[to_type]))
+
+    return df
+
+
+def _translate_chemical_multiple_targets(
+    ids: List[str],
+    from_type: str,
+    to_types: List[str],
+    return_dict: bool,
+) -> Union[Dict[str, Dict[str, str]], "pd.DataFrame"]:
+    """Translate chemical IDs to multiple target types."""
+    # Map to_type to PubChem property names
+    property_map = {
+        "cid": "CID",
+        "smiles": "CanonicalSMILES",
+        "inchikey": "InChIKey",
+        "inchi": "InChI",
+        "formula": "MolecularFormula",
+        "name": "IUPACName",
+    }
+
+    response_key_map = {
+        "CanonicalSMILES": ["CanonicalSMILES", "ConnectivitySMILES", "SMILES"],
+        "IsomericSMILES": ["IsomericSMILES", "SMILES"],
+        "InChIKey": ["InChIKey"],
+        "InChI": ["InChI"],
+        "MolecularFormula": ["MolecularFormula"],
+        "IUPACName": ["IUPACName", "Title"],
+        "CID": ["CID"],
+    }
+
+    valid_to_types = set(property_map.keys())
+    for tt in to_types:
+        if tt not in valid_to_types:
+            raise ValueError(f"Unsupported to_type: {tt}. Valid types: {valid_to_types}")
+
+    results = []
+
+    for id_val in ids:
+        record = {from_type: id_val}
+        try:
+            # First, get the CID based on from_type
+            if from_type == "cid":
+                cid = int(id_val)
+            elif from_type == "name":
+                data = pubchem_search_by_name(id_val)
+                cids = data.get_cids()
+                cid = cids[0] if cids else None
+            elif from_type == "smiles":
+                data = pubchem_search_by_smiles(id_val)
+                cids = data.get_cids()
+                cid = cids[0] if cids else None
+            elif from_type == "inchikey":
+                data = pubchem_search_by_inchikey(id_val)
+                cids = data.get_cids()
+                cid = cids[0] if cids else None
+
+            if cid is None:
+                for tt in to_types:
+                    record[tt] = None
+                results.append(record)
+                continue
+
+            record["cid"] = cid
+
+            # Get all target properties in one request if possible
+            props_to_fetch = [
+                property_map[tt] for tt in to_types
+                if tt != "cid" and tt in property_map
+            ]
+
+            if props_to_fetch:
+                prop_data = pubchem_get_properties(cid, properties=props_to_fetch)
+                prop_results = prop_data.results
+                result_dict = prop_results[0] if prop_results else {}
+
+                for tt in to_types:
+                    if tt == "cid":
+                        record[tt] = cid
+                    else:
+                        prop_name = property_map[tt]
+                        to_val = None
+                        for key in response_key_map.get(prop_name, [prop_name]):
+                            if key in result_dict:
+                                to_val = result_dict[key]
+                                break
+                        record[tt] = to_val
+            else:
+                # Only cid was requested
+                for tt in to_types:
+                    record[tt] = cid if tt == "cid" else None
+
+        except Exception:
+            for tt in to_types:
+                record[tt] = None
+
+        results.append(record)
+
+    df = pd.DataFrame(results)
+
+    if return_dict:
+        result_dict = {}
+        for _, row in df.iterrows():
+            from_id = row[from_type]
+            result_dict[from_id] = {tt: row.get(tt) for tt in to_types}
+        return result_dict
 
     return df
 
