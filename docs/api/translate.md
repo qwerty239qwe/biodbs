@@ -2,6 +2,24 @@
 
 Complete reference for `biodbs.translate` module.
 
+## Key Features
+
+- **Multiple Target Types**: All main translation functions (`translate_gene_ids`,
+  `translate_chemical_ids`, `translate_protein_ids`) accept either a single target type
+  or a list of target types. When a list is provided, all target IDs are returned in one call.
+
+```python
+# Single target type
+result = translate_gene_ids(["TP53"], from_type="external_gene_name", to_type="ensembl_gene_id")
+
+# Multiple target types - more efficient than multiple calls
+result = translate_gene_ids(
+    ["TP53"],
+    from_type="external_gene_name",
+    to_type=["ensembl_gene_id", "entrezgene_id", "hgnc_id"]
+)
+```
+
 ## Functions Summary
 
 ### Gene Translation

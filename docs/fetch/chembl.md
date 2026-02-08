@@ -105,3 +105,9 @@ from biodbs.fetch.ChEMBL import ChEMBL_Fetcher
 fetcher = ChEMBL_Fetcher()
 molecule = fetcher.get_molecule("CHEMBL25")
 ```
+
+## Related Resources
+
+- **[UniProt](uniprot.md)** - Get detailed protein information for ChEMBL drug targets. Use `uniprot_map_ids()` to map ChEMBL target IDs to UniProt accessions.
+- **[PubChem](pubchem.md)** - Look up additional chemical properties (SMILES, InChIKey, safety data) for ChEMBL molecules.
+- **[ID Translation](../translate/chemicals.md)** - Translate between ChEMBL IDs and other chemical identifiers (PubChem CID, InChIKey, SMILES).

@@ -422,3 +422,21 @@ for name, result in [("KEGG", kegg), ("Reactome", reactome), ("GO_BP", go_bp)]:
     sig = result.significant_terms(p_threshold=0.05)
     print(f"{name}: {len(sig)} significant terms")
 ```
+
+## Related Resources
+
+### Data Fetching
+
+- **[KEGG](../fetch/kegg.md)** - Fetch pathway data, gene lists, and compound information.
+- **[Reactome](../fetch/reactome.md)** - Access curated pathway data and pathway-gene mappings.
+- **[QuickGO](../fetch/quickgo.md)** - Retrieve GO terms and gene annotations.
+- **[EnrichR](../fetch/enrichr.md)** - Direct EnrichR access with 100+ gene set libraries.
+
+### ID Translation
+
+- **[Gene ID Translation](../translate/genes.md)** - Convert gene identifiers before enrichment analysis.
+- **[Protein ID Translation](../translate/proteins.md)** - Map UniProt accessions to gene symbols.
+
+### Knowledge Graphs
+
+- **[Building Graphs](../graph/building.md)** - Build pathway-based knowledge graphs from ORA results.

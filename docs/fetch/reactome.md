@@ -265,3 +265,11 @@ print(result.summary())
 ```
 
 See [Over-Representation Analysis](../analysis/ora.md) for more ORA options.
+
+## Related Resources
+
+- **[KEGG](kegg.md)** - Alternative pathway database, especially strong for metabolic pathways. Use for complementary analysis.
+- **[UniProt](uniprot.md)** - Get detailed protein information for Reactome pathway participants.
+- **[Disease Ontology](disease-ontology.md)** - Cross-reference disease pathways with standardized disease terms.
+- **[Over-Representation Analysis](../analysis/ora.md)** - Perform local ORA with custom background using `ora_reactome_local()`.
+- **[Knowledge Graphs](../graph/building.md)** - Build knowledge graphs from Reactome data with `build_reactome_graph()`.

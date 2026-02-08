@@ -166,3 +166,10 @@ print(df[["term_name", "adjusted_p_value", "combined_score"]].head(10))
 # Export results
 df.to_csv("enrichr_results.csv", index=False)
 ```
+
+## Related Resources
+
+- **[Over-Representation Analysis](../analysis/ora.md)** - Use EnrichR via the unified ORA interface with `ora_enrichr()`.
+- **[KEGG](kegg.md)** - Direct access to KEGG pathway data.
+- **[Reactome](reactome.md)** - Alternative pathway analysis with Reactome's dedicated API.
+- **[QuickGO](quickgo.md)** - Direct access to Gene Ontology annotations.

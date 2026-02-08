@@ -72,6 +72,40 @@ result = translate_protein_ids(
 # {'P04637': '7157', 'P00533': '1956'}
 ```
 
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `ids` | List[str] | required | IDs to translate |
+| `from_type` | str | required | Source ID type |
+| `to_type` | str or List[str] | required | Target ID type(s). Pass a list for multiple targets. |
+| `organism` | int | 9606 | NCBI taxonomy ID (for Gene_Name mapping) |
+| `return_dict` | bool | False | Return dict instead of DataFrame |
+
+### Multiple Target Types
+
+Get multiple ID types in one call:
+
+```python
+result = translate_protein_ids(
+    ["P04637", "P00533"],
+    from_type="UniProtKB_AC-ID",
+    to_type=["GeneID", "Ensembl", "Gene_Name"],
+)
+#      from  GeneID           Ensembl Gene_Name
+# 0  P04637    7157  ENSG00000141510      TP53
+# 1  P00533    1956  ENSG00000146648      EGFR
+
+# As dict with nested structure
+result_dict = translate_protein_ids(
+    ["P04637", "P00533"],
+    from_type="UniProtKB_AC-ID",
+    to_type=["GeneID", "Ensembl"],
+    return_dict=True
+)
+# {'P04637': {'GeneID': '7157', 'Ensembl': 'ENSG00000141510'}, ...}
+```
+
 ### Supported ID Types
 
 | ID Type | Description | Example |
@@ -208,14 +242,39 @@ from biodbs.translate import translate_protein_ids
 
 proteins = ["P04637", "P00533", "P38398"]
 
-# To multiple databases
+# Get all target types in one call (recommended)
+result = translate_protein_ids(
+    proteins,
+    from_type="UniProtKB_AC-ID",
+    to_type=["GeneID", "Ensembl", "RefSeq_Protein", "Gene_Name"],
+)
+#      from  GeneID           Ensembl  RefSeq_Protein Gene_Name
+# 0  P04637    7157  ENSG00000141510     NP_000537.3      TP53
+# 1  P00533    1956  ENSG00000146648     NP_005219.2      EGFR
+# 2  P38398     672  ENSG00000012048     NP_009225.1     BRCA1
+
+# Or make separate calls (less efficient)
 gene_ids = translate_protein_ids(
     proteins, "UniProtKB_AC-ID", "GeneID", return_dict=True
 )
 ensembl_ids = translate_protein_ids(
     proteins, "UniProtKB_AC-ID", "Ensembl", return_dict=True
 )
-refseq_ids = translate_protein_ids(
-    proteins, "UniProtKB_AC-ID", "RefSeq_Protein", return_dict=True
-)
 ```
+
+## Related Resources
+
+### Backend Data Source
+
+- **[UniProt](../fetch/uniprot.md)** - Full UniProt API access, including `uniprot_map_ids()` for ID mapping.
+
+### Other Translation
+
+- **[Gene Translation](genes.md)** - Translate gene symbols to Ensembl, Entrez, etc.
+- **[Chemical Translation](chemicals.md)** - Translate chemical identifiers.
+
+### Use Cases
+
+- **[ChEMBL](../fetch/chembl.md)** - Use ChEMBL target IDs from `translate_protein_ids()`.
+- **[QuickGO](../fetch/quickgo.md)** - Use UniProt accessions for GO annotation lookups.
+- **[Over-Representation Analysis](../analysis/ora.md)** - Translate protein IDs before enrichment.

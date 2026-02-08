@@ -137,3 +137,8 @@ from biodbs.fetch.FDA import FDA_Fetcher
 fetcher = FDA_Fetcher()
 events = fetcher.drug_events(search="aspirin")
 ```
+
+## Related Resources
+
+- **[ChEMBL](chembl.md)** - Bioactivity data, mechanisms of action, and drug target information.
+- **[PubChem](pubchem.md)** - Chemical properties, safety data, and pharmacology information.

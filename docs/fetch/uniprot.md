@@ -369,3 +369,11 @@ pdb_mapping = uniprot_map_ids(proteins, "UniProtKB_AC-ID", "PDB")
 for protein, pdb_ids in pdb_mapping.items():
     print(f"{protein}: {len(pdb_ids)} structures")
 ```
+
+## Related Resources
+
+- **[ChEMBL](chembl.md)** - Find bioactivity data and drug information for UniProt proteins. Use `uniprot_map_ids()` with `to_db="ChEMBL"` to get ChEMBL target IDs.
+- **[Ensembl](ensembl.md)** - Get genomic information (transcripts, variants) for UniProt proteins.
+- **[QuickGO](quickgo.md)** - Retrieve Gene Ontology annotations for UniProt accessions.
+- **[Reactome](reactome.md)** - Find pathways and reactions involving UniProt proteins.
+- **[ID Translation](../translate/proteins.md)** - Translate between UniProt accessions and other protein identifiers (Ensembl, RefSeq, PDB).

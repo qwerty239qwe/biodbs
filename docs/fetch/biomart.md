@@ -168,3 +168,9 @@ data = fetcher.query(
     filters={"chromosome_name": "17"}
 )
 ```
+
+## Related Resources
+
+- **[Ensembl REST API](ensembl.md)** - Single gene lookup, sequences, and VEP. Use REST API for detailed single-gene queries.
+- **[UniProt](uniprot.md)** - Protein information and annotations.
+- **[ID Translation](../translate/genes.md)** - Simplified interface for gene ID conversion using BioMart as a backend with `translate_gene_ids(..., database="biomart")`.

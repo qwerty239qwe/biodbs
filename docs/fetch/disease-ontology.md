@@ -120,3 +120,9 @@ from biodbs.fetch.DiseaseOntology import DiseaseOntology_Fetcher
 fetcher = DiseaseOntology_Fetcher()
 term = fetcher.get_term("DOID:162")
 ```
+
+## Related Resources
+
+- **[Reactome](reactome.md)** - Find disease-related pathways. Reactome provides disease cross-references via `reactome_get_diseases_doid()`.
+- **[UniProt](uniprot.md)** - Get disease-associated proteins using UniProt disease annotations.
+- **[Knowledge Graphs](../graph/building.md)** - Build knowledge graphs from Disease Ontology data with `build_disease_graph()`.

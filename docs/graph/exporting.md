@@ -246,3 +246,8 @@ with open("graph.json", "w") as f:
 from biodbs.graph import KnowledgeGraph
 restored = KnowledgeGraph.from_dict(data)
 ```
+
+## Related Resources
+
+- **[Building Graphs](building.md)** - Create graphs from biological data sources.
+- **[Graph Analysis](analysis.md)** - Analyze graphs before exporting.

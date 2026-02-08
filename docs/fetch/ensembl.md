@@ -186,3 +186,10 @@ from biodbs.fetch.ensembl import Ensembl_Fetcher
 fetcher = Ensembl_Fetcher()
 gene = fetcher.lookup("ENSG00000141510", expand=True)
 ```
+
+## Related Resources
+
+- **[BioMart](biomart.md)** - Batch queries and ID conversion for Ensembl data. Preferred for retrieving annotations for many genes at once.
+- **[UniProt](uniprot.md)** - Get detailed protein information for Ensembl proteins. Use `ensembl_get_xrefs()` to get UniProt accessions.
+- **[NCBI](ncbi.md)** - Alternative gene resource with Entrez Gene IDs.
+- **[ID Translation](../translate/genes.md)** - Translate between Ensembl IDs and other gene identifiers (symbols, Entrez, UniProt).

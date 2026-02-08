@@ -202,3 +202,17 @@ graph.add_edge(Edge(
 other_graph = build_go_graph(go_data)
 graph.update(other_graph)  # Modifies in place
 ```
+
+## Related Resources
+
+### Data Sources
+
+- **[Disease Ontology](../fetch/disease-ontology.md)** - Fetch disease terms and hierarchies for `build_disease_graph()`.
+- **[QuickGO](../fetch/quickgo.md)** - Fetch GO annotations for `build_go_graph()`.
+- **[Reactome](../fetch/reactome.md)** - Fetch pathway data for `build_reactome_graph()`.
+- **[KEGG](../fetch/kegg.md)** - Fetch pathway and gene data for `build_kegg_graph()`.
+
+### Next Steps
+
+- **[Exporting Graphs](exporting.md)** - Export to NetworkX, JSON-LD, RDF, or Neo4j.
+- **[Graph Analysis](analysis.md)** - Find paths, hubs, and compute statistics.

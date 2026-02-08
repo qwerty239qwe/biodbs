@@ -122,3 +122,11 @@ from biodbs.fetch.KEGG import KEGG_Fetcher
 fetcher = KEGG_Fetcher()
 pathway = fetcher.get("hsa00010")
 ```
+
+## Related Resources
+
+- **[Reactome](reactome.md)** - Alternative pathway database with more detailed reaction-level data. Good for complementary analysis.
+- **[UniProt](uniprot.md)** - Get detailed protein information for KEGG genes using `kegg_conv("uniprot", ...)`.
+- **[PubChem](pubchem.md)** - Additional chemical information for KEGG compounds.
+- **[Over-Representation Analysis](../analysis/ora.md)** - Use KEGG pathways for gene set enrichment analysis with `ora_kegg()`.
+- **[Knowledge Graphs](../graph/building.md)** - Build knowledge graphs from KEGG data with `build_kegg_graph()`.

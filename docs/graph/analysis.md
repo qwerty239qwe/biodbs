@@ -228,3 +228,8 @@ clustering = nx.clustering(G)
 # Shortest path lengths
 lengths = dict(nx.all_pairs_shortest_path_length(G))
 ```
+
+## Related Resources
+
+- **[Building Graphs](building.md)** - Create graphs from biological data sources.
+- **[Exporting Graphs](exporting.md)** - Export to NetworkX for advanced algorithms, or to other formats.

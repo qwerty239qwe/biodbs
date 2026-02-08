@@ -38,7 +38,7 @@ result = translate_gene_ids(
 |-----------|------|---------|-------------|
 | `ids` | List[str] | required | IDs to translate |
 | `from_type` | str | required | Source ID type |
-| `to_type` | str | required | Target ID type |
+| `to_type` | str or List[str] | required | Target ID type(s). Pass a list for multiple targets. |
 | `species` | str | "human" | Species name |
 | `database` | str | "biomart" | Backend database |
 | `return_dict` | bool | False | Return dict instead of DataFrame |
@@ -174,7 +174,37 @@ species_list = ["human", "mouse", "rat", "zebrafish", "fly", "worm", "yeast"]
 
 ## Examples
 
-### Gene Symbols to Multiple IDs
+### Multiple Target Types (Single Request)
+
+Get multiple ID types in one call by passing a list to `to_type`:
+
+```python
+from biodbs.translate import translate_gene_ids
+
+genes = ["TP53", "BRCA1", "EGFR"]
+
+# Get Ensembl, Entrez, and HGNC IDs in one call
+result = translate_gene_ids(
+    genes,
+    from_type="external_gene_name",
+    to_type=["ensembl_gene_id", "entrezgene_id", "hgnc_id"],
+)
+#   external_gene_name    ensembl_gene_id  entrezgene_id     hgnc_id
+# 0               TP53  ENSG00000141510           7157  HGNC:11998
+# 1              BRCA1  ENSG00000012048            672   HGNC:1100
+# 2               EGFR  ENSG00000146648           1956   HGNC:3236
+
+# As dict with nested structure
+result_dict = translate_gene_ids(
+    genes,
+    from_type="external_gene_name",
+    to_type=["ensembl_gene_id", "entrezgene_id"],
+    return_dict=True
+)
+# {'TP53': {'ensembl_gene_id': 'ENSG00000141510', 'entrezgene_id': '7157'}, ...}
+```
+
+### Gene Symbols to Single ID Type
 
 ```python
 from biodbs.translate import translate_gene_ids
@@ -219,3 +249,18 @@ entrez = translate_gene_ids(
     database="biomart"
 )
 ```
+
+## Related Resources
+
+### Backend Data Sources
+
+- **[BioMart](../fetch/biomart.md)** - Batch queries and ID conversion (default backend).
+- **[Ensembl](../fetch/ensembl.md)** - REST API for detailed gene lookups.
+- **[NCBI](../fetch/ncbi.md)** - NCBI Gene database.
+- **[UniProt](../fetch/uniprot.md)** - Protein-centric ID mapping.
+- **[KEGG](../fetch/kegg.md)** - KEGG gene identifiers.
+
+### Use Cases
+
+- **[Over-Representation Analysis](../analysis/ora.md)** - Translate IDs before pathway enrichment.
+- **[Protein Translation](proteins.md)** - Gene to UniProt mapping.

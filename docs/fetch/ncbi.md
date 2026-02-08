@@ -90,3 +90,9 @@ from biodbs.fetch.NCBI import NCBI_Fetcher
 fetcher = NCBI_Fetcher()
 genes = fetcher.get_genes_by_id([7157, 672])
 ```
+
+## Related Resources
+
+- **[Ensembl](ensembl.md)** - Alternative gene resource with genomic coordinates and VEP.
+- **[UniProt](uniprot.md)** - Protein information for gene products.
+- **[ID Translation](../translate/genes.md)** - Translate between Entrez Gene IDs and other identifiers using `translate_gene_ids(..., database="ncbi")`.

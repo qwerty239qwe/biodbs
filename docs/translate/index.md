@@ -57,6 +57,36 @@ chemicals = translate_chemical_ids(
 )
 ```
 
+## Multiple Target Types
+
+All main translation functions can return multiple target ID types in a single call:
+
+```python
+# Get multiple ID types at once (more efficient than separate calls)
+result = translate_gene_ids(
+    ["TP53", "BRCA1"],
+    from_type="external_gene_name",
+    to_type=["ensembl_gene_id", "entrezgene_id", "hgnc_id"],
+)
+#   external_gene_name    ensembl_gene_id  entrezgene_id     hgnc_id
+# 0               TP53  ENSG00000141510           7157  HGNC:11998
+# 1              BRCA1  ENSG00000012048            672   HGNC:1100
+
+# Chemical IDs
+result = translate_chemical_ids(
+    ["aspirin"],
+    from_type="name",
+    to_type=["cid", "smiles", "inchikey"],
+)
+
+# Protein IDs
+result = translate_protein_ids(
+    ["P04637"],
+    from_type="UniProtKB_AC-ID",
+    to_type=["GeneID", "Ensembl", "Gene_Name"],
+)
+```
+
 ## Output Formats
 
 All translation functions support two output formats:

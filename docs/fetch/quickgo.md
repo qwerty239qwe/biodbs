@@ -103,3 +103,10 @@ from biodbs.fetch.QuickGO import QuickGO_Fetcher
 fetcher = QuickGO_Fetcher()
 terms = fetcher.search_terms("apoptosis")
 ```
+
+## Related Resources
+
+- **[UniProt](uniprot.md)** - Get detailed protein information for GO-annotated gene products. QuickGO uses UniProt accessions for queries.
+- **[Over-Representation Analysis](../analysis/ora.md)** - Perform GO term enrichment analysis with `ora_go()`.
+- **[Knowledge Graphs](../graph/building.md)** - Build knowledge graphs from GO data with `build_go_graph()`.
+- **[ID Translation](../translate/genes.md)** - Translate gene identifiers to UniProt format for QuickGO annotation lookups.

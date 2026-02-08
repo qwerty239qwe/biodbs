@@ -142,3 +142,10 @@ from biodbs.fetch.pubchem import PubChem_Fetcher
 fetcher = PubChem_Fetcher()
 compound = fetcher.get_compound(2244)
 ```
+
+## Related Resources
+
+- **[ChEMBL](chembl.md)** - Access bioactivity data, drug mechanisms, and target interactions for chemical compounds.
+- **[FDA](fda.md)** - Get FDA approval status and drug labeling information.
+- **[KEGG](kegg.md)** - Find compound involvement in metabolic pathways.
+- **[ID Translation](../translate/chemicals.md)** - Translate between PubChem CIDs and other chemical identifiers (SMILES, InChIKey, ChEMBL ID).

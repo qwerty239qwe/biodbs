@@ -103,3 +103,9 @@ from biodbs.fetch.HPA import HPA_Fetcher
 fetcher = HPA_Fetcher()
 gene = fetcher.get_gene("TP53")
 ```
+
+## Related Resources
+
+- **[UniProt](uniprot.md)** - Get detailed protein information, including subcellular localization annotations.
+- **[Ensembl](ensembl.md)** - Get genomic context and transcript information for genes.
+- **[ID Translation](../translate/genes.md)** - Translate between gene symbols and other identifiers for use with HPA.
