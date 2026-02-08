@@ -1,6 +1,6 @@
 site_name: biodbs
 site_description: Unified Python interface for biological and chemical databases
-# site_url: https://qwerty239qwe.github.io/biodbs/  # Uncomment for production
+site_url: https://biodbs.readthedocs.io/  # Uncomment for production
 repo_url: https://github.com/qwerty239qwe/biodbs
 repo_name: biodbs
 use_directory_urls: false
