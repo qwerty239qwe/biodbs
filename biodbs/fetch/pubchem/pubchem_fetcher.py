@@ -259,7 +259,7 @@ class PubChem_Fetcher(BaseDataFetcher):
         rate_limit_per_second: int = 5,
         operation: Optional[str] = None,
         properties: Optional[List[str]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Union[PUGRestFetchedData, Path]:
         """Fetch data for many identifiers by batching.
 

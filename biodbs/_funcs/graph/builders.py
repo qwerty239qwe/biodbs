@@ -12,13 +12,21 @@ Functions:
     merge_graphs: Merge multiple graphs into one.
 
 Example:
-    >>> from biodbs.fetch import DO_Fetcher
-    >>> from biodbs.graph import build_disease_graph
-    >>>
-    >>> fetcher = DO_Fetcher()
-    >>> data = fetcher.get_children("DOID:162")
-    >>> graph = build_disease_graph(data)
-    >>> print(graph.summary())
+    ```python
+    from biodbs.fetch import DO_Fetcher
+    from biodbs.graph import build_disease_graph
+
+    fetcher = DO_Fetcher()
+    data = fetcher.get_children("DOID:162")
+    graph = build_disease_graph(data)
+    print(graph.summary())
+    # KnowledgeGraph: DiseaseOntologyGraph
+    # Nodes: 47
+    # Edges: 0
+    #
+    # Node types:
+    #   disease: 47
+    ```
 """
 
 from __future__ import annotations
@@ -75,16 +83,20 @@ def build_graph(
         A new KnowledgeGraph instance.
 
     Example:
-        >>> from biodbs.graph import Node, Edge, NodeType, EdgeType, build_graph
-        >>>
-        >>> nodes = [
-        ...     Node(id="A", label="Node A", node_type=NodeType.GENE),
-        ...     Node(id="B", label="Node B", node_type=NodeType.GENE),
-        ... ]
-        >>> edges = [
-        ...     Edge(source="A", target="B", relation=EdgeType.INTERACTS_WITH),
-        ... ]
-        >>> graph = build_graph(nodes, edges, name="MyGraph")
+        ```python
+        from biodbs.graph import Node, Edge, NodeType, EdgeType, build_graph
+
+        nodes = [
+            Node(id="A", label="Node A", node_type=NodeType.GENE),
+            Node(id="B", label="Node B", node_type=NodeType.GENE),
+        ]
+        edges = [
+            Edge(source="A", target="B", relation=EdgeType.INTERACTS_WITH),
+        ]
+        graph = build_graph(nodes, edges, name="MyGraph")
+        print(graph)
+        # KnowledgeGraph(name='MyGraph', nodes=2, edges=1)
+        ```
     """
     graph = KnowledgeGraph(name=name, description=description, source=source)
     graph.add_nodes(nodes)
@@ -119,13 +131,21 @@ def build_disease_graph(
         A KnowledgeGraph with disease nodes.
 
     Example:
-        >>> from biodbs.fetch import DO_Fetcher
-        >>> from biodbs.graph import build_disease_graph
-        >>>
-        >>> fetcher = DO_Fetcher()
-        >>> data = fetcher.get_children("DOID:162")  # cancer
-        >>> graph = build_disease_graph(data)
-        >>> print(graph.summary())
+        ```python
+        from biodbs.fetch import DO_Fetcher
+        from biodbs.graph import build_disease_graph
+
+        fetcher = DO_Fetcher()
+        data = fetcher.get_children("DOID:162")  # cancer
+        graph = build_disease_graph(data)
+        print(graph.summary())
+        # KnowledgeGraph: DiseaseOntologyGraph
+        # Nodes: 47
+        # Edges: 0
+        #
+        # Node types:
+        #   disease: 47
+        ```
     """
     graph = KnowledgeGraph(
         name=name,
@@ -196,13 +216,17 @@ def build_disease_graph_with_hierarchy(
         A KnowledgeGraph with disease nodes and IS_A edges.
 
     Example:
-        >>> from biodbs.fetch import DO_Fetcher
-        >>> from biodbs.graph import build_disease_graph_with_hierarchy
-        >>>
-        >>> fetcher = DO_Fetcher()
-        >>> parent = fetcher.get_term("DOID:162")  # cancer
-        >>> children = fetcher.get_children("DOID:162")
-        >>> graph = build_disease_graph_with_hierarchy(parent, children)
+        ```python
+        from biodbs.fetch import DO_Fetcher
+        from biodbs.graph import build_disease_graph_with_hierarchy
+
+        fetcher = DO_Fetcher()
+        parent = fetcher.get_term("DOID:162")  # cancer
+        children = fetcher.get_children("DOID:162")
+        graph = build_disease_graph_with_hierarchy(parent, children)
+        print(graph)
+        # KnowledgeGraph(name='DiseaseOntologyGraph', nodes=48, edges=47)
+        ```
     """
     # First build graphs from both datasets
     parent_graph = build_disease_graph(
@@ -260,12 +284,16 @@ def build_go_graph(
         A KnowledgeGraph with GO term and gene nodes.
 
     Example:
-        >>> from biodbs.fetch import QuickGO_Fetcher
-        >>> from biodbs.graph import build_go_graph
-        >>>
-        >>> fetcher = QuickGO_Fetcher()
-        >>> data = fetcher.search_annotations(geneProductId="UniProtKB:P04637")
-        >>> graph = build_go_graph(data)
+        ```python
+        from biodbs.fetch import QuickGO_Fetcher
+        from biodbs.graph import build_go_graph
+
+        fetcher = QuickGO_Fetcher()
+        data = fetcher.get(category="annotation", endpoint="search", geneProductId="UniProtKB:P04637")
+        graph = build_go_graph(data)
+        print(graph)
+        # KnowledgeGraph(name='GeneOntologyGraph', nodes=25, edges=24)
+        ```
     """
     graph = KnowledgeGraph(
         name=name,
@@ -389,12 +417,16 @@ def build_reactome_graph(
         A KnowledgeGraph with pathway nodes.
 
     Example:
-        >>> from biodbs.fetch import Reactome_Fetcher
-        >>> from biodbs.graph import build_reactome_graph
-        >>>
-        >>> fetcher = Reactome_Fetcher()
-        >>> data = fetcher.analyze(["TP53", "BRCA1", "BRCA2"])
-        >>> graph = build_reactome_graph(data)
+        ```python
+        from biodbs.fetch import Reactome_Fetcher
+        from biodbs.graph import build_reactome_graph
+
+        fetcher = Reactome_Fetcher()
+        data = fetcher.analyze(["TP53", "BRCA1", "BRCA2"])
+        graph = build_reactome_graph(data)
+        print(graph)
+        # KnowledgeGraph(name='ReactomeGraph', nodes=42, edges=0)
+        ```
     """
     graph = KnowledgeGraph(
         name=name,
@@ -531,11 +563,15 @@ def build_kegg_graph(
         A KnowledgeGraph with KEGG nodes.
 
     Example:
-        >>> from biodbs.fetch import kegg_list
-        >>> from biodbs.graph import build_kegg_graph
-        >>>
-        >>> data = kegg_list("pathway", organism="hsa")
-        >>> graph = build_kegg_graph(data, name="HumanPathways")
+        ```python
+        from biodbs.fetch import kegg_list
+        from biodbs.graph import build_kegg_graph
+
+        data = kegg_list("pathway", organism="hsa")
+        graph = build_kegg_graph(data, name="HumanPathways")
+        print(graph)
+        # KnowledgeGraph(name='HumanPathways', nodes=350, edges=0)
+        ```
     """
     graph = KnowledgeGraph(
         name=name,
@@ -606,15 +642,19 @@ def build_kegg_link_graph(
         A KnowledgeGraph with nodes and edges from link data.
 
     Example:
-        >>> from biodbs.fetch import kegg_link
-        >>> from biodbs.graph import build_kegg_link_graph, NodeType
-        >>>
-        >>> data = kegg_link("pathway", "hsa")  # genes to pathways
-        >>> graph = build_kegg_link_graph(
-        ...     data,
-        ...     source_type=NodeType.GENE,
-        ...     target_type=NodeType.PATHWAY,
-        ... )
+        ```python
+        from biodbs.fetch import kegg_link
+        from biodbs.graph import build_kegg_link_graph, NodeType
+
+        data = kegg_link("pathway", "hsa")  # genes to pathways
+        graph = build_kegg_link_graph(
+            data,
+            source_type=NodeType.GENE,
+            target_type=NodeType.PATHWAY,
+        )
+        print(graph)
+        # KnowledgeGraph(name='KEGGLinkGraph', nodes=8500, edges=42000)
+        ```
     """
     graph = KnowledgeGraph(
         name=name,
@@ -714,11 +754,15 @@ def merge_graphs(
         A new KnowledgeGraph containing all nodes and edges.
 
     Example:
-        >>> from biodbs.graph import merge_graphs, build_disease_graph, build_go_graph
-        >>>
-        >>> disease_graph = build_disease_graph(disease_data)
-        >>> go_graph = build_go_graph(go_data)
-        >>> merged = merge_graphs(disease_graph, go_graph, name="BioGraph")
+        ```python
+        from biodbs.graph import merge_graphs, build_disease_graph, build_go_graph
+
+        disease_graph = build_disease_graph(disease_data)
+        go_graph = build_go_graph(go_data)
+        merged = merge_graphs(disease_graph, go_graph, name="BioGraph")
+        print(merged)
+        # KnowledgeGraph(name='BioGraph', nodes=72, edges=24)
+        ```
     """
     if not graphs:
         return KnowledgeGraph(name=name, description=description)

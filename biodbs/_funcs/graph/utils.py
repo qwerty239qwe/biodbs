@@ -13,12 +13,18 @@ Functions:
     get_graph_statistics: Get detailed graph statistics.
 
 Example:
-    >>> from biodbs.graph import KnowledgeGraph, find_shortest_path, find_hub_nodes
-    >>>
-    >>> graph = KnowledgeGraph(name="test")
-    >>> # ... add nodes and edges ...
-    >>> path = find_shortest_path(graph, "DOID:162", "DOID:1612")
-    >>> hubs = find_hub_nodes(graph, top_n=5)
+    ```python
+    from biodbs.graph import find_shortest_path, find_hub_nodes, build_disease_graph
+
+    graph = build_disease_graph(disease_data)
+    path = find_shortest_path(graph, "DOID:162", "DOID:1612")
+    print(path)
+    # ['DOID:162', 'DOID:1612']
+
+    hubs = find_hub_nodes(graph, top_n=5)
+    print(hubs[0])
+    # ('DOID:162', 15)
+    ```
 """
 
 from __future__ import annotations
@@ -68,9 +74,12 @@ def find_shortest_path(
         List of node IDs forming the shortest path, or None if no path exists.
 
     Example:
-        >>> path = find_shortest_path(graph, "DOID:162", "DOID:1612")
-        >>> if path:
-        ...     print(" -> ".join(path))
+        ```python
+        path = find_shortest_path(graph, "DOID:162", "DOID:1612")
+        if path:
+            print(" -> ".join(path))
+        # DOID:162 -> DOID:1612
+        ```
     """
     if source not in graph or target not in graph:
         return None
@@ -133,9 +142,13 @@ def find_all_paths(
         List of paths, where each path is a list of node IDs.
 
     Example:
-        >>> paths = find_all_paths(graph, "A", "D", max_depth=3)
-        >>> for path in paths:
-        ...     print(" -> ".join(path))
+        ```python
+        paths = find_all_paths(graph, "A", "D", max_depth=3)
+        for path in paths:
+            print(" -> ".join(path))
+        # A -> B -> D
+        # A -> C -> D
+        ```
     """
     if source not in graph or target not in graph:
         return []
@@ -217,8 +230,11 @@ def get_neighborhood(
         Dictionary with "nodes" (and optionally "edges") keys.
 
     Example:
-        >>> neighborhood = get_neighborhood(graph, "DOID:162", hops=2)
-        >>> print(f"Found {len(neighborhood['nodes'])} nodes within 2 hops")
+        ```python
+        neighborhood = get_neighborhood(graph, "DOID:162", hops=2)
+        print(f"Found {len(neighborhood['nodes'])} nodes within 2 hops")
+        # Found 25 nodes within 2 hops
+        ```
     """
     if node_id not in graph:
         return {"nodes": [], "edges": []} if include_edges else {"nodes": []}
@@ -276,8 +292,11 @@ def get_connected_component(
         Set of node IDs in the same component.
 
     Example:
-        >>> component = get_connected_component(graph, "DOID:162")
-        >>> print(f"Component has {len(component)} nodes")
+        ```python
+        component = get_connected_component(graph, "DOID:162")
+        print(f"Component has {len(component)} nodes")
+        # Component has 47 nodes
+        ```
     """
     if node_id not in graph:
         return set()
@@ -355,9 +374,14 @@ def find_hub_nodes(
         List of (node_id, degree) tuples, sorted by degree descending.
 
     Example:
-        >>> hubs = find_hub_nodes(graph, top_n=5)
-        >>> for node_id, degree in hubs:
-        ...     print(f"{node_id}: {degree} connections")
+        ```python
+        hubs = find_hub_nodes(graph, top_n=5)
+        for node_id, degree in hubs:
+            print(f"{node_id}: {degree} connections")
+        # DOID:162: 15 connections
+        # DOID:4: 12 connections
+        # ...
+        ```
     """
     degrees: List[Tuple[str, int]] = []
 
@@ -492,9 +516,13 @@ def get_graph_statistics(
         Dictionary with various statistics.
 
     Example:
-        >>> stats = get_graph_statistics(graph)
-        >>> print(f"Density: {stats['density']:.4f}")
-        >>> print(f"Components: {stats['num_components']}")
+        ```python
+        stats = get_graph_statistics(graph)
+        print(f"Density: {stats['density']:.4f}")
+        # Density: 0.0213
+        print(f"Components: {stats['num_components']}")
+        # Components: 1
+        ```
     """
     n = graph.node_count
     m = graph.edge_count

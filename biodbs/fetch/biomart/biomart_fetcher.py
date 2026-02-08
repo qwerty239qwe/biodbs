@@ -122,7 +122,7 @@ class BioMart_Fetcher(BaseDataFetcher):
     def __init__(
         self,
         host: Union[str, BioMartHost] = BioMartHost.main,
-        **data_manager_kws,
+        **data_manager_kws: Any,
     ):
         """Initialize BioMart fetcher.
 
@@ -270,7 +270,7 @@ class BioMart_Fetcher(BaseDataFetcher):
         dataset: Union[str, BioMartDataset] = BioMartDataset.hsapiens_gene,
         contain: Optional[str] = None,
         pattern: Optional[str] = None,
-    ):
+    ) -> Any:
         """List available attributes for a dataset.
 
         Args:
@@ -289,7 +289,7 @@ class BioMart_Fetcher(BaseDataFetcher):
         dataset: Union[str, BioMartDataset] = BioMartDataset.hsapiens_gene,
         contain: Optional[str] = None,
         pattern: Optional[str] = None,
-    ):
+    ) -> Any:
         """List available filters for a dataset.
 
         Args:

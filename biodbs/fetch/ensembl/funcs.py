@@ -42,8 +42,10 @@ def ensembl_lookup(
         EnsemblFetchedData containing gene/transcript/protein information.
 
     Example:
-        >>> data = ensembl_lookup("ENSG00000141510", expand=True)
-        >>> print(data.results[0]["display_name"])  # TP53
+        ```python
+        data = ensembl_lookup("ENSG00000141510", expand=True)
+        print(data.results[0]["display_name"])  # TP53
+        ```
     """
     return _get_fetcher().lookup(id=id, species=species, expand=expand, db_type=db_type)
 
@@ -86,8 +88,10 @@ def ensembl_lookup_symbol(
         EnsemblFetchedData containing gene information.
 
     Example:
-        >>> data = ensembl_lookup_symbol("human", "TP53")
-        >>> print(data.results[0]["id"])  # ENSG00000141510
+        ```python
+        data = ensembl_lookup_symbol("human", "TP53")
+        print(data.results[0]["id"])  # ENSG00000141510
+        ```
     """
     return _get_fetcher().lookup_symbol(species=species, symbol=symbol, expand=expand)
 
@@ -288,8 +292,10 @@ def ensembl_get_xrefs(
         EnsemblFetchedData containing cross-references.
 
     Example:
-        >>> data = ensembl_get_xrefs("ENSG00000141510", external_db="HGNC")
-        >>> print(data.results[0]["display_id"])
+        ```python
+        data = ensembl_get_xrefs("ENSG00000141510", external_db="HGNC")
+        print(data.results[0]["display_id"])
+        ```
     """
     return _get_fetcher().get_xrefs(
         id=id,

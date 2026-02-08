@@ -14,20 +14,24 @@ Enums:
     DataSource: Supported data sources for building graphs.
 
 Example:
-    >>> from biodbs.graph import KnowledgeGraph, Node, Edge, NodeType, EdgeType
-    >>>
-    >>> # Create nodes
-    >>> node1 = Node(id="DOID:162", label="cancer", node_type=NodeType.DISEASE)
-    >>> node2 = Node(id="DOID:1612", label="breast cancer", node_type=NodeType.DISEASE)
-    >>>
-    >>> # Create edge
-    >>> edge = Edge(source="DOID:1612", target="DOID:162", relation=EdgeType.IS_A)
-    >>>
-    >>> # Build graph
-    >>> graph = KnowledgeGraph(name="DiseaseGraph")
-    >>> graph.add_node(node1)
-    >>> graph.add_node(node2)
-    >>> graph.add_edge(edge)
+    ```python
+    from biodbs.graph import KnowledgeGraph, Node, Edge, NodeType, EdgeType
+
+    # Create nodes
+    node1 = Node(id="DOID:162", label="cancer", node_type=NodeType.DISEASE)
+    node2 = Node(id="DOID:1612", label="breast cancer", node_type=NodeType.DISEASE)
+
+    # Create edge
+    edge = Edge(source="DOID:1612", target="DOID:162", relation=EdgeType.IS_A)
+
+    # Build graph
+    graph = KnowledgeGraph(name="DiseaseGraph")
+    graph.add_node(node1)
+    graph.add_node(node2)
+    graph.add_edge(edge)
+    print(graph)
+    # KnowledgeGraph(name='DiseaseGraph', nodes=2, edges=1)
+    ```
 """
 
 from __future__ import annotations
@@ -339,11 +343,24 @@ class KnowledgeGraph:
         source: Primary data source for this graph.
 
     Example:
-        >>> graph = KnowledgeGraph(name="DiseaseOntologyGraph")
-        >>> graph.add_node(Node(id="DOID:162", label="cancer", node_type=NodeType.DISEASE))
-        >>> graph.add_node(Node(id="DOID:1612", label="breast cancer", node_type=NodeType.DISEASE))
-        >>> graph.add_edge(Edge(source="DOID:1612", target="DOID:162", relation=EdgeType.IS_A))
-        >>> print(graph.summary())
+        ```python
+        from biodbs.graph import KnowledgeGraph, Node, Edge, NodeType, EdgeType
+
+        graph = KnowledgeGraph(name="DiseaseOntologyGraph")
+        graph.add_node(Node(id="DOID:162", label="cancer", node_type=NodeType.DISEASE))
+        graph.add_node(Node(id="DOID:1612", label="breast cancer", node_type=NodeType.DISEASE))
+        graph.add_edge(Edge(source="DOID:1612", target="DOID:162", relation=EdgeType.IS_A))
+        print(graph.summary())
+        # KnowledgeGraph: DiseaseOntologyGraph
+        # Nodes: 2
+        # Edges: 1
+        #
+        # Node types:
+        #   disease: 2
+        #
+        # Edge types:
+        #   is_a: 1
+        ```
     """
 
     def __init__(

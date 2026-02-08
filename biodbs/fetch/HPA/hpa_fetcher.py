@@ -395,7 +395,7 @@ class HPA_Fetcher(BaseDataFetcher):
         columns: Optional[List[str]] = None,
         method: Literal["concat", "stream_to_storage"] = "concat",
         format: str = "json",
-        **kwargs,
+        **kwargs: Any,
     ) -> Union[HPAFetchedData, Path]:
         """Fetch data with batching support.
 

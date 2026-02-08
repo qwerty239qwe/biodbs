@@ -71,13 +71,16 @@ def to_networkx(
         ImportError: If networkx is not installed.
 
     Example:
-        >>> from biodbs.graph import to_networkx, KnowledgeGraph
-        >>> import networkx as nx
-        >>>
-        >>> kg = KnowledgeGraph(name="test")
-        >>> # ... add nodes and edges ...
-        >>> nx_graph = to_networkx(kg)
-        >>> centrality = nx.degree_centrality(nx_graph)
+        ```python
+        from biodbs.graph import to_networkx, build_disease_graph
+        import networkx as nx
+
+        graph = build_disease_graph(disease_data)
+        nx_graph = to_networkx(graph)
+        centrality = nx.degree_centrality(nx_graph)
+        print(f"Nodes: {nx_graph.number_of_nodes()}")
+        # Nodes: 47
+        ```
     """
     try:
         import networkx as nx
@@ -193,12 +196,17 @@ def to_json_ld(
         A dictionary in JSON-LD format.
 
     Example:
-        >>> from biodbs.graph import to_json_ld, build_disease_graph
-        >>>
-        >>> graph = build_disease_graph(disease_data)
-        >>> json_ld = to_json_ld(graph)
-        >>> # Use in RAG pipeline
-        >>> context = json.dumps(json_ld, indent=2)
+        ```python
+        from biodbs.graph import to_json_ld, build_disease_graph
+        import json
+
+        graph = build_disease_graph(disease_data)
+        json_ld = to_json_ld(graph)
+        # Use in RAG pipeline
+        context = json.dumps(json_ld, indent=2)
+        print(json_ld["@type"])
+        # schema:Dataset
+        ```
     """
     result: Dict[str, Any] = {}
 
@@ -354,11 +362,16 @@ def to_rdf(
         ImportError: If rdflib is not installed.
 
     Example:
-        >>> from biodbs.graph import to_rdf, build_disease_graph
-        >>>
-        >>> graph = build_disease_graph(disease_data)
-        >>> turtle = to_rdf(graph, format="turtle")
-        >>> print(turtle)
+        ```python
+        from biodbs.graph import to_rdf, build_disease_graph
+
+        graph = build_disease_graph(disease_data)
+        turtle = to_rdf(graph, format="turtle")
+        print(turtle[:200])
+        # @prefix base: <http://example.org/biokg/> .
+        # @prefix biokg: <http://example.org/biokg/vocab/> .
+        # ...
+        ```
     """
     try:
         from rdflib import Graph as RDFGraph
@@ -500,10 +513,16 @@ def to_neo4j_csv(
         Tuple of (nodes_path, edges_path).
 
     Example:
-        >>> from biodbs.graph import to_neo4j_csv, build_disease_graph
-        >>>
-        >>> graph = build_disease_graph(disease_data)
-        >>> nodes_path, edges_path = to_neo4j_csv(graph, "./neo4j_import/")
+        ```python
+        from biodbs.graph import to_neo4j_csv, build_disease_graph
+
+        graph = build_disease_graph(disease_data)
+        nodes_path, edges_path = to_neo4j_csv(graph, "./neo4j_import/")
+        print(f"Nodes: {nodes_path}")
+        # Nodes: neo4j_import/nodes.csv
+        print(f"Edges: {edges_path}")
+        # Edges: neo4j_import/relationships.csv
+        ```
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -602,11 +621,16 @@ def to_cypher(
         Cypher script as a string.
 
     Example:
-        >>> from biodbs.graph import to_cypher, build_disease_graph
-        >>>
-        >>> graph = build_disease_graph(disease_data)
-        >>> cypher = to_cypher(graph)
-        >>> print(cypher)  # Run in Neo4j Browser or via driver
+        ```python
+        from biodbs.graph import to_cypher, build_disease_graph
+
+        graph = build_disease_graph(disease_data)
+        cypher = to_cypher(graph)
+        print(cypher[:150])
+        # // Cypher script generated from KnowledgeGraph: DiseaseOntologyGraph
+        # // Nodes: 47, Edges: 0
+        # ...
+        ```
     """
     lines: List[str] = []
     command = "MERGE" if use_merge else "CREATE"

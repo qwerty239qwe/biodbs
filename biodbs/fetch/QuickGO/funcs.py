@@ -52,8 +52,10 @@ def quickgo_get_terms(ids: Union[str, List[str]]) -> QuickGOFetchedData:
         name, definition, aspect, and synonyms.
 
     Example:
-        >>> data = quickgo_get_terms("GO:0006915")  # apoptotic process
-        >>> print(data.results[0]["name"])
+        ```python
+        data = quickgo_get_terms("GO:0006915")  # apoptotic process
+        print(data.results[0]["name"])
+        ```
     """
     if isinstance(ids, str):
         ids = [ids]

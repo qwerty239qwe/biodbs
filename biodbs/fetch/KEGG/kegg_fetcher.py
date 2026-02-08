@@ -140,7 +140,7 @@ class KEGG_Fetcher(BaseDataFetcher):
     # Default batch size for operations that use dbentries
     DEFAULT_BATCH_SIZE = 10  # KEGG API limit
 
-    def __init__(self, **data_manager_kws):
+    def __init__(self, **data_manager_kws: Any):
         """Initialize KEGG fetcher.
 
         Args:
@@ -154,7 +154,7 @@ class KEGG_Fetcher(BaseDataFetcher):
             else None
         )
 
-    def get(self, operation: str, **kwargs) -> KEGGFetchedData:
+    def get(self, operation: str, **kwargs: Any) -> KEGGFetchedData:
         """Fetch data from KEGG REST API.
 
         Args:
@@ -239,7 +239,7 @@ class KEGG_Fetcher(BaseDataFetcher):
         batch_size: int = DEFAULT_BATCH_SIZE,
         rate_limit_per_second: int = 3,
         get_option: Optional[str] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Union[KEGGFetchedData, Path]:
         """Fetch data for many entries by batching and concurrent requests.
 

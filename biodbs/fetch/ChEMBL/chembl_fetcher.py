@@ -185,7 +185,7 @@ class ChEMBL_Fetcher(BaseDataFetcher):
         rate_limit_per_second: int = 5,
         search_query: Optional[str] = None,
         filters: Optional[Dict[str, Any]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Union[ChEMBLFetchedData, Path]:
         """Fetch multiple pages of results concurrently.
 

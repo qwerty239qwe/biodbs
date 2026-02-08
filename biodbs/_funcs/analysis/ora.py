@@ -1441,8 +1441,20 @@ def ora_reactome_local(
         ORAResult with Reactome pathway enrichment results.
 
     Example:
-        >>> genes = ["TP53", "BRCA1", "BRCA2"]
-        >>> result = ora_reactome_local(genes, species="Homo sapiens")
+        ```python
+        genes = ["TP53", "BRCA1", "BRCA2"]
+        result = ora_reactome_local(genes, species="Homo sapiens")
+        print(result)
+        # ORAResult(database='Reactome', num_significant=15, query_genes=3, mapped_genes=3)
+
+        # Get top enriched pathways
+        top_pathways = result.top_terms(n=5)
+        for term in top_pathways:
+            print(f"{term.name}: p={term.p_value:.2e}")
+        # Cell Cycle: p=1.23e-05
+        # DNA Repair: p=2.45e-04
+        # ...
+        ```
     """
     # Get species from name
     species_enum = Species.from_name(species)

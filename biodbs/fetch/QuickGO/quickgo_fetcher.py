@@ -104,7 +104,7 @@ class QuickGO_Fetcher(BaseDataFetcher):
 
     DEFAULT_LIMIT = 100
 
-    def __init__(self, **data_manager_kws):
+    def __init__(self, **data_manager_kws: Any):
         """Initialize QuickGO fetcher.
 
         Args:
@@ -122,7 +122,7 @@ class QuickGO_Fetcher(BaseDataFetcher):
         self,
         category: str,
         endpoint: str,
-        **kwargs,
+        **kwargs: Any,
     ) -> QuickGOFetchedData:
         """Fetch data from QuickGO API.
 
@@ -205,7 +205,7 @@ class QuickGO_Fetcher(BaseDataFetcher):
         limit_per_page: int = DEFAULT_LIMIT,
         max_records: Optional[int] = None,
         rate_limit_per_second: int = 5,
-        **kwargs,
+        **kwargs: Any,
     ) -> Union[QuickGOFetchedData, Path]:
         """Fetch multiple pages of results concurrently.
 

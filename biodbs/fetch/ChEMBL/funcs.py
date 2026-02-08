@@ -27,8 +27,10 @@ def chembl_get_molecule(chembl_id: str) -> ChEMBLFetchedData:
         structure, properties, and cross-references.
 
     Example:
-        >>> data = chembl_get_molecule("CHEMBL25")  # Aspirin
-        >>> print(data.results[0]["pref_name"])
+        ```python
+        data = chembl_get_molecule("CHEMBL25")  # Aspirin
+        print(data.results[0]["pref_name"])
+        ```
     """
     return _get_fetcher().get_molecule(chembl_id)
 

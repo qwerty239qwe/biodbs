@@ -1,6 +1,6 @@
 """Convenience functions for FDA openFDA data fetching."""
 
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 from biodbs.data.FDA.data import FDAFetchedData
 from biodbs.fetch.FDA.fda_fetcher import FDA_Fetcher
 
@@ -21,7 +21,7 @@ def fda_search(
     endpoint: str,
     search: Optional[Union[str, Dict]] = None,
     limit: int = 100,
-    **kwargs,
+    **kwargs: Any,
 ) -> FDAFetchedData:
     """Search FDA openFDA database.
 
@@ -53,7 +53,7 @@ def fda_search_all(
     endpoint: str,
     search: Optional[Union[str, Dict]] = None,
     max_records: Optional[int] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> FDAFetchedData:
     """Search FDA openFDA database with automatic pagination.
 
@@ -88,7 +88,7 @@ def fda_search_all(
 def fda_drug_events(
     search: Optional[Union[str, Dict]] = None,
     limit: int = 100,
-    **kwargs,
+    **kwargs: Any,
 ) -> FDAFetchedData:
     """Search FDA drug adverse event reports (FAERS).
 

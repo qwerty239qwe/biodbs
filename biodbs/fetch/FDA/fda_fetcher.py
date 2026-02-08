@@ -2,7 +2,7 @@ from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
 from biodbs.data.FDA._data_model import FDAModel
 from biodbs.data.FDA.data import FDAFetchedData, FDADataManager
 
-from typing import Literal, Optional, Union
+from typing import Any, Literal, Optional, Union
 from pathlib import Path
 import logging
 
@@ -61,7 +61,12 @@ class FDA_Fetcher(BaseDataFetcher):
         ```
     """
 
-    def __init__(self, api_key: str = None, limit: int = None, **data_manager_kws):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        limit: Optional[int] = None,
+        **data_manager_kws: Any,
+    ):
         """Initialize FDA fetcher.
 
         Args:
@@ -75,7 +80,13 @@ class FDA_Fetcher(BaseDataFetcher):
         self._limit = limit
         self._data_manager = FDADataManager(**data_manager_kws)
 
-    def get(self, category, endpoint, stream=None, **kwargs):
+    def get(
+        self,
+        category: str,
+        endpoint: str,
+        stream: Optional[bool] = None,
+        **kwargs: Any,
+    ) -> FDAFetchedData:
         """Fetch data from openFDA API.
 
         Args:
@@ -152,13 +163,13 @@ class FDA_Fetcher(BaseDataFetcher):
 
     def get_all(
         self,
-        category,
-        endpoint,
+        category: str,
+        endpoint: str,
         method: Literal["concat", "stream_to_storage"] = "concat",
         batch_size: int = 1000,
         max_records: Optional[int] = None,
         rate_limit_per_second: int = 4,
-        **kwargs,
+        **kwargs: Any,
     ) -> Union[FDAFetchedData, Path]:
         """Fetch multiple pages of results concurrently.
 

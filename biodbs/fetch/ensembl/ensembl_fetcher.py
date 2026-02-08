@@ -135,7 +135,7 @@ class Ensembl_Fetcher(BaseDataFetcher):
         gene: Optional[str] = None,
         name: Optional[str] = None,
         content_type: str = "json",
-        **kwargs,
+        **kwargs: Any,
     ) -> EnsemblFetchedData:
         """Fetch data from Ensembl REST API.
 
