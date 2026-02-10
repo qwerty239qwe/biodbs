@@ -16,6 +16,7 @@ from biodbs._funcs.graph.core import (
     NodeType,
 )
 from biodbs._funcs.graph.builders import build_kegg_graph
+from biodbs.data.Ensembl.data import EnsemblFetchedData, EnsemblDataManager
 
 
 # =============================================================================
@@ -210,3 +211,31 @@ class TestSQLiteDialectGetConnection:
             assert cursor.fetchone()[0] == 42
         finally:
             verify_conn.close()
+
+
+# =============================================================================
+# Bug 4: EnsemblDataManager.save_ensembl_data calls non-existent method
+#
+# save_ensembl_data() called self.update_metadata(key, str(filepath))
+# but the parent class BaseDBManager only has _update_metadata (with
+# underscore prefix). This raised AttributeError when saving FASTA data
+# with a cache key.
+# =============================================================================
+
+
+class TestEnsemblSaveFastaMetadata:
+    """Regression: save_ensembl_data must call _update_metadata, not update_metadata."""
+
+    def test_save_fasta_with_key_does_not_raise(self, tmp_path):
+        """Saving FASTA with a key should update metadata without AttributeError."""
+        mgr = EnsemblDataManager(storage_path=tmp_path)
+        data = EnsemblFetchedData(
+            ">ENSP00000269305\nMEEPQSDPSVEPP\n",
+            content_type="fasta",
+        )
+        filepath = mgr.save_ensembl_data(data, "test_seq", fmt="fasta", key="my_key")
+        assert filepath is not None
+        assert filepath.exists()
+        # Metadata should have been updated
+        assert "my_key" in mgr._metadata
+        assert mgr._metadata["my_key"]["filepath"] == str(filepath)
