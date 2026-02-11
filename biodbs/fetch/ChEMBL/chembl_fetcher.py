@@ -3,6 +3,7 @@
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
 from biodbs.data.ChEMBL._data_model import ChEMBLModel
 from biodbs.data.ChEMBL.data import ChEMBLFetchedData, ChEMBLDataManager
+from biodbs.exceptions import raise_for_status
 from typing import Dict, Any, List, Literal, Optional, Union
 from pathlib import Path
 import logging
@@ -155,10 +156,7 @@ class ChEMBL_Fetcher(BaseDataFetcher):
             # Entry not found - return empty result
             return ChEMBLFetchedData({}, resource=resource)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to fetch data from ChEMBL API. "
-                f"Status code: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "ChEMBL", url=url)
 
         return ChEMBLFetchedData(response.json(), resource=resource)
 
@@ -171,9 +169,7 @@ class ChEMBL_Fetcher(BaseDataFetcher):
         """Thread-safe fetch for a single page."""
         response = requests.get(url, params=query_params)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"ChEMBL API error {response.status_code}: {response.text}"
-            )
+            raise_for_status(response, "ChEMBL", url=url)
         return ChEMBLFetchedData(response.json(), resource=resource)
 
     def get_all(

@@ -6,6 +6,7 @@ import os
 
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
 from biodbs.fetch._rate_limit import request_with_retry, get_rate_limiter
+from biodbs.exceptions import raise_for_status
 from biodbs.data.NCBI._data_model import (
     NCBIBase,
     NCBIGeneEndpoint,
@@ -160,10 +161,7 @@ class NCBI_Fetcher(BaseDataFetcher):
         )
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"NCBI API request failed. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "NCBI", url=url)
 
         return response.json()
 

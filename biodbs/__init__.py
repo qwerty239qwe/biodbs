@@ -22,6 +22,20 @@ All functions are also available at the top level for convenience:
 __version__ = "0.2.0"
 
 # =============================================================================
+# Exceptions (custom error hierarchy for API errors)
+# =============================================================================
+from biodbs.exceptions import (
+    BiodBSError,
+    APIError,
+    APIServerError,
+    APIRateLimitError,
+    APINotFoundError,
+    APITimeoutError,
+    APIValidationError,
+    IDTranslationError,
+)
+
+# =============================================================================
 # Fetch functions (low-level API wrappers for biological databases)
 # =============================================================================
 from biodbs.fetch._func import *
@@ -100,6 +114,18 @@ __all__ = [
     "translate",
     "analysis",
     "graph",
+
+    # ==========================================================================
+    # EXCEPTIONS - Custom error hierarchy
+    # ==========================================================================
+    "BiodBSError",
+    "APIError",
+    "APIServerError",
+    "APIRateLimitError",
+    "APINotFoundError",
+    "APITimeoutError",
+    "APIValidationError",
+    "IDTranslationError",
 
     # ==========================================================================
     # FETCH FUNCTIONS - Low-level API wrappers

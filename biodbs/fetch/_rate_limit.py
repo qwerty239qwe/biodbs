@@ -14,6 +14,14 @@ from typing import Callable, Optional, TypeVar, Any, Dict
 from functools import wraps
 import requests
 
+from biodbs.exceptions import (
+    APIServerError,
+    APIRateLimitError,
+    APITimeoutError,
+    APIError,
+    raise_for_status,
+)
+
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
@@ -192,8 +200,32 @@ def retry_with_backoff(
                     time.sleep(delay)
                     delay = min(delay * exponential_base, max_delay)
 
+                except APIRateLimitError as e:
+                    if attempt == max_retries:
+                        raise
+                    last_exception = e
+                    wait = e.retry_after or delay
+                    logger.warning(
+                        f"Rate limited, retrying in {wait:.1f}s "
+                        f"(attempt {attempt + 1}/{max_retries})"
+                    )
+                    time.sleep(wait)
+                    delay = min(delay * exponential_base, max_delay)
+
+                except (APIServerError, APIError) as e:
+                    status_code = getattr(e, "status_code", None)
+                    if status_code not in retry_on or attempt == max_retries:
+                        raise
+                    last_exception = e
+                    logger.warning(
+                        f"API error (status {status_code}), retrying in {delay:.1f}s "
+                        f"(attempt {attempt + 1}/{max_retries})"
+                    )
+                    time.sleep(delay)
+                    delay = min(delay * exponential_base, max_delay)
+
                 except ConnectionError as e:
-                    # Handle our custom ConnectionError from fetchers
+                    # Handle legacy ConnectionError from fetchers
                     error_msg = str(e)
                     if "429" in error_msg or "rate limit" in error_msg.lower():
                         if attempt == max_retries:
@@ -296,9 +328,17 @@ def request_with_retry(
             # Check for rate limiting response
             if response.status_code == 429:
                 if attempt == max_retries:
-                    raise ConnectionError(
-                        f"Rate limited after {max_retries} retries. "
-                        f"Status: 429, Message: {response.text}"
+                    retry_after_val = None
+                    raw = response.headers.get("Retry-After")
+                    if raw:
+                        try:
+                            retry_after_val = float(raw)
+                        except ValueError:
+                            pass
+                    raise APIRateLimitError(
+                        service=host,
+                        retry_after=retry_after_val,
+                        url=url,
                     )
                 # Get retry-after header if available
                 retry_after = response.headers.get("Retry-After")
@@ -319,9 +359,11 @@ def request_with_retry(
             # Check for server errors
             if response.status_code >= 500:
                 if attempt == max_retries:
-                    raise ConnectionError(
-                        f"Server error after {max_retries} retries. "
-                        f"Status: {response.status_code}, Message: {response.text}"
+                    raise APIServerError(
+                        service=host,
+                        status_code=response.status_code,
+                        url=url,
+                        response_text=response.text[:500] if response.text else "",
                     )
                 logger.warning(
                     f"Server error ({response.status_code}), retrying in {delay:.1f}s "
@@ -335,7 +377,9 @@ def request_with_retry(
 
         except requests.exceptions.Timeout as e:
             if attempt == max_retries:
-                raise ConnectionError(f"Request timed out after {max_retries} retries: {e}")
+                raise APITimeoutError(
+                    service=host, url=url, timeout=timeout
+                ) from e
             last_exception = e
             logger.warning(
                 f"Request timed out, retrying in {delay:.1f}s "
@@ -346,7 +390,11 @@ def request_with_retry(
 
         except requests.exceptions.RequestException as e:
             if attempt == max_retries:
-                raise ConnectionError(f"Request failed after {max_retries} retries: {e}")
+                raise APIError(
+                    f"Request to {host} failed after {max_retries} retries: {e}",
+                    service=host,
+                    url=url,
+                ) from e
             last_exception = e
             logger.warning(
                 f"Request failed ({e}), retrying in {delay:.1f}s "
@@ -357,5 +405,9 @@ def request_with_retry(
 
     # Should not reach here
     if last_exception:
-        raise ConnectionError(f"Request failed: {last_exception}")
+        raise APIError(
+            f"Request to {host} failed: {last_exception}",
+            service=host,
+            url=url,
+        )
     raise RuntimeError("Unexpected request loop exit")

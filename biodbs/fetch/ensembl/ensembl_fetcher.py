@@ -6,6 +6,7 @@ from biodbs.data.Ensembl._data_model import (
     EnsemblEndpoint,
 )
 from biodbs.data.Ensembl.data import EnsemblFetchedData, EnsemblDataManager
+from biodbs.exceptions import raise_for_status, APIValidationError
 from typing import Dict, Any, List, Optional, Union
 import logging
 import requests
@@ -181,12 +182,9 @@ class Ensembl_Fetcher(BaseDataFetcher):
         if response.status_code == 404:
             return EnsemblFetchedData({}, endpoint=endpoint)
         if response.status_code == 400:
-            raise ValueError(f"Bad request: {response.text}")
+            raise APIValidationError("Ensembl", detail=response.text, url=url)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to fetch data from Ensembl API. "
-                f"Status code: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Ensembl", url=url)
 
         if content_type in ("fasta", "text"):
             return EnsemblFetchedData(

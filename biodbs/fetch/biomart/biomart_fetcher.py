@@ -13,6 +13,7 @@ Reference:
 """
 
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
+from biodbs.exceptions import APIServerError, APIError
 from biodbs.data.BioMart._data_model import (
     BioMartHost,
     BioMartMart,
@@ -179,15 +180,13 @@ class BioMart_Fetcher(BaseDataFetcher):
                     if response.text.startswith("Query ERROR"):
                         raise ValueError(f"BioMart query error: {response.text[:200]}")
                     return response
-                elif response.status_code == 500:
+                elif response.status_code >= 500:
                     # Server error, retry
-                    last_error = f"Server error (500): {response.text[:200]}"
+                    last_error = f"Server error ({response.status_code}): {response.text[:200]}"
                     time.sleep(retry_delay * (attempt + 1))
                 else:
-                    raise ConnectionError(
-                        f"BioMart request failed with status {response.status_code}: "
-                        f"{response.text[:200]}"
-                    )
+                    from biodbs.exceptions import raise_for_status
+                    raise_for_status(response, "BioMart", url=url)
             except requests.exceptions.Timeout:
                 last_error = "Request timeout"
                 time.sleep(retry_delay * (attempt + 1))
@@ -195,7 +194,12 @@ class BioMart_Fetcher(BaseDataFetcher):
                 last_error = str(e)
                 time.sleep(retry_delay * (attempt + 1))
 
-        raise ConnectionError(f"BioMart request failed after {retries} attempts: {last_error}")
+        raise APIServerError(
+            service="BioMart",
+            status_code=500,
+            url=url,
+            response_text=last_error or "",
+        )
 
     # =========================================================================
     # Discovery methods
