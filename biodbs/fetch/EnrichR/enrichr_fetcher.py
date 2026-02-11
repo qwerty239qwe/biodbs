@@ -5,6 +5,7 @@ import logging
 import requests
 
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
+from biodbs.exceptions import raise_for_status
 from biodbs.data.EnrichR._data_model import (
     EnrichRBase,
     EnrichREndpoint,
@@ -124,10 +125,7 @@ class EnrichR_Fetcher(BaseDataFetcher):
 
         response = requests.post(url, files=payload)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to add gene list to EnrichR. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "EnrichR", url=url)
 
         data = response.json()
         return AddListResponse(
@@ -151,10 +149,7 @@ class EnrichR_Fetcher(BaseDataFetcher):
         response = requests.get(url)
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get library statistics. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "EnrichR", url=url)
 
         data = response.json()
         # The response has category names as keys, each with a list of libraries
@@ -208,10 +203,7 @@ class EnrichR_Fetcher(BaseDataFetcher):
 
         response = requests.get(url, params=params)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get enrichment results. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "EnrichR", url=url)
 
         data = response.json()
         # Extract results from the library key
@@ -320,9 +312,7 @@ class EnrichR_Fetcher(BaseDataFetcher):
         }
         response = requests.post(url, files=payload)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to add gene list. Status: {response.status_code}"
-            )
+            raise_for_status(response, "EnrichR", url=url)
         user_list_id = response.json()["userListId"]
 
         # Step 2: Add background
@@ -330,9 +320,7 @@ class EnrichR_Fetcher(BaseDataFetcher):
         payload = {"background": (None, "\n".join(background))}
         response = requests.post(url, files=payload)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to add background. Status: {response.status_code}"
-            )
+            raise_for_status(response, "EnrichR", url=url)
         background_id = response.json()["backgroundid"]
 
         # Step 3: Get enrichment with background
@@ -344,9 +332,7 @@ class EnrichR_Fetcher(BaseDataFetcher):
         }
         response = requests.post(url, files=payload)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get background enrichment. Status: {response.status_code}"
-            )
+            raise_for_status(response, "EnrichR", url=url)
 
         data = response.json()
         results = data.get(library, data.get("results", []))
@@ -372,9 +358,7 @@ class EnrichR_Fetcher(BaseDataFetcher):
 
         response = requests.get(url, params=params)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to view gene list. Status: {response.status_code}"
-            )
+            raise_for_status(response, "EnrichR", url=url)
 
         data = response.json()
         return data.get("genes", [])
@@ -394,9 +378,7 @@ class EnrichR_Fetcher(BaseDataFetcher):
 
         response = requests.get(url, params=params)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get gene map. Status: {response.status_code}"
-            )
+            raise_for_status(response, "EnrichR", url=url)
 
         return response.json()
 
@@ -425,9 +407,7 @@ class EnrichR_Fetcher(BaseDataFetcher):
 
         response = requests.get(url, params=params)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to export results. Status: {response.status_code}"
-            )
+            raise_for_status(response, "EnrichR", url=url)
 
         return response.text
 

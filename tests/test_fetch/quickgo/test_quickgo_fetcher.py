@@ -454,13 +454,13 @@ class TestErrorHandling:
 
     def test_invalid_go_id_format_raises_error(self, fetcher):
         # API returns 400 for invalid IDs
-        with pytest.raises(ConnectionError) as exc_info:
+        from biodbs.exceptions import APIValidationError
+        with pytest.raises(APIValidationError) as exc_info:
             fetcher.get(
                 category="ontology",
                 endpoint="terms/{ids}",
                 ids="INVALID:0000000"
             )
-        assert "400" in str(exc_info.value)
         assert "invalid" in str(exc_info.value).lower()
 
     def test_missing_required_parameter(self, fetcher):

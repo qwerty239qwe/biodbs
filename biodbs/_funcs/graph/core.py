@@ -864,8 +864,10 @@ class KnowledgeGraph:
         elif direction == "incoming":
             return len(self._incoming.get(node_id, set()))
         else:
-            return len(self._outgoing.get(node_id, set())) + len(
-                self._incoming.get(node_id, set())
+            # Use union to avoid double-counting self-loop edges
+            return len(
+                self._outgoing.get(node_id, set())
+                | self._incoming.get(node_id, set())
             )
 
     def summary(self) -> str:

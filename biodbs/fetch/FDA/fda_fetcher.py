@@ -1,6 +1,7 @@
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
 from biodbs.data.FDA._data_model import FDAModel
 from biodbs.data.FDA.data import FDAFetchedData, FDADataManager
+from biodbs.exceptions import raise_for_status
 
 from typing import Any, Literal, Optional, Union
 from pathlib import Path
@@ -132,7 +133,7 @@ class FDA_Fetcher(BaseDataFetcher):
 
         response = requests.get(url, params=kwargs, stream=stream)
         if response.status_code != 200:
-            raise ConnectionError(f"Failed to fetch data from FDA API. Status code: {response.status_code}, Message: {response.text}")
+            raise_for_status(response, "FDA", url=url)
         
         return FDAFetchedData(response.json())
     
@@ -140,9 +141,7 @@ class FDA_Fetcher(BaseDataFetcher):
         """Thread-safe page fetch — no shared state mutation."""
         response = requests.get(url, params=params)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"FDA API error {response.status_code}: {response.text}"
-            )
+            raise_for_status(response, "FDA", url=url)
         return FDAFetchedData(response.json())
 
     def _resolve_url(self, category, endpoint, **kwargs):

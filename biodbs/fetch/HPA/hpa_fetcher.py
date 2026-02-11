@@ -17,6 +17,7 @@ Reference:
 """
 
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
+from biodbs.exceptions import raise_for_status
 from biodbs.data.HPA._data_model import (
     HPAEntryModel,
     HPASearchModel,
@@ -205,10 +206,7 @@ class HPA_Fetcher(BaseDataFetcher):
         if response.status_code == 404:
             return HPAFetchedData([], format=format, query_type="entry")
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to fetch data from HPA. "
-                f"Status code: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "HPA", url=url)
 
         if format.lower() == "json":
             content = response.json()
@@ -292,10 +290,7 @@ class HPA_Fetcher(BaseDataFetcher):
 
         response = requests.get(url, params=query_params, headers=self._headers)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to fetch data from HPA search. "
-                f"Status code: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "HPA", url=url)
 
         # Handle compressed response
         if compress == "yes" and response.content:
@@ -365,10 +360,7 @@ class HPA_Fetcher(BaseDataFetcher):
                 f"Message: {response.text}"
             )
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to fetch data from HPA search_download API. "
-                f"Status code: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "HPA", url=url)
 
         # Handle compressed response
         if compress == "yes" and response.content:
@@ -587,10 +579,7 @@ class HPA_Fetcher(BaseDataFetcher):
         logger.info("Downloading HPA bulk data from %s", url)
         response = requests.get(url, stream=True)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to download HPA bulk data. "
-                f"Status code: {response.status_code}"
-            )
+            raise_for_status(response, "HPA", url=url)
 
         filepath.parent.mkdir(parents=True, exist_ok=True)
         with open(filepath, "wb") as f:

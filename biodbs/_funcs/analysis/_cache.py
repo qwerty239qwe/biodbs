@@ -200,8 +200,10 @@ class SQLiteDialect(SQLDialect):
         return "?"
 
     def get_connection(self):
-        # SQLite uses a context manager from BaseDBManager
-        return self._sqlite_connection(self.db_path).__enter__()
+        # Return a plain connection (not via context manager) to avoid
+        # leaking the generator from _sqlite_connection's @contextmanager.
+        # Callers are responsible for closing (handled by SQLDialect.connection()).
+        return sqlite3.connect(self.db_path)
 
     def get_dict_cursor(self, conn):
         conn.row_factory = sqlite3.Row

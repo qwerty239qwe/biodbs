@@ -605,7 +605,9 @@ def build_kegg_graph(
         if data.format == "flat_file":
             for key in ["DEFINITION", "PATHWAY", "MODULE", "DISEASE", "DBLINKS"]:
                 if key in record:
-                    properties[key.lower()] = record[key]
+                    value = record[key]
+                    # Convert lists to tuples so they are hashable for frozenset
+                    properties[key.lower()] = tuple(value) if isinstance(value, list) else value
 
         # Create node
         node = Node(

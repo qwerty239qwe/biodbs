@@ -387,7 +387,7 @@ class EnsemblDataManager(BaseDBManager):
             with open(filepath, "w") as f:
                 f.write(data.text)
             if key:
-                self.update_metadata(key, str(filepath))
+                self._update_metadata(key, filepath=str(filepath))
             return filepath
 
         if fmt == "csv" and data.results:

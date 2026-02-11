@@ -1,6 +1,10 @@
+[build-system]
+requires = ["uv_build>=0.10.2,<0.11.0"]
+build-backend = "uv_build"
+
 [project]
 name = "biodbs"
-version = "0.2.0"
+version = "0.2.1"
 description = "biodbs is a Python library providing unified access to major biological and chemical databases with built-in support for ID translation and enrichment analysis."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -30,6 +34,7 @@ graph = [
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
+    "pytest-cov>=7.0.0",
     "ruff>=0.8.0",
 ]
 docs = [
@@ -44,3 +49,9 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests requiring network access",
 ]
+
+[tool.uv.build-backend]
+module-root = ""
+
+[tool.coverage.run]
+omit = ["biodbs/deprecated.py"]

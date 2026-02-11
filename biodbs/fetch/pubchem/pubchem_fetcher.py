@@ -10,6 +10,7 @@ PubChem provides two REST APIs:
 """
 
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
+from biodbs.exceptions import raise_for_status
 from biodbs.data.PubChem._data_model import (
     PUGRestModel, PUGViewModel, PUGViewHeading,
 )
@@ -222,10 +223,7 @@ class PubChem_Fetcher(BaseDataFetcher):
         if response.status_code == 404:
             return PUGRestFetchedData({}, domain=domain, operation=operation)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to fetch data from PubChem PUG REST API. "
-                f"Status code: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "PubChem", url=url)
 
         if is_binary:
             content = response.content
@@ -244,9 +242,7 @@ class PubChem_Fetcher(BaseDataFetcher):
         """Thread-safe fetch for a batch."""
         response = requests.get(url, params=query_params)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"PubChem PUG REST API error {response.status_code}: {response.text}"
-            )
+            raise_for_status(response, "PubChem", url=url)
         return PUGRestFetchedData(response.json(), domain=domain, operation=operation)
 
     def get_all(
@@ -589,10 +585,7 @@ class PubChem_Fetcher(BaseDataFetcher):
         if response.status_code == 404:
             return PUGViewFetchedData({}, record_type=record_type)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to fetch data from PubChem PUG View API. "
-                f"Status code: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "PubChem", url=url)
 
         return PUGViewFetchedData(response.json(), record_type=record_type)
 

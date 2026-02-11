@@ -1,4 +1,5 @@
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
+from biodbs.exceptions import raise_for_status
 from biodbs.data.QuickGO._data_model import QuickGOModel, QuickGOCategory
 from biodbs.data.QuickGO.data import QuickGOFetchedData, QuickGODataManager
 from typing import Dict, Any, List, Literal, Optional, Union
@@ -157,10 +158,7 @@ class QuickGO_Fetcher(BaseDataFetcher):
 
         response = requests.get(url, params=query_params, headers=headers)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to fetch data from QuickGO API. "
-                f"Status code: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "QuickGO", url=url)
 
         # Handle different response types
         content_type = response.headers.get("Content-Type", "")
@@ -183,9 +181,7 @@ class QuickGO_Fetcher(BaseDataFetcher):
         """Thread-safe fetch for a single page."""
         response = requests.get(url, params=query_params)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"QuickGO API error {response.status_code}: {response.text}"
-            )
+            raise_for_status(response, "QuickGO", url=url)
 
         content_type = response.headers.get("Content-Type", "")
         if "application/json" in content_type:

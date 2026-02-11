@@ -477,9 +477,11 @@ class TestErrorHandling:
     def test_invalid_entry_returns_error(self, fetcher):
         """Test that invalid entry ID raises an error.
 
-        Note: The get_rsp utility asserts on 404 status, so we expect AssertionError.
+        The fetcher uses raise_for_status which raises custom API exceptions
+        for non-200 responses.
         """
-        with pytest.raises((ConnectionError, AssertionError)):
+        from biodbs.exceptions import APIError
+        with pytest.raises((ConnectionError, AssertionError, APIError)):
             fetcher.get(operation="get", dbentries=["invalid:entry123"])
 
 

@@ -19,7 +19,21 @@ All functions are also available at the top level for convenience:
    from biodbs import pubchem_get_compound, translate_gene_ids, ora_kegg
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
+
+# =============================================================================
+# Exceptions (custom error hierarchy for API errors)
+# =============================================================================
+from biodbs.exceptions import (
+    BiodBSError,
+    APIError,
+    APIServerError,
+    APIRateLimitError,
+    APINotFoundError,
+    APITimeoutError,
+    APIValidationError,
+    IDTranslationError,
+)
 
 # =============================================================================
 # Fetch functions (low-level API wrappers for biological databases)
@@ -100,6 +114,18 @@ __all__ = [
     "translate",
     "analysis",
     "graph",
+
+    # ==========================================================================
+    # EXCEPTIONS - Custom error hierarchy
+    # ==========================================================================
+    "BiodBSError",
+    "APIError",
+    "APIServerError",
+    "APIRateLimitError",
+    "APINotFoundError",
+    "APITimeoutError",
+    "APIValidationError",
+    "IDTranslationError",
 
     # ==========================================================================
     # FETCH FUNCTIONS - Low-level API wrappers

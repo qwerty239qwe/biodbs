@@ -5,6 +5,7 @@ import logging
 import requests
 
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
+from biodbs.exceptions import raise_for_status
 from biodbs.data.Reactome._data_model import (
     ReactomeBase,
     ReactomeAnalysisEndpoint,
@@ -165,10 +166,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         )
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Reactome analysis failed. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         data = response.json()
         token = data.get("summary", {}).get("token")
@@ -239,10 +237,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         )
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Reactome projection analysis failed. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         data = response.json()
         token = data.get("summary", {}).get("token")
@@ -282,10 +277,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url, params=params)
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Reactome single analysis failed. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         data = response.json()
         token = data.get("summary", {}).get("token")
@@ -339,10 +331,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url, params=params)
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to retrieve results by token. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         data = response.json()
 
@@ -373,10 +362,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url)
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get found entities. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return response.json()
 
@@ -395,10 +381,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url)
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get not-found identifiers. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         data = response.json()
         # Response is list of objects with "id" field
@@ -419,10 +402,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url)
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to download results. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return response.json()
 
@@ -455,10 +435,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         )
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to map identifiers. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return response.json()
 
@@ -486,10 +463,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url, headers={"Accept": "application/json"})
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get top pathways. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return ReactomePathwaysData(content=response.json())
 
@@ -513,10 +487,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url, headers={"Accept": "application/json"})
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get events hierarchy. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return response.json()
 
@@ -538,10 +509,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url, headers={"Accept": "application/json"})
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get pathways for entity. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return ReactomePathwaysData(content=response.json())
 
@@ -563,10 +531,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url, headers={"Accept": "application/json"})
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get species list. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return ReactomeSpeciesData(content=response.json())
 
@@ -583,10 +548,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url, headers={"Accept": "application/json"})
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get main species list. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return ReactomeSpeciesData(content=response.json())
 
@@ -603,10 +565,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url)
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get database version. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return response.text.strip()
 
@@ -625,10 +584,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url, headers={"Accept": "application/json"})
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to query entry. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return response.json()
 
@@ -657,10 +613,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url, headers={"Accept": "application/json"})
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get participants. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return response.json()
 
@@ -683,10 +636,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url, headers={"Accept": "application/json"})
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get participating physical entities. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return response.json()
 
@@ -722,10 +672,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url, headers={"Accept": "application/json"})
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get reference entities. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return response.json()
 
@@ -880,10 +827,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url, headers={"Accept": "application/json"})
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get event ancestors. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return response.json()
 
@@ -906,10 +850,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url, headers={"Accept": "application/json"})
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get complex subunits. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return response.json()
 
@@ -928,10 +869,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url, headers={"Accept": "application/json"})
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get entity containers. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return response.json()
 
@@ -950,10 +888,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url, headers={"Accept": "application/json"})
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get entity other forms. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return response.json()
 
@@ -974,10 +909,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url, headers={"Accept": "application/json"})
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get diseases. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return response.json()
 
@@ -994,10 +926,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url, headers={"Accept": "application/json"})
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get disease DOIDs. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return response.json()
 
@@ -1025,10 +954,7 @@ class Reactome_Fetcher(BaseDataFetcher):
         response = requests.get(url, headers={"Accept": "application/json"})
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to map identifier to reactions. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "Reactome", url=url)
 
         return response.json()
 

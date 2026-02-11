@@ -3,6 +3,7 @@ from biodbs.data.KEGG._data_model import (
     KEGGModel, KEGGOperation, KEGGDatabase,
 )
 from biodbs.data.KEGG.data import KEGGFetchedData, KEGGDataManager
+from biodbs.exceptions import raise_for_status
 from biodbs.utils import get_rsp
 from typing import Dict, Any, List, Literal, Optional, Union
 from pathlib import Path
@@ -171,11 +172,9 @@ class KEGG_Fetcher(BaseDataFetcher):
         url = self._api_config.api_url
         get_option = kwargs.get("get_option")
 
-        response = get_rsp(url)
+        response = get_rsp(url, safe_check=False)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to fetch data from KEGG API. Status code: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "KEGG", url=url)
 
         # Handle binary responses (images)
         if get_option == "image":
@@ -216,11 +215,9 @@ class KEGG_Fetcher(BaseDataFetcher):
         # Build URL using the url_builder directly
         url = _build_kegg_url(self._namespace.valid_params)
 
-        response = get_rsp(url)
+        response = get_rsp(url, safe_check=False)
         if response.status_code != 200:
-            raise ConnectionError(
-                f"KEGG API error {response.status_code}: {response.text}"
-            )
+            raise_for_status(response, "KEGG", url=url)
 
         if get_option == "image":
             content = response.content

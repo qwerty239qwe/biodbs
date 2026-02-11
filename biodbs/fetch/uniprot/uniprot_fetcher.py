@@ -7,6 +7,7 @@ import re
 
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
 from biodbs.fetch._rate_limit import request_with_retry, get_rate_limiter
+from biodbs.exceptions import raise_for_status
 from biodbs.data.uniprot._data_model import (
     UniProtBase,
     UniProtEndpoint,
@@ -141,10 +142,7 @@ class UniProt_Fetcher(BaseDataFetcher):
         )
 
         if response.status_code not in (200, 303):
-            raise ConnectionError(
-                f"UniProt API request failed. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "UniProt", url=url)
 
         # Handle redirect for ID mapping
         if response.status_code == 303:
@@ -283,10 +281,7 @@ class UniProt_Fetcher(BaseDataFetcher):
         )
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"UniProt search failed. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "UniProt", url=self._api_config.get_url(UniProtEndpoint.SEARCH.value))
 
         # Extract next cursor from headers
         next_cursor = self._extract_next_cursor(dict(response.headers))
@@ -489,10 +484,7 @@ class UniProt_Fetcher(BaseDataFetcher):
         )
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"ID mapping job submission failed. "
-                f"Status: {response.status_code}, Message: {response.text}"
-            )
+            raise_for_status(response, "UniProt", url=self._api_config.get_url(UniProtEndpoint.IDMAPPING_RUN.value))
 
         job_id = response.json().get("jobId")
         if not job_id:
@@ -543,10 +535,7 @@ class UniProt_Fetcher(BaseDataFetcher):
         )
 
         if results_response.status_code != 200:
-            raise ConnectionError(
-                f"Failed to get ID mapping results. "
-                f"Status: {results_response.status_code}"
-            )
+            raise_for_status(results_response, "UniProt", url=results_url)
 
         results_data = results_response.json()
 
