@@ -1,7 +1,7 @@
 """Translation/conversion functions for biological identifiers."""
 
 from biodbs._funcs._species import Species, resolve_species
-from biodbs._funcs.translate._id_types import GeneIDType, TranslationDatabase
+from biodbs._funcs.translate._id_types import GeneIDType, TranslationDatabase, resolve_id_type
 from biodbs._funcs.translate.genes import (
     translate_gene_ids,
     translate_gene_ids_kegg,
@@ -28,6 +28,7 @@ __all__ = [
     # ID type and database enums
     "GeneIDType",
     "TranslationDatabase",
+    "resolve_id_type",
     # Gene translation
     "translate_gene_ids",
     "translate_gene_ids_kegg",

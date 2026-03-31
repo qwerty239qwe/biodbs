@@ -78,6 +78,14 @@ def translate_gene_ids(
         - RefSeq_Protein: RefSeq protein ID
         - PDB: PDB structure ID
 
+    Supported ID types for HGNC (human only):
+        - symbol / gene_symbol / hgnc_symbol: Approved gene symbol
+        - hgnc_id: HGNC ID (e.g., "HGNC:11998")
+        - entrez_id: NCBI Gene ID
+        - ensembl_gene_id: Ensembl stable gene ID
+        - uniprot_id → uniprot_ids field (first accession returned)
+        - refseq_mrna / refseq_protein → refseq_accession field (first returned)
+
     Returns:
         When to_type is a string:
             Dict mapping source IDs to target IDs, or DataFrame with both columns.
@@ -179,6 +187,8 @@ def translate_gene_ids(
         return _translate_via_ensembl(ids, from_type, to_type, species_name, return_dict)
     elif database == "uniprot":
         return _translate_via_uniprot(ids, from_type, to_type, species_name, return_dict)
+    elif database == "hgnc":
+        return _translate_via_hgnc(ids, from_type, to_type, species_name, return_dict)
     else:  # ncbi
         return _translate_via_ncbi(ids, from_type, to_type, species_name, return_dict)
 
@@ -560,3 +570,76 @@ def _translate_via_uniprot(
         organism=organism,
         return_dict=return_dict,
     )
+
+
+# HGNC fields that return lists in HGNCEntry — we take the first element.
+_HGNC_LIST_FIELDS = frozenset({
+    "uniprot_ids", "refseq_accession", "omim_id", "ccds_id",
+    "alias_symbol", "alias_name", "prev_symbol", "prev_name",
+    "gene_group", "ena", "mgd_id", "rgd_id", "enzyme_id", "pubmed_id",
+})
+
+
+def _hgnc_extract_field(entry, field: str):
+    """Extract *field* from an HGNCEntry, returning a scalar."""
+    val = getattr(entry, field, None)
+    if val is None:
+        return None
+    if isinstance(val, list):
+        return val[0] if val else None
+    return val
+
+
+def _translate_via_hgnc(
+    ids: List[str],
+    from_type: str,
+    to_type: str,
+    species: str,
+    return_dict: bool,
+) -> Union[Dict[str, str], "pd.DataFrame"]:
+    """Translate gene IDs using the HGNC REST API.
+
+    HGNC covers **human genes only**.  Each ID is looked up with a single
+    ``/fetch/{from_type}/{id}`` call; the target field is extracted from
+    the first returned :class:`HGNCEntry`.
+
+    Supports translation between any pair of::
+
+        symbol, hgnc_id, entrez_id, ensembl_gene_id,
+        uniprot_ids, refseq_accession, omim_id, location, name
+    """
+    import warnings
+    from biodbs.fetch.HGNC.hgnc_fetcher import HGNC_Fetcher
+
+    if species.lower() not in ("human", "homo sapiens", "homo_sapiens"):
+        warnings.warn(
+            f"HGNC only covers human genes; species={species!r} is ignored.",
+            UserWarning,
+            stacklevel=4,
+        )
+
+    fetcher = HGNC_Fetcher()
+    results = []
+
+    for id_val in ids:
+        to_val = None
+        try:
+            data = fetcher.fetch(from_type, id_val)
+            if data.results:
+                to_val = _hgnc_extract_field(data.results[0], to_type)
+        except Exception:
+            pass
+        results.append({from_type: id_val, to_type: to_val})
+
+    df = pd.DataFrame(results)
+
+    if return_dict:
+        if df.empty:
+            return {}
+        return {
+            row[from_type]: row[to_type]
+            for _, row in df.iterrows()
+            if row[to_type] is not None
+        }
+
+    return df

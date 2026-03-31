@@ -8,15 +8,17 @@ Why this exists
 ---------------
 Every database has its own vocabulary for the same concept:
 
-    ==================  =================  ============  ===========  ===============
-    Universal alias     BioMart            NCBI           UniProt      Ensembl REST
-    ==================  =================  ============  ===========  ===============
-    gene_symbol         external_gene_name symbol         Gene_Name    HGNC
-    entrez_id           entrezgene_id      gene_id        GeneID       EntrezGene
-    uniprot_id          uniprot_gn_id      uniprot        UniProtKB_AC-ID  Uniprot_gn
-    ensembl_protein_id  ensembl_peptide_id —              —            —
-    refseq_mrna         refseq_mrna        refseq_acc..   —            RefSeq_mRNA
-    ==================  =================  ============  ===========  ===============
+    ==================  =================  ============  ===========  ===============  ==============
+    Universal alias     BioMart            NCBI           UniProt      Ensembl REST     HGNC
+    ==================  =================  ============  ===========  ===============  ==============
+    gene_symbol         external_gene_name symbol         Gene_Name    HGNC             symbol
+    hgnc_id             hgnc_id            —              —            —                hgnc_id
+    entrez_id           entrezgene_id      gene_id        GeneID       EntrezGene       entrez_id
+    ensembl_gene_id     ensembl_gene_id    ensembl_gene.. Ensembl      ensembl_gene_id  ensembl_gene_id
+    uniprot_id          uniprot_gn_id      uniprot        UniProtKB_AC-ID  Uniprot_gn   uniprot_ids
+    refseq_mrna         refseq_mrna        refseq_acc..   —            RefSeq_mRNA      refseq_accession
+    ensembl_protein_id  ensembl_peptide_id —              —            —                —
+    ==================  =================  ============  ===========  ===============  ==============
 
 Usage
 -----
@@ -114,11 +116,24 @@ ENSEMBL_ID_MAP: dict[str, str] = {
     GeneIDType.REFSEQ_PROTEIN:  "RefSeq_peptide",
 }
 
+# HGNC field names used by the /fetch endpoint.
+HGNC_ID_MAP: dict[str, str] = {
+    GeneIDType.GENE_SYMBOL:     "symbol",
+    GeneIDType.HGNC_ID:         "hgnc_id",
+    GeneIDType.HGNC_SYMBOL:     "symbol",
+    GeneIDType.ENTREZ_ID:       "entrez_id",
+    GeneIDType.ENSEMBL_GENE_ID: "ensembl_gene_id",
+    GeneIDType.UNIPROT_ID:      "uniprot_ids",
+    GeneIDType.REFSEQ_MRNA:     "refseq_accession",
+    GeneIDType.REFSEQ_PROTEIN:  "refseq_accession",
+}
+
 _DB_MAPS: dict[str, dict[str, str]] = {
     "biomart": BIOMART_ID_MAP,
     "ncbi":    NCBI_ID_MAP,
     "uniprot": UNIPROT_ID_MAP,
     "ensembl": ENSEMBL_ID_MAP,
+    "hgnc":    HGNC_ID_MAP,
 }
 
 
@@ -180,6 +195,9 @@ class TranslationDatabase(str, Enum):
                  (UniProt accession, PDB, RefSeq protein).
         BIOMART: BioMart / Ensembl query interface.  Supports the widest range
                  of ID types but is less reliable than the other options.
+        HGNC:    HGNC REST API.  Authoritative for human gene nomenclature;
+                 best for translations involving HGNC IDs, approved symbols,
+                 aliases, and previous symbols.  **Human only.**
 
     Examples:
         >>> from biodbs.translate import TranslationDatabase, translate_gene_ids
@@ -196,3 +214,4 @@ class TranslationDatabase(str, Enum):
     ENSEMBL = "ensembl"
     UNIPROT = "uniprot"
     BIOMART = "biomart"
+    HGNC    = "hgnc"
