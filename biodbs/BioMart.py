@@ -3,6 +3,14 @@ BioMart module (deprecated).
 
 This module is kept for backward compatibility.
 """
+import warnings
+warnings.warn(
+    "biodbs.BioMart is deprecated and will be removed in a future release. "
+    "Use 'from biodbs.fetch.biomart.funcs import ...' instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
 from biodbs.deprecated import (
     BIOMART_HOSTS as HOSTS,
     BIOMART_DEFAULT_HOST as DEFAULT_HOST,
