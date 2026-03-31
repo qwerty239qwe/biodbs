@@ -193,6 +193,34 @@ class KEGGFetchedData(BaseFetchedData):
             }
             self.records.append(record)
 
+    @property
+    def results(self) -> list:
+        """Alias for :attr:`records` — provides a uniform API across all data classes."""
+        return self.records
+
+    def __getitem__(self, key):
+        if isinstance(key, (int, slice)):
+            return self.records[key]
+        if isinstance(key, str):
+            return self._get_by_id(key)
+        raise TypeError(
+            f"Indices must be integers, slices, or strings, not {type(key).__name__}"
+        )
+
+    def __iter__(self):
+        return iter(self.records)
+
+    def _get_by_id(self, entry_id: str) -> dict:
+        """Return the record matching *entry_id*.
+
+        Raises:
+            KeyError: If no record with the given entry_id is found.
+        """
+        entry = self.get_entry(entry_id)
+        if entry is None:
+            raise KeyError(entry_id)
+        return entry
+
     def __iadd__(self, other: "KEGGFetchedData") -> "KEGGFetchedData":
         """Concatenate records from another KEGGFetchedData."""
         if self.format != other.format:

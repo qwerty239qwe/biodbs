@@ -128,6 +128,35 @@ class EnsemblFetchedData(BaseFetchedData):
 
         return sequences
 
+    def __getitem__(self, key):
+        if isinstance(key, (int, slice)):
+            return self.results[key]
+        if isinstance(key, str):
+            return self._get_by_id(key)
+        raise TypeError(
+            f"Indices must be integers, slices, or strings, not {type(key).__name__}"
+        )
+
+    def __iter__(self):
+        return iter(self.results)
+
+    def _get_by_id(self, id_value: str) -> dict:
+        """Return the first result record whose primary ID matches *id_value*.
+
+        Checks ``id``, ``stable_id``, ``gene_id``, ``transcript_id``,
+        and ``protein_id`` fields.
+
+        Raises:
+            KeyError: If no matching record is found.
+        """
+        id_fields = ["id", "stable_id", "gene_id", "transcript_id", "protein_id"]
+        for record in self.results:
+            if isinstance(record, dict):
+                for field in id_fields:
+                    if record.get(field) == id_value:
+                        return record
+        raise KeyError(id_value)
+
     def __iadd__(self, other: "EnsemblFetchedData") -> "EnsemblFetchedData":
         """Concatenate results from another EnsemblFetchedData."""
         self.results.extend(other.results)

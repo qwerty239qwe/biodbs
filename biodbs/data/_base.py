@@ -14,6 +14,60 @@ class BaseFetchedData:
     def __init__(self, content):
         self._content = content  # returns of the requests
 
+    # ------------------------------------------------------------------
+    # Sequence-like access
+    # ------------------------------------------------------------------
+
+    def _get_items(self) -> list:
+        """Return the primary list of result records.
+
+        Used as a fallback for subclasses that do not override
+        ``__getitem__`` and ``__iter__`` directly.  Tries ``results``,
+        then ``records``, then ``_content`` (if it is a list).
+        """
+        if hasattr(self, "results") and isinstance(self.results, list):
+            return self.results
+        if hasattr(self, "records") and isinstance(self.records, list):
+            return self.records
+        if isinstance(self._content, list):
+            return self._content
+        return []
+
+    def __getitem__(self, key):
+        """Index into results by position (int / slice) or ID (str).
+
+        Subclasses should override this to reference their own list
+        attribute directly.  The base fallback calls :meth:`_get_items`.
+
+        Examples:
+            data[0]       # first result
+            data[-1]      # last result
+            data[2:5]     # slice
+            data["TP53"]  # by ID (subclass-dependent)
+        """
+        if isinstance(key, (int, slice)):
+            return self._get_items()[key]
+        if isinstance(key, str):
+            return self._get_by_id(key)
+        raise TypeError(
+            f"Indices must be integers, slices, or strings, not {type(key).__name__}"
+        )
+
+    def _get_by_id(self, id_value: str):
+        """Look up a single result by its primary identifier.
+
+        Override in subclasses that have a natural string key.
+        The base implementation raises :class:`TypeError`.
+        """
+        raise TypeError(
+            f"{type(self).__name__} does not support string-based lookup. "
+            "Use an integer index instead."
+        )
+
+    def __iter__(self):
+        """Iterate over result records."""
+        return iter(self._get_items())
+
     def __repr__(self) -> str:
         """Return a human-readable representation of the fetched data."""
         class_name = self.__class__.__name__

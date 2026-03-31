@@ -35,6 +35,12 @@ Usage:
 """
 
 from biodbs._funcs.translate import (
+    # Species
+    Species,
+    resolve_species,
+    # ID type and database enums
+    GeneIDType,
+    TranslationDatabase,
     # Gene translation
     translate_gene_ids,
     translate_gene_ids_kegg,
@@ -53,6 +59,12 @@ from biodbs._funcs.translate import (
 )
 
 __all__ = [
+    # Species
+    "Species",
+    "resolve_species",
+    # ID type and database enums
+    "GeneIDType",
+    "TranslationDatabase",
     # Gene translation
     "translate_gene_ids",
     "translate_gene_ids_kegg",

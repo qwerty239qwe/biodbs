@@ -52,6 +52,10 @@ from biodbs import graph
 # Translate functions (ID mapping between databases)
 # =============================================================================
 from biodbs._funcs.translate import (
+    Species,
+    resolve_species,
+    GeneIDType,
+    TranslationDatabase,
     translate_gene_ids,
     translate_gene_ids_kegg,
     translate_chemical_ids,
@@ -248,6 +252,17 @@ __all__ = [
     "ensembl_get_genetree_member",
     "ensembl_get_assembly_info",
     "ensembl_get_species_info",
+    # HGNC
+    "hgnc_info",
+    "hgnc_fetch",
+    "hgnc_search",
+    "hgnc_fetch_by_symbol",
+    "hgnc_fetch_by_hgnc_id",
+    "hgnc_fetch_by_entrez_id",
+    "hgnc_fetch_by_ensembl_id",
+    "hgnc_fetch_by_uniprot_id",
+    "hgnc_fetch_by_refseq",
+    "hgnc_search_symbol",
 
     # ==========================================================================
     # TRANSLATE FUNCTIONS - ID mapping between databases
