@@ -239,6 +239,22 @@ from biodbs.fetch.DiseaseOntology.funcs import (
 )
 
 # =============================================================================
+# HGNC functions
+# =============================================================================
+from biodbs.fetch.HGNC.funcs import (
+    hgnc_info,
+    hgnc_fetch,
+    hgnc_search,
+    hgnc_fetch_by_symbol,
+    hgnc_fetch_by_hgnc_id,
+    hgnc_fetch_by_entrez_id,
+    hgnc_fetch_by_ensembl_id,
+    hgnc_fetch_by_uniprot_id,
+    hgnc_fetch_by_refseq,
+    hgnc_search_symbol,
+)
+
+# =============================================================================
 # UniProt functions
 # =============================================================================
 from biodbs.fetch.uniprot.funcs import (
@@ -397,6 +413,17 @@ __all__ = [
     "doid_to_umls",
     "doid_to_icd10",
     "do_xref_mapping",
+    # HGNC
+    "hgnc_info",
+    "hgnc_fetch",
+    "hgnc_search",
+    "hgnc_fetch_by_symbol",
+    "hgnc_fetch_by_hgnc_id",
+    "hgnc_fetch_by_entrez_id",
+    "hgnc_fetch_by_ensembl_id",
+    "hgnc_fetch_by_uniprot_id",
+    "hgnc_fetch_by_refseq",
+    "hgnc_search_symbol",
     # UniProt
     "uniprot_get_entry",
     "uniprot_get_entries",
