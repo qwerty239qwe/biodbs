@@ -521,6 +521,7 @@ class TestTranslateGeneIds:
             ["TP53", "BRCA1"],
             from_type="external_gene_name",
             to_type="ensembl_gene_id",
+            database="biomart",
         )
         assert isinstance(result, pd.DataFrame)
         assert len(result) >= 2
@@ -538,6 +539,7 @@ class TestTranslateGeneIds:
             ["ENSG00000141510"],  # TP53
             from_type="ensembl_gene_id",
             to_type="entrezgene_id",
+            database="biomart",
         )
         assert isinstance(result, pd.DataFrame)
         assert len(result) >= 1
@@ -551,6 +553,7 @@ class TestTranslateGeneIds:
             ["TP53"],
             from_type="external_gene_name",
             to_type="hgnc_id",
+            database="biomart",
         )
         assert isinstance(result, pd.DataFrame)
         assert len(result) >= 1
@@ -562,6 +565,7 @@ class TestTranslateGeneIds:
             ["TP53", "BRCA1"],
             from_type="external_gene_name",
             to_type="ensembl_gene_id",
+            database="biomart",
             return_dict=True,
         )
         assert isinstance(result, dict)
@@ -578,6 +582,7 @@ class TestTranslateGeneIds:
             from_type="external_gene_name",
             to_type="ensembl_gene_id",
             species="mouse",
+            database="biomart",
         )
         assert isinstance(result, pd.DataFrame)
         assert len(result) >= 1
@@ -593,6 +598,7 @@ class TestTranslateGeneIds:
             genes,
             from_type="external_gene_name",
             to_type="ensembl_gene_id",
+            database="biomart",
         )
         assert isinstance(result, pd.DataFrame)
         assert len(result) >= len(genes)
@@ -612,6 +618,7 @@ class TestTranslateGeneIdsMultipleTargets:
             ["TP53", "BRCA1"],
             from_type="external_gene_name",
             to_type=["ensembl_gene_id", "entrezgene_id"],
+            database="biomart",
         )
         assert isinstance(result, pd.DataFrame)
         assert "external_gene_name" in result.columns
@@ -632,6 +639,7 @@ class TestTranslateGeneIdsMultipleTargets:
             ["TP53", "BRCA1"],
             from_type="external_gene_name",
             to_type=["ensembl_gene_id", "entrezgene_id"],
+            database="biomart",
             return_dict=True,
         )
         assert isinstance(result, dict)
@@ -651,6 +659,7 @@ class TestTranslateGeneIdsMultipleTargets:
             ["TP53"],
             from_type="external_gene_name",
             to_type=["ensembl_gene_id", "entrezgene_id", "hgnc_id"],
+            database="biomart",
         )
         assert isinstance(result, pd.DataFrame)
         # Skip if BioMart returned empty results (no target columns)
@@ -667,6 +676,7 @@ class TestTranslateGeneIdsMultipleTargets:
             ["TP53"],
             from_type="external_gene_name",
             to_type=["ensembl_gene_id", "entrezgene_id"],
+            database="biomart",
         )
         assert isinstance(result, pd.DataFrame)
         # At least one target should have been resolved
@@ -803,6 +813,7 @@ def test_empty_list_gene():
         [],
         from_type="external_gene_name",
         to_type="ensembl_gene_id",
+        database="biomart",
     )
     assert isinstance(result, pd.DataFrame)
     # Empty list means no filter, so BioMart returns all genes

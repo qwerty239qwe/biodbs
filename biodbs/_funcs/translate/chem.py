@@ -211,6 +211,7 @@ def _translate_chemical_multiple_targets(
 
     for id_val in ids:
         record = {from_type: id_val}
+        cid = None
         try:
             # First, get the CID based on from_type
             if from_type == "cid":
@@ -265,7 +266,7 @@ def _translate_chemical_multiple_targets(
 
         except Exception:
             for tt in to_types:
-                record[tt] = None
+                record[tt] = cid if (tt == "cid" and cid is not None) else record.get(tt)
 
         results.append(record)
 
