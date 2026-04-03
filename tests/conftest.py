@@ -7,6 +7,28 @@ hitting API rate limits during CI runs.
 import pytest
 import os
 
+# Network/server error types that indicate an external service is unavailable
+# (not a bug in our code).  Integration tests that raise these are skipped
+# rather than failed so CI passes even when a third-party API is down.
+_NETWORK_ERROR_TYPES: tuple = ()
+
+try:
+    import requests.exceptions as _req_exc
+    _NETWORK_ERROR_TYPES += (
+        _req_exc.ConnectTimeout,
+        _req_exc.ConnectionError,
+        _req_exc.Timeout,
+        _req_exc.ReadTimeout,
+    )
+except ImportError:
+    pass
+
+try:
+    from biodbs.exceptions import APIServerError as _APIServerError
+    _NETWORK_ERROR_TYPES += (_APIServerError,)
+except ImportError:
+    pass
+
 
 # CI rate limit overrides - more conservative than defaults
 # These are applied only in CI environments to prevent rate limiting
@@ -63,6 +85,22 @@ def rate_limiter():
     """Provide access to the global rate limiter."""
     from biodbs.fetch._rate_limit import get_rate_limiter
     return get_rate_limiter()
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_call(item):
+    """Convert network/server errors in integration tests into skips.
+
+    When an external service (Reactome, BioMart, NCBI, …) is unreachable or
+    returns a 5xx error, the test is skipped rather than failed.  This keeps
+    CI green even during third-party outages.
+    """
+    outcome = yield
+    if _NETWORK_ERROR_TYPES and item.get_closest_marker("integration") and outcome.excinfo:
+        exc_type, exc_val, _ = outcome.excinfo
+        if isinstance(exc_val, _NETWORK_ERROR_TYPES):
+            skip_msg = f"External service unavailable ({type(exc_val).__name__}): {exc_val}"
+            outcome.force_exception(pytest.skip.Exception(skip_msg))
 
 
 def pytest_configure(config):
