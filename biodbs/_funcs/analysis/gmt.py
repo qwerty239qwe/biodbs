@@ -30,7 +30,10 @@ from __future__ import annotations
 import logging
 import warnings
 from pathlib import Path
-from typing import Dict, FrozenSet, Literal, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, FrozenSet, Literal, Optional, Set, Tuple, Union
+
+if TYPE_CHECKING:
+    from biodbs._funcs._species import Species
 
 logger = logging.getLogger(__name__)
 

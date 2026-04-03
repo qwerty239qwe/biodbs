@@ -32,6 +32,7 @@ from __future__ import annotations
 import math
 import warnings
 from dataclasses import dataclass, field
+from pathlib import Path
 from enum import Enum
 from typing import (
     TYPE_CHECKING,
@@ -815,7 +816,6 @@ def ora(
     Returns:
         ORAResult with enrichment results.
     """
-    from pathlib import Path
     from biodbs._funcs.analysis.gmt import load_gmt
 
     if isinstance(gene_sets, (str, Path)):
