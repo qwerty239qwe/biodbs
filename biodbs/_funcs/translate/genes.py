@@ -17,7 +17,7 @@ def translate_gene_ids(
     from_type: Union[GeneIDType, str],
     to_type: Union[GeneIDType, str, List[Union[GeneIDType, str]]],
     species: Union[Species, str, int] = Species.HUMAN,
-    database: Union[TranslationDatabase, str] = TranslationDatabase.NCBI,
+    database: Union[TranslationDatabase, Literal["ncbi", "ensembl", "uniprot", "biomart", "hgnc"]] = TranslationDatabase.NCBI,
     return_dict: bool = False,
 ) -> Union[Dict[str, str], Dict[str, Dict[str, str]], "pd.DataFrame"]:
     """Translate gene IDs between different identifier types.

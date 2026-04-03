@@ -790,7 +790,7 @@ def _get_reactome_pathways(
 
 def ora(
     genes: List[str],
-    gene_sets: Union[Dict[str, Tuple[str, Set[str]]], Dict[str, Pathway]],
+    gene_sets: Union[Dict[str, Tuple[str, Set[str]]], Dict[str, Pathway], str, Path],
     background: Optional[Set[str]] = None,
     min_overlap: int = 3,
     correction_method: Union[str, CorrectionMethod] = CorrectionMethod.BH,
@@ -800,7 +800,13 @@ def ora(
 
     Args:
         genes: List of query genes.
-        gene_sets: Dict mapping set_id -> (set_name, set of genes) or Pathway objects.
+        gene_sets: Gene sets to test — one of:
+
+            - ``Dict[str, Pathway]`` — as returned by :func:`fetch_gmt`.
+            - ``Dict[str, Tuple[str, Set[str]]]`` — legacy tuple format.
+            - ``str`` or :class:`~pathlib.Path` — path to a ``.gmt`` file,
+              which will be loaded automatically via :func:`load_gmt`.
+
         background: Background gene set (universe). If None, uses union of all genes.
         min_overlap: Minimum overlap required to test a gene set.
         correction_method: Multiple testing correction method.
@@ -809,6 +815,12 @@ def ora(
     Returns:
         ORAResult with enrichment results.
     """
+    from pathlib import Path
+    from biodbs._funcs.analysis.gmt import load_gmt
+
+    if isinstance(gene_sets, (str, Path)):
+        gene_sets = load_gmt(gene_sets)
+
     query_set = set(genes)
 
     # Normalize gene_sets to Dict[str, Tuple[str, Set[str]]]
@@ -1077,6 +1089,7 @@ def ora_go(
     """
     # Resolve to Species
     species = resolve_species(species)
+    taxon_id = species.taxon_id
 
     # Normalize ID type
     from_type = _normalize_id_type(from_id_type)

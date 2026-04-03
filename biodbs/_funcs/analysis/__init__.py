@@ -26,6 +26,7 @@ from biodbs._funcs.analysis.ora import (
     hypergeometric_test,
     multiple_test_correction,
 )
+from biodbs._funcs.analysis.gmt import load_gmt, save_gmt, fetch_gmt
 
 __all__ = [
     # Core ORA functions
@@ -48,4 +49,8 @@ __all__ = [
     # Utility functions
     "hypergeometric_test",
     "multiple_test_correction",
+    # GMT I/O
+    "load_gmt",
+    "save_gmt",
+    "fetch_gmt",
 ]

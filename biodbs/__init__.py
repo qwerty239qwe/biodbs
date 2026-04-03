@@ -75,6 +75,9 @@ from biodbs._funcs.analysis import (
     ORAResult,
     hypergeometric_test,
     multiple_test_correction,
+    load_gmt,
+    save_gmt,
+    fetch_gmt,
 )
 
 # =============================================================================
@@ -265,6 +268,18 @@ __all__ = [
     "hgnc_search_symbol",
 
     # ==========================================================================
+    # CLINVAR FUNCTIONS - Clinical variant data
+    # ==========================================================================
+    "clinvar_search",
+    "clinvar_count",
+    "clinvar_fetch_by_id",
+    "clinvar_search_gene",
+    "clinvar_search_condition",
+    "clinvar_fetch_vcv",
+    "clinvar_fetch_rcv",
+    "clinvar_link_pubmed",
+
+    # ==========================================================================
     # TRANSLATE FUNCTIONS - ID mapping between databases
     # ==========================================================================
     "translate_gene_ids",
@@ -284,6 +299,9 @@ __all__ = [
     "ORAResult",
     "hypergeometric_test",
     "multiple_test_correction",
+    "load_gmt",
+    "save_gmt",
+    "fetch_gmt",
 
     # ==========================================================================
     # GRAPH FUNCTIONS - Knowledge graph construction and analysis

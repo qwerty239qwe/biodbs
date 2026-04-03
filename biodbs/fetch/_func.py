@@ -255,6 +255,20 @@ from biodbs.fetch.HGNC.funcs import (
 )
 
 # =============================================================================
+# ClinVar functions
+# =============================================================================
+from biodbs.fetch.ClinVar.funcs import (
+    clinvar_search,
+    clinvar_count,
+    clinvar_fetch_by_id,
+    clinvar_search_gene,
+    clinvar_search_condition,
+    clinvar_fetch_vcv,
+    clinvar_fetch_rcv,
+    clinvar_link_pubmed,
+)
+
+# =============================================================================
 # UniProt functions
 # =============================================================================
 from biodbs.fetch.uniprot.funcs import (
@@ -424,6 +438,15 @@ __all__ = [
     "hgnc_fetch_by_uniprot_id",
     "hgnc_fetch_by_refseq",
     "hgnc_search_symbol",
+    # ClinVar
+    "clinvar_search",
+    "clinvar_count",
+    "clinvar_fetch_by_id",
+    "clinvar_search_gene",
+    "clinvar_search_condition",
+    "clinvar_fetch_vcv",
+    "clinvar_fetch_rcv",
+    "clinvar_link_pubmed",
     # UniProt
     "uniprot_get_entry",
     "uniprot_get_entries",

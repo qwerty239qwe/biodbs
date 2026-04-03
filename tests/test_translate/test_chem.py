@@ -1,5 +1,6 @@
 import pytest
 import pandas as pd
+from unittest.mock import patch, MagicMock, call
 
 from biodbs._funcs import (
     translate_chemical_ids,
@@ -7,6 +8,316 @@ from biodbs._funcs import (
     translate_chembl_to_pubchem,
     translate_pubchem_to_chembl
 )
+
+
+# =============================================================================
+# Helpers
+# =============================================================================
+
+def _mock_pubchem_search(cids: list) -> MagicMock:
+    m = MagicMock()
+    m.get_cids.return_value = cids
+    return m
+
+
+def _mock_pubchem_props(result_dict: dict) -> MagicMock:
+    m = MagicMock()
+    m.results = [result_dict] if result_dict else []
+    return m
+
+
+def _mock_kegg_data(rows: list) -> MagicMock:
+    m = MagicMock()
+    m.as_dataframe.return_value = pd.DataFrame(rows)
+    return m
+
+
+# =============================================================================
+# Unit Tests — translate_chemical_ids
+# =============================================================================
+
+class TestTranslateChemicalIdsUnit:
+    """Unit tests for translate_chemical_ids — all network calls mocked."""
+
+    def test_cid_to_smiles(self):
+        with patch("biodbs._funcs.translate.chem.pubchem_get_properties") as mock_props:
+            mock_props.return_value = _mock_pubchem_props({"CanonicalSMILES": "CC(=O)Oc1ccccc1C(=O)O"})
+            result = translate_chemical_ids(["2244"], from_type="cid", to_type="smiles")
+        assert isinstance(result, pd.DataFrame)
+        assert result["smiles"].iloc[0] == "CC(=O)Oc1ccccc1C(=O)O"
+
+    def test_cid_to_inchikey(self):
+        with patch("biodbs._funcs.translate.chem.pubchem_get_properties") as mock_props:
+            mock_props.return_value = _mock_pubchem_props({"InChIKey": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"})
+            result = translate_chemical_ids(["2244"], from_type="cid", to_type="inchikey")
+        assert result["inchikey"].iloc[0] == "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"
+
+    def test_cid_to_formula(self):
+        with patch("biodbs._funcs.translate.chem.pubchem_get_properties") as mock_props:
+            mock_props.return_value = _mock_pubchem_props({"MolecularFormula": "C9H8O4"})
+            result = translate_chemical_ids(["2244"], from_type="cid", to_type="formula")
+        assert result["formula"].iloc[0] == "C9H8O4"
+
+    def test_cid_to_cid_no_props_call(self):
+        with patch("biodbs._funcs.translate.chem.pubchem_get_properties") as mock_props:
+            result = translate_chemical_ids(["2244"], from_type="cid", to_type="cid")
+        mock_props.assert_not_called()
+        assert result["cid"].iloc[0] == 2244
+
+    def test_name_to_cid_mocked(self):
+        with patch("biodbs._funcs.translate.chem.pubchem_search_by_name") as mock_search:
+            mock_search.return_value = _mock_pubchem_search([2244])
+            result = translate_chemical_ids(["aspirin"], from_type="name", to_type="cid")
+        assert result["cid"].iloc[0] == 2244
+
+    def test_smiles_to_cid_mocked(self):
+        with patch("biodbs._funcs.translate.chem.pubchem_search_by_smiles") as mock_search:
+            mock_search.return_value = _mock_pubchem_search([2244])
+            result = translate_chemical_ids(
+                ["CC(=O)Oc1ccccc1C(=O)O"], from_type="smiles", to_type="cid"
+            )
+        assert result["cid"].iloc[0] == 2244
+
+    def test_inchikey_to_cid_mocked(self):
+        with patch("biodbs._funcs.translate.chem.pubchem_search_by_inchikey") as mock_search:
+            mock_search.return_value = _mock_pubchem_search([2244])
+            result = translate_chemical_ids(
+                ["BSYNRYMUTXBXSQ-UHFFFAOYSA-N"], from_type="inchikey", to_type="cid"
+            )
+        assert result["cid"].iloc[0] == 2244
+
+    def test_no_cid_found_produces_none(self):
+        with patch("biodbs._funcs.translate.chem.pubchem_search_by_name") as mock_search:
+            mock_search.return_value = _mock_pubchem_search([])  # no results
+            result = translate_chemical_ids(["nonexistent"], from_type="name", to_type="cid")
+        assert pd.isna(result["cid"].iloc[0])
+
+    def test_exception_produces_none(self):
+        with patch("biodbs._funcs.translate.chem.pubchem_search_by_name") as mock_search:
+            mock_search.side_effect = RuntimeError("network fail")
+            result = translate_chemical_ids(["aspirin"], from_type="name", to_type="smiles")
+        assert pd.isna(result["smiles"].iloc[0])
+
+    def test_return_dict(self):
+        with patch("biodbs._funcs.translate.chem.pubchem_search_by_name") as mock_search:
+            mock_search.return_value = _mock_pubchem_search([2244])
+            result = translate_chemical_ids(
+                ["aspirin"], from_type="name", to_type="cid", return_dict=True
+            )
+        assert isinstance(result, dict)
+        assert result["aspirin"] == 2244
+
+    def test_empty_list_returns_empty_df(self):
+        result = translate_chemical_ids([], from_type="name", to_type="cid")
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 0
+
+    def test_name_prop_uses_iupac_key(self):
+        with patch("biodbs._funcs.translate.chem.pubchem_search_by_name") as mock_search, \
+             patch("biodbs._funcs.translate.chem.pubchem_get_properties") as mock_props:
+            mock_search.return_value = _mock_pubchem_search([2244])
+            mock_props.return_value = _mock_pubchem_props({"IUPACName": "2-acetyloxybenzoic acid"})
+            result = translate_chemical_ids(["aspirin"], from_type="name", to_type="name")
+        assert result["name"].iloc[0] == "2-acetyloxybenzoic acid"
+
+
+# =============================================================================
+# Unit Tests — translate_chemical_ids (multiple targets)
+# =============================================================================
+
+class TestTranslateChemicalIdsMultipleTargetsUnit:
+    def test_multiple_to_types_dataframe(self):
+        with patch("biodbs._funcs.translate.chem.pubchem_search_by_name") as mock_search, \
+             patch("biodbs._funcs.translate.chem.pubchem_get_properties") as mock_props:
+            mock_search.return_value = _mock_pubchem_search([2244])
+            mock_props.return_value = _mock_pubchem_props({
+                "CanonicalSMILES": "CC(=O)Oc1ccccc1C(=O)O",
+                "InChIKey": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N",
+            })
+            result = translate_chemical_ids(
+                ["aspirin"], from_type="name", to_type=["cid", "smiles", "inchikey"]
+            )
+        assert isinstance(result, pd.DataFrame)
+        assert "cid" in result.columns
+        assert "smiles" in result.columns
+        assert "inchikey" in result.columns
+
+    def test_multiple_to_types_dict(self):
+        with patch("biodbs._funcs.translate.chem.pubchem_search_by_name") as mock_search, \
+             patch("biodbs._funcs.translate.chem.pubchem_get_properties") as mock_props:
+            mock_search.return_value = _mock_pubchem_search([2244])
+            mock_props.return_value = _mock_pubchem_props({"CanonicalSMILES": "CC(=O)Oc1ccccc1C(=O)O"})
+            result = translate_chemical_ids(
+                ["aspirin"], from_type="name", to_type=["cid", "smiles"], return_dict=True
+            )
+        assert isinstance(result, dict)
+        assert "aspirin" in result
+        assert isinstance(result["aspirin"], dict)
+        assert result["aspirin"]["cid"] == 2244
+
+    def test_only_cid_in_targets(self):
+        with patch("biodbs._funcs.translate.chem.pubchem_search_by_name") as mock_search, \
+             patch("biodbs._funcs.translate.chem.pubchem_get_properties") as mock_props:
+            mock_search.return_value = _mock_pubchem_search([2244])
+            result = translate_chemical_ids(["aspirin"], from_type="name", to_type=["cid"])
+        mock_props.assert_not_called()
+        assert result["cid"].iloc[0] == 2244
+
+    def test_invalid_to_type_in_list_raises(self):
+        with pytest.raises(ValueError, match="Unsupported to_type"):
+            translate_chemical_ids(["aspirin"], from_type="name", to_type=["cid", "invalid_type"])
+
+    def test_no_cid_found_sets_all_none(self):
+        with patch("biodbs._funcs.translate.chem.pubchem_search_by_name") as mock_search:
+            mock_search.return_value = _mock_pubchem_search([])
+            result = translate_chemical_ids(
+                ["nonexistent"], from_type="name", to_type=["cid", "smiles"]
+            )
+        assert pd.isna(result["cid"].iloc[0])
+        assert pd.isna(result["smiles"].iloc[0])
+
+    def test_exception_sets_all_none(self):
+        with patch("biodbs._funcs.translate.chem.pubchem_search_by_name") as mock_search:
+            mock_search.side_effect = RuntimeError("fail")
+            result = translate_chemical_ids(
+                ["aspirin"], from_type="name", to_type=["cid", "smiles"]
+            )
+        assert pd.isna(result["cid"].iloc[0])
+        assert pd.isna(result["smiles"].iloc[0])
+
+
+# =============================================================================
+# Unit Tests — translate_chembl_to_pubchem
+# =============================================================================
+
+class TestTranslateChemblToPubchemUnit:
+    def test_via_cross_references(self):
+        mol_data = MagicMock()
+        mol_data.results = [{
+            "cross_references": [{"xref_src": "PubChem", "xref_id": "2244"}],
+            "molecule_structures": None,
+        }]
+        with patch("biodbs._funcs.translate.chem.chembl_get_molecule", return_value=mol_data):
+            result = translate_chembl_to_pubchem(["CHEMBL25"])
+        assert result["pubchem_cid"].iloc[0] == "2244"
+
+    def test_via_inchikey_fallback(self):
+        mol_data = MagicMock()
+        mol_data.results = [{
+            "cross_references": [],
+            "molecule_structures": {"standard_inchi_key": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"},
+        }]
+        search_data = MagicMock()
+        search_data.get_cids.return_value = [2244]
+        with patch("biodbs._funcs.translate.chem.chembl_get_molecule", return_value=mol_data), \
+             patch("biodbs._funcs.translate.chem.pubchem_search_by_inchikey", return_value=search_data):
+            result = translate_chembl_to_pubchem(["CHEMBL25"])
+        assert result["pubchem_cid"].iloc[0] == 2244
+
+    def test_no_results_produces_none(self):
+        mol_data = MagicMock()
+        mol_data.results = []
+        with patch("biodbs._funcs.translate.chem.chembl_get_molecule", return_value=mol_data):
+            result = translate_chembl_to_pubchem(["CHEMBL_INVALID"])
+        assert pd.isna(result["pubchem_cid"].iloc[0])
+
+    def test_exception_produces_none(self):
+        with patch("biodbs._funcs.translate.chem.chembl_get_molecule", side_effect=RuntimeError("fail")):
+            result = translate_chembl_to_pubchem(["CHEMBL25"])
+        assert pd.isna(result["pubchem_cid"].iloc[0])
+
+    def test_return_dict(self):
+        mol_data = MagicMock()
+        mol_data.results = [{"cross_references": [{"xref_src": "PubChem", "xref_id": "2244"}],
+                              "molecule_structures": None}]
+        with patch("biodbs._funcs.translate.chem.chembl_get_molecule", return_value=mol_data):
+            result = translate_chembl_to_pubchem(["CHEMBL25"], return_dict=True)
+        assert isinstance(result, dict)
+        assert "CHEMBL25" in result
+
+    def test_null_molecule_structures(self):
+        mol_data = MagicMock()
+        mol_data.results = [{"cross_references": [], "molecule_structures": None}]
+        with patch("biodbs._funcs.translate.chem.chembl_get_molecule", return_value=mol_data):
+            result = translate_chembl_to_pubchem(["CHEMBL25"])
+        assert pd.isna(result["pubchem_cid"].iloc[0])
+
+
+# =============================================================================
+# Unit Tests — translate_pubchem_to_chembl
+# =============================================================================
+
+class TestTranslatePubchemToChemblUnit:
+    def test_found(self):
+        prop_data = MagicMock()
+        prop_data.results = [{"InChIKey": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"}]
+        search_data = MagicMock()
+        search_data.results = [{"molecule_chembl_id": "CHEMBL25"}]
+        with patch("biodbs._funcs.translate.chem.pubchem_get_properties", return_value=prop_data), \
+             patch("biodbs._funcs.translate.chem.chembl_search_molecules", return_value=search_data):
+            result = translate_pubchem_to_chembl([2244])
+        assert result["chembl_id"].iloc[0] == "CHEMBL25"
+
+    def test_no_inchikey_produces_none(self):
+        prop_data = MagicMock()
+        prop_data.results = [{}]  # no InChIKey key
+        with patch("biodbs._funcs.translate.chem.pubchem_get_properties", return_value=prop_data):
+            result = translate_pubchem_to_chembl([2244])
+        assert pd.isna(result["chembl_id"].iloc[0])
+
+    def test_no_prop_results_produces_none(self):
+        prop_data = MagicMock()
+        prop_data.results = []
+        with patch("biodbs._funcs.translate.chem.pubchem_get_properties", return_value=prop_data):
+            result = translate_pubchem_to_chembl([2244])
+        assert pd.isna(result["chembl_id"].iloc[0])
+
+    def test_no_chembl_search_results_produces_none(self):
+        prop_data = MagicMock()
+        prop_data.results = [{"InChIKey": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"}]
+        search_data = MagicMock()
+        search_data.results = []
+        with patch("biodbs._funcs.translate.chem.pubchem_get_properties", return_value=prop_data), \
+             patch("biodbs._funcs.translate.chem.chembl_search_molecules", return_value=search_data):
+            result = translate_pubchem_to_chembl([2244])
+        assert pd.isna(result["chembl_id"].iloc[0])
+
+    def test_exception_produces_none(self):
+        with patch("biodbs._funcs.translate.chem.pubchem_get_properties", side_effect=RuntimeError("fail")):
+            result = translate_pubchem_to_chembl([2244])
+        assert pd.isna(result["chembl_id"].iloc[0])
+
+    def test_return_dict(self):
+        prop_data = MagicMock()
+        prop_data.results = [{"InChIKey": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"}]
+        search_data = MagicMock()
+        search_data.results = [{"molecule_chembl_id": "CHEMBL25"}]
+        with patch("biodbs._funcs.translate.chem.pubchem_get_properties", return_value=prop_data), \
+             patch("biodbs._funcs.translate.chem.chembl_search_molecules", return_value=search_data):
+            result = translate_pubchem_to_chembl([2244], return_dict=True)
+        assert isinstance(result, dict)
+        assert result[2244] == "CHEMBL25"
+
+
+# =============================================================================
+# Unit Tests — translate_chemical_ids_kegg
+# =============================================================================
+
+class TestTranslateChemicalIdsKeggUnit:
+    @patch("biodbs._funcs.translate.chem.kegg_conv")
+    def test_with_ids(self, mock_conv):
+        mock_conv.return_value = _mock_kegg_data([
+            {"source_id": "cpd:C00022", "target_id": "pubchem:3324"}
+        ])
+        result = translate_chemical_ids_kegg(["cpd:C00022"], from_db="compound", to_db="pubchem")
+        assert isinstance(result, pd.DataFrame)
+        mock_conv.assert_called_once_with(target_db="pubchem", source=["cpd:C00022"])
+
+    @patch("biodbs._funcs.translate.chem.kegg_conv")
+    def test_empty_ids_uses_from_db(self, mock_conv):
+        mock_conv.return_value = _mock_kegg_data([])
+        translate_chemical_ids_kegg([], from_db="compound", to_db="pubchem")
+        mock_conv.assert_called_once_with(target_db="pubchem", source="compound")
 
 
 
