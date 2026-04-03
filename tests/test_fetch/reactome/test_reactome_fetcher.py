@@ -22,6 +22,7 @@ class TestReactomeFetcherBasic:
         assert fetcher._species == "Mus musculus"
 
 
+@pytest.mark.integration
 class TestReactomeFetcherAPI:
     """API integration tests for Reactome fetcher."""
 
@@ -138,6 +139,7 @@ class TestReactomeFetcherAPI:
         assert "displayName" in entry
 
 
+@pytest.mark.integration
 class TestORAReactome:
     """Tests for ora_reactome function."""
 
