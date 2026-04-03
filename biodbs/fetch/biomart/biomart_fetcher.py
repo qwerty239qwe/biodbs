@@ -186,7 +186,7 @@ class BioMart_Fetcher(BaseDataFetcher):
                         )):
                             raise APIServerError(
                                 service="BioMart",
-                                code=503,
+                                status_code=503,
                                 url=url,
                                 response_text=err_text,
                             )
