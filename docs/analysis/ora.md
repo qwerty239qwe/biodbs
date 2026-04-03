@@ -423,6 +423,47 @@ for name, result in [("KEGG", kegg), ("Reactome", reactome), ("GO_BP", go_bp)]:
     print(f"{name}: {len(sig)} significant terms")
 ```
 
+## Custom Gene Sets with GMT Files
+
+GMT (Gene Matrix Transposed) is the standard interchange format used by GSEA, MSigDB, and most enrichment tools. biodbs can load, save, and fetch GMT gene sets, and `ora()` accepts a GMT path directly.
+
+### Loading a GMT File
+
+```python
+from biodbs.analysis import load_gmt, ora
+
+gene_sets = load_gmt("h.all.v2023.1.Hs.symbols.gmt")
+result = ora(["TP53", "BRCA1", "BRCA2"], gene_sets)
+```
+
+You can also pass the path straight to `ora()`:
+
+```python
+result = ora(["TP53", "BRCA1", "BRCA2"], "h.all.v2023.1.Hs.symbols.gmt")
+```
+
+### Fetching GMT Gene Sets from a Database
+
+```python
+from biodbs.analysis import fetch_gmt, ora
+
+# Fetch KEGG human pathways as a GMT dict (and save locally)
+gene_sets = fetch_gmt("hsa", database="kegg", save_at="./kegg_hsa.gmt")
+result = ora(my_genes, gene_sets)
+
+# Fetch an EnrichR library
+gene_sets = fetch_gmt("KEGG_2021_Human", database="enrichr")
+```
+
+### Saving Gene Sets to GMT
+
+```python
+from biodbs.analysis import save_gmt, fetch_gmt
+
+gene_sets = fetch_gmt("hsa", database="kegg")
+save_gmt(gene_sets, "my_kegg.gmt")
+```
+
 ## Related Resources
 
 ### Data Fetching

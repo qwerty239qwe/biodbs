@@ -13,7 +13,8 @@ The `biodbs.analysis` module provides statistical analysis functions for biologi
 
 | Analysis | Function | Description |
 |----------|----------|-------------|
-| [ORA](ora.md) | `ora_kegg`, `ora_go`, `ora_enrichr` | Over-representation analysis |
+| [ORA](ora.md) | `ora_kegg`, `ora_go`, `ora_enrichr`, `ora_reactome` | Over-representation analysis |
+| [GMT I/O](ora.md#custom-gene-sets-with-gmt-files) | `load_gmt`, `save_gmt`, `fetch_gmt` | Load/save/fetch GMT gene set files |
 
 ## Quick Start
 
@@ -43,6 +44,8 @@ ORA (Over-Representation Analysis) tests whether a gene set is enriched for gene
 | `ora_kegg` | KEGG Pathways | Entrez ID, Symbol |
 | `ora_go` | Gene Ontology (via QuickGO) | UniProt |
 | `ora_enrichr` | EnrichR (100+ libraries) | Symbol |
+| `ora_reactome` | Reactome (API) | Symbol |
+| `ora_reactome_local` | Reactome (local, no API call) | Symbol |
 
 ### Basic Usage
 

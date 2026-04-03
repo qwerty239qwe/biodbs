@@ -21,6 +21,8 @@ Complete reference for `biodbs.fetch` module.
 | [`Reactome_Fetcher`](#reactome_fetcher) | Fetch pathway data from Reactome |
 | [`DO_Fetcher`](#do_fetcher) | Fetch disease terms from Disease Ontology |
 | [`EnrichR_Fetcher`](#enrichr_fetcher) | Perform gene set enrichment via EnrichR |
+| [`HGNC_Fetcher`](#hgnc_fetcher) | Fetch gene nomenclature from HGNC |
+| [`ClinVar_Fetcher`](#clinvar_fetcher) | Fetch clinical variant data from ClinVar |
 
 ### UniProt Functions
 
@@ -121,6 +123,34 @@ Complete reference for `biodbs.fetch` module.
 |----------|-------------|
 | [`enrichr_enrich`](#enrichr_enrich) | Perform enrichment analysis |
 | [`enrichr_get_libraries`](#enrichr_get_libraries) | List available gene set libraries |
+
+### HGNC Functions
+
+| Function | Description |
+|----------|-------------|
+| [`hgnc_fetch`](#hgnc_fetch) | Exact-match lookup by any HGNC field |
+| [`hgnc_search`](#hgnc_search) | Wildcard / boolean search across HGNC |
+| [`hgnc_fetch_by_symbol`](#hgnc_fetch_by_symbol) | Fetch gene by approved symbol |
+| [`hgnc_fetch_by_hgnc_id`](#hgnc_fetch_by_hgnc_id) | Fetch gene by HGNC ID |
+| [`hgnc_fetch_by_entrez_id`](#hgnc_fetch_by_entrez_id) | Fetch gene by Entrez Gene ID |
+| [`hgnc_fetch_by_ensembl_id`](#hgnc_fetch_by_ensembl_id) | Fetch gene by Ensembl gene ID |
+| [`hgnc_fetch_by_uniprot_id`](#hgnc_fetch_by_uniprot_id) | Fetch gene by UniProt accession |
+| [`hgnc_fetch_by_refseq`](#hgnc_fetch_by_refseq) | Fetch gene by RefSeq accession |
+| [`hgnc_search_symbol`](#hgnc_search_symbol) | Wildcard search on gene symbols |
+| [`hgnc_info`](#hgnc_info) | Return HGNC service metadata |
+
+### ClinVar Functions
+
+| Function | Description |
+|----------|-------------|
+| [`clinvar_search`](#clinvar_search) | Search ClinVar with an Entrez query string |
+| [`clinvar_count`](#clinvar_count) | Count ClinVar records matching a query |
+| [`clinvar_fetch_by_id`](#clinvar_fetch_by_id) | Fetch variant summaries by variation UID |
+| [`clinvar_search_gene`](#clinvar_search_gene) | Search and fetch variants for a gene |
+| [`clinvar_search_condition`](#clinvar_search_condition) | Search and fetch variants for a condition |
+| [`clinvar_fetch_vcv`](#clinvar_fetch_vcv) | Fetch full VCV XML record |
+| [`clinvar_fetch_rcv`](#clinvar_fetch_rcv) | Fetch full RCV XML record |
+| [`clinvar_link_pubmed`](#clinvar_link_pubmed) | Get PubMed IDs linked to a variation |
 
 ---
 
@@ -237,6 +267,24 @@ Complete reference for `biodbs.fetch` module.
 ### EnrichR_Fetcher
 
 ::: biodbs.fetch.EnrichR.enrichr_fetcher.EnrichR_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+      members_order: source
+      show_bases: false
+
+### HGNC_Fetcher
+
+::: biodbs.fetch.HGNC.hgnc_fetcher.HGNC_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+      members_order: source
+      show_bases: false
+
+### ClinVar_Fetcher
+
+::: biodbs.fetch.ClinVar.clinvar_fetcher.ClinVar_Fetcher
     options:
       show_root_heading: true
       show_source: false
@@ -536,6 +584,140 @@ Complete reference for `biodbs.fetch` module.
 ### enrichr_get_libraries
 
 ::: biodbs.fetch.EnrichR.funcs.enrichr_get_libraries
+    options:
+      show_root_heading: true
+      show_source: false
+
+---
+
+## HGNC
+
+### hgnc_fetch
+
+::: biodbs.fetch.HGNC.funcs.hgnc_fetch
+    options:
+      show_root_heading: true
+      show_source: false
+
+### hgnc_search
+
+::: biodbs.fetch.HGNC.funcs.hgnc_search
+    options:
+      show_root_heading: true
+      show_source: false
+
+### hgnc_fetch_by_symbol
+
+::: biodbs.fetch.HGNC.funcs.hgnc_fetch_by_symbol
+    options:
+      show_root_heading: true
+      show_source: false
+
+### hgnc_fetch_by_hgnc_id
+
+::: biodbs.fetch.HGNC.funcs.hgnc_fetch_by_hgnc_id
+    options:
+      show_root_heading: true
+      show_source: false
+
+### hgnc_fetch_by_entrez_id
+
+::: biodbs.fetch.HGNC.funcs.hgnc_fetch_by_entrez_id
+    options:
+      show_root_heading: true
+      show_source: false
+
+### hgnc_fetch_by_ensembl_id
+
+::: biodbs.fetch.HGNC.funcs.hgnc_fetch_by_ensembl_id
+    options:
+      show_root_heading: true
+      show_source: false
+
+### hgnc_fetch_by_uniprot_id
+
+::: biodbs.fetch.HGNC.funcs.hgnc_fetch_by_uniprot_id
+    options:
+      show_root_heading: true
+      show_source: false
+
+### hgnc_fetch_by_refseq
+
+::: biodbs.fetch.HGNC.funcs.hgnc_fetch_by_refseq
+    options:
+      show_root_heading: true
+      show_source: false
+
+### hgnc_search_symbol
+
+::: biodbs.fetch.HGNC.funcs.hgnc_search_symbol
+    options:
+      show_root_heading: true
+      show_source: false
+
+### hgnc_info
+
+::: biodbs.fetch.HGNC.funcs.hgnc_info
+    options:
+      show_root_heading: true
+      show_source: false
+
+---
+
+## ClinVar
+
+### clinvar_search
+
+::: biodbs.fetch.ClinVar.funcs.clinvar_search
+    options:
+      show_root_heading: true
+      show_source: false
+
+### clinvar_count
+
+::: biodbs.fetch.ClinVar.funcs.clinvar_count
+    options:
+      show_root_heading: true
+      show_source: false
+
+### clinvar_fetch_by_id
+
+::: biodbs.fetch.ClinVar.funcs.clinvar_fetch_by_id
+    options:
+      show_root_heading: true
+      show_source: false
+
+### clinvar_search_gene
+
+::: biodbs.fetch.ClinVar.funcs.clinvar_search_gene
+    options:
+      show_root_heading: true
+      show_source: false
+
+### clinvar_search_condition
+
+::: biodbs.fetch.ClinVar.funcs.clinvar_search_condition
+    options:
+      show_root_heading: true
+      show_source: false
+
+### clinvar_fetch_vcv
+
+::: biodbs.fetch.ClinVar.funcs.clinvar_fetch_vcv
+    options:
+      show_root_heading: true
+      show_source: false
+
+### clinvar_fetch_rcv
+
+::: biodbs.fetch.ClinVar.funcs.clinvar_fetch_rcv
+    options:
+      show_root_heading: true
+      show_source: false
+
+### clinvar_link_pubmed
+
+::: biodbs.fetch.ClinVar.funcs.clinvar_link_pubmed
     options:
       show_root_heading: true
       show_source: false

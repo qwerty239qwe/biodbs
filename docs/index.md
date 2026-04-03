@@ -31,6 +31,8 @@
 | **FDA** | Drug events, labels, recalls, device data | `biodbs.fetch.FDA` |
 | **Reactome** | Pathway analysis and biological reactions | `biodbs.fetch.Reactome` |
 | **Disease Ontology** | Disease terms and cross-references | `biodbs.fetch.DiseaseOntology` |
+| **HGNC** | Authoritative human gene nomenclature | `biodbs.fetch.HGNC` |
+| **ClinVar** | Clinical variant classifications | `biodbs.fetch.ClinVar` |
 
 ## Quick Example
 
