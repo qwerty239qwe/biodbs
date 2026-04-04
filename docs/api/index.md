@@ -25,6 +25,8 @@ Data fetching from biological databases.
 - [`Reactome_Fetcher`](fetch.md#reactome_fetcher) - Fetch pathway data from Reactome
 - [`DO_Fetcher`](fetch.md#do_fetcher) - Fetch disease terms from Disease Ontology
 - [`EnrichR_Fetcher`](fetch.md#enrichr_fetcher) - Perform gene set enrichment via EnrichR
+- [`HGNC_Fetcher`](fetch.md#hgnc_fetcher) - Fetch gene nomenclature from HGNC
+- [`ClinVar_Fetcher`](fetch.md#clinvar_fetcher) - Fetch clinical variant data from ClinVar
 
 **Key Functions**
 
@@ -34,6 +36,10 @@ Data fetching from biological databases.
 - [`ensembl_lookup`](fetch.md#ensembl_lookup) - Lookup entity by Ensembl ID
 - [`kegg_get`](fetch.md#kegg_get) - Get KEGG entry by ID
 - [`kegg_link`](fetch.md#kegg_link) - Get cross-references between databases
+- [`hgnc_fetch_by_symbol`](fetch.md#hgnc_fetch_by_symbol) - Fetch gene by approved symbol
+- [`hgnc_search_symbol`](fetch.md#hgnc_search_symbol) - Wildcard search on gene symbols
+- [`clinvar_search_gene`](fetch.md#clinvar_search_gene) - Search and fetch variants for a gene
+- [`clinvar_fetch_by_id`](fetch.md#clinvar_fetch_by_id) - Fetch variant summaries by variation UID
 
 </div>
 
@@ -47,9 +53,14 @@ ID translation between biological databases.
 
 <div class="doc-summary" markdown>
 
+**Enums**
+
+- [`GeneIDType`](translate.md#geneidtype) - Universal gene ID type aliases (resolved per backend)
+- [`TranslationDatabase`](translate.md#translationdatabase) - Available translation backends
+
 **Gene Translation**
 
-- [`translate_gene_ids`](translate.md#translate_gene_ids) - Translate gene IDs between databases via BioMart
+- [`translate_gene_ids`](translate.md#translate_gene_ids) - Translate gene IDs between databases
 - [`translate_gene_ids_kegg`](translate.md#translate_gene_ids_kegg) - Translate gene IDs using KEGG API
 
 **Protein Translation**
@@ -89,16 +100,28 @@ Statistical analysis and enrichment functions.
 - [`Species`](analysis.md#species) - Supported species for ORA
 - [`GOAspect`](analysis.md#goaspect) - Gene Ontology aspects (BP, MF, CC)
 - [`CorrectionMethod`](analysis.md#correctionmethod) - Multiple testing correction methods
+- [`TranslationDatabase`](analysis.md#translationdatabase) - Backends for automatic ID translation in ORA
 - [`PathwayDatabase`](analysis.md#pathwaydatabase) - Pathway database sources
 
-**Functions**
+**ORA Functions**
 
-- [`ora`](analysis.md#ora) - Generic ORA against any pathway database
+- [`ora`](analysis.md#ora) - Generic ORA against any gene sets or GMT file
 - [`ora_kegg`](analysis.md#ora_kegg) - ORA against KEGG pathways
 - [`ora_go`](analysis.md#ora_go) - ORA against Gene Ontology terms
-- [`ora_reactome`](analysis.md#ora_reactome) - ORA against Reactome pathways
+- [`ora_reactome`](analysis.md#ora_reactome) - ORA against Reactome pathways (API)
+- [`ora_reactome_local`](analysis.md#ora_reactome_local) - ORA against Reactome pathways (local)
 - [`ora_enrichr`](analysis.md#ora_enrichr) - ORA via EnrichR web service
+
+**GMT Functions**
+
+- [`load_gmt`](analysis.md#load_gmt) - Load a GMT file into Pathway objects
+- [`save_gmt`](analysis.md#save_gmt) - Write Pathway objects to a GMT file
+- [`fetch_gmt`](analysis.md#fetch_gmt) - Fetch gene sets from KEGG or EnrichR as GMT
+
+**Utility Functions**
+
 - [`hypergeometric_test`](analysis.md#hypergeometric_test) - Compute hypergeometric p-value
+- [`multiple_test_correction`](analysis.md#multiple_test_correction) - Apply multiple testing correction
 
 </div>
 

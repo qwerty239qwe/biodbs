@@ -239,6 +239,36 @@ from biodbs.fetch.DiseaseOntology.funcs import (
 )
 
 # =============================================================================
+# HGNC functions
+# =============================================================================
+from biodbs.fetch.HGNC.funcs import (
+    hgnc_info,
+    hgnc_fetch,
+    hgnc_search,
+    hgnc_fetch_by_symbol,
+    hgnc_fetch_by_hgnc_id,
+    hgnc_fetch_by_entrez_id,
+    hgnc_fetch_by_ensembl_id,
+    hgnc_fetch_by_uniprot_id,
+    hgnc_fetch_by_refseq,
+    hgnc_search_symbol,
+)
+
+# =============================================================================
+# ClinVar functions
+# =============================================================================
+from biodbs.fetch.ClinVar.funcs import (
+    clinvar_search,
+    clinvar_count,
+    clinvar_fetch_by_id,
+    clinvar_search_gene,
+    clinvar_search_condition,
+    clinvar_fetch_vcv,
+    clinvar_fetch_rcv,
+    clinvar_link_pubmed,
+)
+
+# =============================================================================
 # UniProt functions
 # =============================================================================
 from biodbs.fetch.uniprot.funcs import (
@@ -397,6 +427,26 @@ __all__ = [
     "doid_to_umls",
     "doid_to_icd10",
     "do_xref_mapping",
+    # HGNC
+    "hgnc_info",
+    "hgnc_fetch",
+    "hgnc_search",
+    "hgnc_fetch_by_symbol",
+    "hgnc_fetch_by_hgnc_id",
+    "hgnc_fetch_by_entrez_id",
+    "hgnc_fetch_by_ensembl_id",
+    "hgnc_fetch_by_uniprot_id",
+    "hgnc_fetch_by_refseq",
+    "hgnc_search_symbol",
+    # ClinVar
+    "clinvar_search",
+    "clinvar_count",
+    "clinvar_fetch_by_id",
+    "clinvar_search_gene",
+    "clinvar_search_condition",
+    "clinvar_fetch_vcv",
+    "clinvar_fetch_rcv",
+    "clinvar_link_pubmed",
     # UniProt
     "uniprot_get_entry",
     "uniprot_get_entries",

@@ -77,6 +77,37 @@ class ChEMBLFetchedData(BaseFetchedData):
                 return [content]
         return []
 
+    def __getitem__(self, key):
+        if isinstance(key, (int, slice)):
+            return self.results[key]
+        if isinstance(key, str):
+            return self._get_by_id(key)
+        raise TypeError(
+            f"Indices must be integers, slices, or strings, not {type(key).__name__}"
+        )
+
+    def __iter__(self):
+        return iter(self.results)
+
+    def _get_by_id(self, chembl_id: str) -> dict:
+        """Return the result record matching *chembl_id*.
+
+        Checks the common ChEMBL ID fields (molecule_chembl_id,
+        target_chembl_id, assay_chembl_id, etc.).
+
+        Raises:
+            KeyError: If no matching record is found.
+        """
+        id_fields = [
+            "molecule_chembl_id", "target_chembl_id", "assay_chembl_id",
+            "document_chembl_id", "cell_chembl_id", "tissue_chembl_id",
+        ]
+        for record in self.results:
+            for field in id_fields:
+                if record.get(field) == chembl_id:
+                    return record
+        raise KeyError(chembl_id)
+
     def __iadd__(self, other: "ChEMBLFetchedData") -> "ChEMBLFetchedData":
         """Concatenate results from another ChEMBLFetchedData."""
         self.results.extend(other.results)

@@ -1,266 +1,344 @@
 # Gene ID Translation
 
-Translate between different gene identifier systems.
+Translate between different gene identifier systems using `translate_gene_ids`.
 
 ## Quick Start
 
 ```python
-from biodbs.translate import translate_gene_ids, translate_gene_ids_kegg
-
-# Gene symbols to Ensembl IDs
-result = translate_gene_ids(
-    ["TP53", "BRCA1"],
-    from_type="external_gene_name",
-    to_type="ensembl_gene_id"
-)
-```
-
-## translate_gene_ids
-
-The main function for gene ID translation with multiple backend databases.
-
-```python
 from biodbs.translate import translate_gene_ids
 
+# Gene symbols → Ensembl IDs (using universal aliases)
 result = translate_gene_ids(
-    ids=["TP53", "BRCA1"],
-    from_type="external_gene_name",
+    ["TP53", "BRCA1", "EGFR"],
+    from_type="gene_symbol",
     to_type="ensembl_gene_id",
-    species="human",
-    database="biomart",
-    return_dict=False
 )
-```
 
-### Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `ids` | List[str] | required | IDs to translate |
-| `from_type` | str | required | Source ID type |
-| `to_type` | str or List[str] | required | Target ID type(s). Pass a list for multiple targets. |
-| `species` | str | "human" | Species name |
-| `database` | str | "biomart" | Backend database |
-| `return_dict` | bool | False | Return dict instead of DataFrame |
-
-### Supported Databases
-
-#### BioMart (default)
-
-Best for batch queries with many ID types.
-
-```python
+# Gene symbols → Entrez IDs
 result = translate_gene_ids(
     ["TP53", "BRCA1"],
-    from_type="external_gene_name",
-    to_type="ensembl_gene_id",
-    database="biomart"
-)
-```
-
-**Supported ID types:**
-
-| ID Type | Description | Example |
-|---------|-------------|---------|
-| `ensembl_gene_id` | Ensembl gene ID | ENSG00000141510 |
-| `ensembl_transcript_id` | Ensembl transcript | ENST00000269305 |
-| `external_gene_name` | Gene symbol | TP53 |
-| `hgnc_symbol` | HGNC symbol | TP53 |
-| `hgnc_id` | HGNC ID | HGNC:11998 |
-| `entrezgene_id` | NCBI Entrez ID | 7157 |
-| `uniprot_gn_id` | UniProt gene name | P04637 |
-| `refseq_mrna` | RefSeq mRNA | NM_000546 |
-
-#### Ensembl REST API
-
-Better for single ID lookups with more cross-references.
-
-```python
-result = translate_gene_ids(
-    ["ENSG00000141510"],
-    from_type="ensembl_gene_id",
-    to_type="HGNC",
-    database="ensembl"
-)
-```
-
-#### NCBI
-
-Best for NCBI Gene IDs and RefSeq.
-
-```python
-result = translate_gene_ids(
-    ["TP53", "BRCA1"],
-    from_type="symbol",
+    from_type="gene_symbol",
     to_type="entrez_id",
-    database="ncbi"
+    database="ncbi",      # default
 )
 ```
 
-**Supported ID types:**
+## Universal ID Type Aliases
 
-| ID Type | Description |
-|---------|-------------|
-| `symbol` / `gene_symbol` | Gene symbol |
-| `entrez_id` / `gene_id` | NCBI Gene ID |
-| `refseq_accession` | RefSeq accession |
+Every database has its own field names for the same concept. biodbs provides a set of
+**universal aliases** that work regardless of which backend you choose — the correct
+native name is resolved automatically.
 
-#### UniProt
+### `GeneIDType` enum
 
-Best for protein-centric translations.
+```python
+from biodbs.translate import GeneIDType
+
+# Use enum members as from_type / to_type
+result = translate_gene_ids(
+    ["TP53", "BRCA1"],
+    from_type=GeneIDType.GENE_SYMBOL,
+    to_type=GeneIDType.ENSEMBL_GENE_ID,
+)
+
+# Plain strings with the same values work identically
+result = translate_gene_ids(
+    ["TP53", "BRCA1"],
+    from_type="gene_symbol",   # same as GeneIDType.GENE_SYMBOL
+    to_type="ensembl_gene_id", # same as GeneIDType.ENSEMBL_GENE_ID
+)
+```
+
+### Universal aliases and their values
+
+| `GeneIDType` member | String value | Description | Example |
+|---------------------|-------------|-------------|---------|
+| `GENE_SYMBOL` | `"gene_symbol"` | Approved gene symbol | `"TP53"` |
+| `ENSEMBL_GENE_ID` | `"ensembl_gene_id"` | Ensembl stable gene ID | `"ENSG00000141510"` |
+| `ENSEMBL_TRANSCRIPT_ID` | `"ensembl_transcript_id"` | Ensembl transcript ID | `"ENST00000269305"` |
+| `ENSEMBL_PROTEIN_ID` | `"ensembl_protein_id"` | Ensembl protein ID | `"ENSP00000269305"` |
+| `ENTREZ_ID` | `"entrez_id"` | NCBI Entrez Gene ID | `"7157"` |
+| `HGNC_ID` | `"hgnc_id"` | HGNC identifier | `"HGNC:11998"` |
+| `HGNC_SYMBOL` | `"hgnc_symbol"` | HGNC-curated symbol | `"TP53"` |
+| `UNIPROT_ID` | `"uniprot_id"` | UniProt accession | `"P04637"` |
+| `REFSEQ_MRNA` | `"refseq_mrna"` | RefSeq mRNA accession | `"NM_000546"` |
+| `REFSEQ_PROTEIN` | `"refseq_protein"` | RefSeq protein accession | `"NP_000537"` |
+| `PDB_ID` | `"pdb_id"` | PDB structure ID | `"2OCJ"` |
+
+### How aliases resolve per database
+
+When you pass a universal alias, it is automatically mapped to the native field name
+required by the chosen backend. Native field names are also accepted and passed through
+unchanged — so existing code keeps working.
+
+| Universal alias | BioMart | NCBI | UniProt | Ensembl REST | HGNC |
+|-----------------|---------|------|---------|--------------|------|
+| `gene_symbol` | `external_gene_name` | `symbol` | `Gene_Name` | `HGNC` | `symbol` |
+| `ensembl_gene_id` | `ensembl_gene_id` | `ensembl_gene_id` | `Ensembl` | `ensembl_gene_id` | `ensembl_gene_id` |
+| `ensembl_transcript_id` | `ensembl_transcript_id` | — | — | — | — |
+| `ensembl_protein_id` | `ensembl_peptide_id` | — | — | — | — |
+| `entrez_id` | `entrezgene_id` | `gene_id` | `GeneID` | `EntrezGene` | `entrez_id` |
+| `hgnc_id` | `hgnc_id` | — | — | — | `hgnc_id` |
+| `hgnc_symbol` | `hgnc_symbol` | — | — | — | `symbol` |
+| `uniprot_id` | `uniprot_gn_id` | `uniprot` | `UniProtKB_AC-ID` | `Uniprot_gn` | `uniprot_ids` |
+| `refseq_mrna` | `refseq_mrna` | `refseq_accession` | — | `RefSeq_mRNA` | `refseq_accession` |
+| `refseq_protein` | `refseq_peptide` | `refseq_accession` | `RefSeq_Protein` | `RefSeq_peptide` | `refseq_accession` |
+| `pdb_id` | — | — | `PDB` | — | — |
+
+!!! note "Native strings are always accepted"
+    If you pass a value that is **not** in the alias map (e.g. `"external_gene_name"` or
+    `"Gene_Name"`), it is forwarded to the database unchanged. This means database-native
+    field names still work, but universal aliases are preferred for portability.
+
+## Choosing a Database
+
+```python
+from biodbs.translate import TranslationDatabase
+
+result = translate_gene_ids(ids, from_type=..., to_type=...,
+                             database=TranslationDatabase.NCBI)   # or "ncbi"
+```
+
+| Database | String | Best for | Human only? |
+|----------|--------|----------|-------------|
+| **NCBI** *(default)* | `"ncbi"` | symbol ↔ Entrez ↔ Ensembl; most stable | No |
+| **Ensembl REST** | `"ensembl"` | Ensembl ID lookups; more stable than BioMart | No |
+| **UniProt** | `"uniprot"` | UniProt accession, PDB, RefSeq protein | No |
+| **BioMart** | `"biomart"` | Widest range of ID types; batch queries | No |
+| **HGNC** | `"hgnc"` | HGNC IDs, approved symbols, aliases | **Yes** |
+
+## Per-Database Details
+
+### NCBI (default)
+
+Queries the NCBI Datasets API. Best starting point for most symbol ↔ ID translations.
 
 ```python
 result = translate_gene_ids(
     ["TP53", "BRCA1"],
-    from_type="Gene_Name",
-    to_type="UniProtKB",
-    database="uniprot"
+    from_type="gene_symbol",   # resolves to "symbol"
+    to_type="entrez_id",       # resolves to "gene_id"
+    database="ncbi",
 )
 ```
 
-**Supported ID types:**
+Supported ID types (universal alias → native):
 
-| ID Type | Description |
-|---------|-------------|
-| `UniProtKB_AC-ID` | UniProt accession |
-| `Gene_Name` | Gene symbol |
-| `GeneID` | NCBI Gene ID |
-| `Ensembl` | Ensembl gene ID |
+| Universal alias | Native field |
+|-----------------|-------------|
+| `gene_symbol` | `symbol` |
+| `ensembl_gene_id` | `ensembl_gene_id` |
+| `entrez_id` | `gene_id` |
+| `uniprot_id` | `uniprot` |
+| `refseq_mrna` / `refseq_protein` | `refseq_accession` |
 
-## translate_gene_ids_kegg
+### Ensembl REST
 
-Translate using KEGG database.
+Uses the Ensembl `/xrefs` endpoint. Natural choice when starting from Ensembl IDs.
+
+```python
+result = translate_gene_ids(
+    ["ENSG00000141510", "ENSG00000012048"],
+    from_type="ensembl_gene_id",
+    to_type="entrez_id",        # resolves to "EntrezGene"
+    database="ensembl",
+)
+```
+
+Supported ID types (universal alias → native):
+
+| Universal alias | Native field |
+|-----------------|-------------|
+| `gene_symbol` | `HGNC` |
+| `ensembl_gene_id` | `ensembl_gene_id` |
+| `entrez_id` | `EntrezGene` |
+| `uniprot_id` | `Uniprot_gn` |
+| `refseq_mrna` | `RefSeq_mRNA` |
+| `refseq_protein` | `RefSeq_peptide` |
+
+### UniProt
+
+Uses the UniProt ID-mapping API. Best for anything involving UniProt accessions, PDB
+IDs, or RefSeq protein IDs.
+
+```python
+result = translate_gene_ids(
+    ["TP53", "BRCA1"],
+    from_type="gene_symbol",   # resolves to "Gene_Name"
+    to_type="uniprot_id",      # resolves to "UniProtKB_AC-ID"
+    database="uniprot",
+)
+```
+
+Supported ID types (universal alias → native):
+
+| Universal alias | Native field |
+|-----------------|-------------|
+| `gene_symbol` | `Gene_Name` |
+| `ensembl_gene_id` | `Ensembl` |
+| `entrez_id` | `GeneID` |
+| `uniprot_id` | `UniProtKB_AC-ID` |
+| `refseq_protein` | `RefSeq_Protein` |
+| `pdb_id` | `PDB` |
+
+### BioMart
+
+Uses Ensembl BioMart. Supports the widest variety of ID types but is slower and less
+reliable than the other options for simple symbol translations.
+
+```python
+result = translate_gene_ids(
+    ["TP53", "BRCA1"],
+    from_type="gene_symbol",        # resolves to "external_gene_name"
+    to_type="ensembl_transcript_id", # unique to BioMart
+    database="biomart",
+)
+```
+
+Supported ID types (universal alias → native):
+
+| Universal alias | Native field |
+|-----------------|-------------|
+| `gene_symbol` | `external_gene_name` |
+| `ensembl_gene_id` | `ensembl_gene_id` |
+| `ensembl_transcript_id` | `ensembl_transcript_id` |
+| `ensembl_protein_id` | `ensembl_peptide_id` |
+| `entrez_id` | `entrezgene_id` |
+| `hgnc_id` | `hgnc_id` |
+| `hgnc_symbol` | `hgnc_symbol` |
+| `uniprot_id` | `uniprot_gn_id` |
+| `refseq_mrna` | `refseq_mrna` |
+| `refseq_protein` | `refseq_peptide` |
+
+### HGNC
+
+Uses the HGNC REST API. Authoritative source for approved human gene symbols, HGNC IDs,
+and aliases. **Human genes only.**
+
+```python
+result = translate_gene_ids(
+    ["TP53", "BRCA1"],
+    from_type="gene_symbol",   # resolves to "symbol"
+    to_type="hgnc_id",         # resolves to "hgnc_id"
+    database="hgnc",
+)
+
+result = translate_gene_ids(
+    ["HGNC:11998", "HGNC:1100"],
+    from_type="hgnc_id",
+    to_type="ensembl_gene_id",
+    database="hgnc",
+)
+```
+
+Supported ID types (universal alias → native):
+
+| Universal alias | Native field |
+|-----------------|-------------|
+| `gene_symbol` / `hgnc_symbol` | `symbol` |
+| `hgnc_id` | `hgnc_id` |
+| `entrez_id` | `entrez_id` |
+| `ensembl_gene_id` | `ensembl_gene_id` |
+| `uniprot_id` | `uniprot_ids` |
+| `refseq_mrna` / `refseq_protein` | `refseq_accession` |
+
+## Multiple Target Types
+
+Pass a list to `to_type` to retrieve several ID types in one call:
+
+```python
+result = translate_gene_ids(
+    ["TP53", "BRCA1", "EGFR"],
+    from_type="gene_symbol",
+    to_type=["ensembl_gene_id", "entrez_id", "hgnc_id"],
+    database="biomart",
+)
+#   gene_symbol    ensembl_gene_id  entrez_id     hgnc_id
+# 0        TP53  ENSG00000141510       7157  HGNC:11998
+# 1       BRCA1  ENSG00000012048        672   HGNC:1100
+# 2        EGFR  ENSG00000146648       1956   HGNC:3236
+
+# As nested dict
+result = translate_gene_ids(
+    ["TP53", "BRCA1"],
+    from_type="gene_symbol",
+    to_type=["ensembl_gene_id", "entrez_id"],
+    return_dict=True,
+)
+# {'TP53': {'ensembl_gene_id': 'ENSG00000141510', 'entrez_id': '7157'}, ...}
+```
+
+## KEGG Translation
+
+`translate_gene_ids_kegg` uses KEGG's `conv` endpoint, which maps between KEGG
+organism-specific gene IDs and external databases.
 
 ```python
 from biodbs.translate import translate_gene_ids_kegg
 
-# KEGG to NCBI Gene ID
+# KEGG IDs → Entrez Gene IDs
 result = translate_gene_ids_kegg(
     ["hsa:7157", "hsa:672"],
     from_db="hsa",
-    to_db="ncbi-geneid"
+    to_db="ncbi-geneid",
 )
 
-# KEGG to UniProt
+# KEGG IDs → UniProt accessions
 result = translate_gene_ids_kegg(
     ["hsa:7157"],
     from_db="hsa",
-    to_db="uniprot"
+    to_db="uniprot",
 )
 ```
 
-### KEGG Database Codes
+### KEGG database codes
 
 | Code | Description |
 |------|-------------|
 | `hsa` | Human genes |
 | `mmu` | Mouse genes |
-| `ncbi-geneid` | NCBI Gene ID |
+| `rno` | Rat genes |
+| `ncbi-geneid` | NCBI Entrez Gene ID |
 | `ncbi-proteinid` | NCBI Protein ID |
 | `uniprot` | UniProt accession |
 
 ## Species Support
 
+All databases except HGNC support multiple species:
+
 ```python
-# Human (default)
-result = translate_gene_ids(ids, species="human")
-
-# Mouse
-result = translate_gene_ids(ids, species="mouse")
-
-# Supported species
-species_list = ["human", "mouse", "rat", "zebrafish", "fly", "worm", "yeast"]
+result = translate_gene_ids(ids, from_type="gene_symbol",
+                             to_type="ensembl_gene_id", species="mouse")
 ```
 
-## Examples
+Accepted values for `species`: `"human"` (default), `"mouse"`, `"rat"`,
+`"zebrafish"`, `"fly"`, `"worm"`, `"yeast"` — or a `Species` enum member.
 
-### Multiple Target Types (Single Request)
-
-Get multiple ID types in one call by passing a list to `to_type`:
-
-```python
-from biodbs.translate import translate_gene_ids
-
-genes = ["TP53", "BRCA1", "EGFR"]
-
-# Get Ensembl, Entrez, and HGNC IDs in one call
-result = translate_gene_ids(
-    genes,
-    from_type="external_gene_name",
-    to_type=["ensembl_gene_id", "entrezgene_id", "hgnc_id"],
-)
-#   external_gene_name    ensembl_gene_id  entrezgene_id     hgnc_id
-# 0               TP53  ENSG00000141510           7157  HGNC:11998
-# 1              BRCA1  ENSG00000012048            672   HGNC:1100
-# 2               EGFR  ENSG00000146648           1956   HGNC:3236
-
-# As dict with nested structure
-result_dict = translate_gene_ids(
-    genes,
-    from_type="external_gene_name",
-    to_type=["ensembl_gene_id", "entrezgene_id"],
-    return_dict=True
-)
-# {'TP53': {'ensembl_gene_id': 'ENSG00000141510', 'entrezgene_id': '7157'}, ...}
-```
-
-### Gene Symbols to Single ID Type
+## Return Formats
 
 ```python
-from biodbs.translate import translate_gene_ids
+# DataFrame (default) — one row per input ID
+df = translate_gene_ids(ids, from_type="gene_symbol", to_type="entrez_id")
 
-genes = ["TP53", "BRCA1", "EGFR"]
+# Dict — {input_id: translated_id} for single target
+mapping = translate_gene_ids(ids, from_type="gene_symbol",
+                              to_type="entrez_id", return_dict=True)
+# {'TP53': '7157', 'BRCA1': '672', ...}
 
-# To Ensembl
-ensembl = translate_gene_ids(
-    genes,
-    from_type="external_gene_name",
-    to_type="ensembl_gene_id",
-    return_dict=True
-)
-
-# To Entrez
-entrez = translate_gene_ids(
-    genes,
-    from_type="external_gene_name",
-    to_type="entrezgene_id",
-    return_dict=True
-)
-```
-
-### Ensembl to Multiple Databases
-
-```python
-ensembl_ids = ["ENSG00000141510", "ENSG00000012048"]
-
-# To HGNC via Ensembl REST
-hgnc = translate_gene_ids(
-    ensembl_ids,
-    from_type="ensembl_gene_id",
-    to_type="HGNC",
-    database="ensembl"
-)
-
-# To Entrez via BioMart
-entrez = translate_gene_ids(
-    ensembl_ids,
-    from_type="ensembl_gene_id",
-    to_type="entrezgene_id",
-    database="biomart"
-)
+# Dict — {input_id: {target: value, ...}} for multiple targets
+mapping = translate_gene_ids(ids, from_type="gene_symbol",
+                              to_type=["entrez_id", "ensembl_gene_id"],
+                              return_dict=True)
+# {'TP53': {'entrez_id': '7157', 'ensembl_gene_id': 'ENSG00000141510'}, ...}
 ```
 
 ## Related Resources
 
-### Backend Data Sources
-
-- **[BioMart](../fetch/biomart.md)** - Batch queries and ID conversion (default backend).
-- **[Ensembl](../fetch/ensembl.md)** - REST API for detailed gene lookups.
-- **[NCBI](../fetch/ncbi.md)** - NCBI Gene database.
-- **[UniProt](../fetch/uniprot.md)** - Protein-centric ID mapping.
-- **[KEGG](../fetch/kegg.md)** - KEGG gene identifiers.
-
-### Use Cases
-
-- **[Over-Representation Analysis](../analysis/ora.md)** - Translate IDs before pathway enrichment.
-- **[Protein Translation](proteins.md)** - Gene to UniProt mapping.
+- **[HGNC](../fetch/hgnc.md)** — Direct HGNC API access (symbol search, cross-reference lookup).
+- **[BioMart](../fetch/biomart.md)** — Batch gene annotation queries.
+- **[Ensembl](../fetch/ensembl.md)** — REST API for detailed gene lookups.
+- **[NCBI](../fetch/ncbi.md)** — NCBI Gene database.
+- **[UniProt](../fetch/uniprot.md)** — Protein-centric ID mapping.
+- **[KEGG](../fetch/kegg.md)** — KEGG gene identifiers.
+- **[Protein ID Translation](proteins.md)** — Gene ↔ UniProt mapping convenience functions.
+- **[Over-Representation Analysis](../analysis/ora.md)** — Translate IDs before pathway enrichment.

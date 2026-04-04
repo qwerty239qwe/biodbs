@@ -40,6 +40,14 @@ Complete reference for `biodbs.analysis` module.
 | [`hypergeometric_test`](#hypergeometric_test) | Compute hypergeometric p-value |
 | [`multiple_test_correction`](#multiple_test_correction) | Apply multiple testing correction |
 
+### GMT Functions
+
+| Function | Description |
+|----------|-------------|
+| [`load_gmt`](#load_gmt) | Load a GMT file into a dict of Pathway objects |
+| [`save_gmt`](#save_gmt) | Write Pathway objects to a GMT file |
+| [`fetch_gmt`](#fetch_gmt) | Fetch gene sets from KEGG or EnrichR as GMT |
+
 ---
 
 ## Enums
@@ -102,9 +110,11 @@ Databases for automatic ID translation.
 
 | Member | Value | Description |
 |--------|-------|-------------|
-| `BIOMART` | `"biomart"` | Ensembl BioMart |
-| `UNIPROT` | `"uniprot"` | UniProt ID mapping |
-| `NCBI` | `"ncbi"` | NCBI Gene database |
+| `NCBI` | `"ncbi"` | NCBI Datasets API — default; best for symbol ↔ Entrez ↔ Ensembl |
+| `ENSEMBL` | `"ensembl"` | Ensembl REST xrefs — natural choice for Ensembl IDs |
+| `UNIPROT` | `"uniprot"` | UniProt ID mapping — best for protein-centric translations |
+| `BIOMART` | `"biomart"` | BioMart — widest ID type range, but less reliable |
+| `HGNC` | `"hgnc"` | HGNC REST API — authoritative for human nomenclature (human only) |
 
 ::: biodbs._funcs.analysis.ora.TranslationDatabase
     options:
@@ -215,6 +225,31 @@ Pathway database sources.
 ### multiple_test_correction
 
 ::: biodbs._funcs.analysis.ora.multiple_test_correction
+    options:
+      show_root_heading: true
+      show_source: false
+
+---
+
+## GMT Functions
+
+### load_gmt
+
+::: biodbs._funcs.analysis.gmt.load_gmt
+    options:
+      show_root_heading: true
+      show_source: false
+
+### save_gmt
+
+::: biodbs._funcs.analysis.gmt.save_gmt
+    options:
+      show_root_heading: true
+      show_source: false
+
+### fetch_gmt
+
+::: biodbs._funcs.analysis.gmt.fetch_gmt
     options:
       show_root_heading: true
       show_source: false

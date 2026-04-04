@@ -393,7 +393,7 @@ class TestORAGo:
 
         result = ora_go(
             proteins,
-            taxon_id=9606,
+            species=9606,
             from_id_type="uniprot",
             aspect=GOAspect.BIOLOGICAL_PROCESS,
             use_cache=True,

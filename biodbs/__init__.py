@@ -52,6 +52,10 @@ from biodbs import graph
 # Translate functions (ID mapping between databases)
 # =============================================================================
 from biodbs._funcs.translate import (
+    Species,
+    resolve_species,
+    GeneIDType,
+    TranslationDatabase,
     translate_gene_ids,
     translate_gene_ids_kegg,
     translate_chemical_ids,
@@ -71,6 +75,9 @@ from biodbs._funcs.analysis import (
     ORAResult,
     hypergeometric_test,
     multiple_test_correction,
+    load_gmt,
+    save_gmt,
+    fetch_gmt,
 )
 
 # =============================================================================
@@ -248,6 +255,29 @@ __all__ = [
     "ensembl_get_genetree_member",
     "ensembl_get_assembly_info",
     "ensembl_get_species_info",
+    # HGNC
+    "hgnc_info",
+    "hgnc_fetch",
+    "hgnc_search",
+    "hgnc_fetch_by_symbol",
+    "hgnc_fetch_by_hgnc_id",
+    "hgnc_fetch_by_entrez_id",
+    "hgnc_fetch_by_ensembl_id",
+    "hgnc_fetch_by_uniprot_id",
+    "hgnc_fetch_by_refseq",
+    "hgnc_search_symbol",
+
+    # ==========================================================================
+    # CLINVAR FUNCTIONS - Clinical variant data
+    # ==========================================================================
+    "clinvar_search",
+    "clinvar_count",
+    "clinvar_fetch_by_id",
+    "clinvar_search_gene",
+    "clinvar_search_condition",
+    "clinvar_fetch_vcv",
+    "clinvar_fetch_rcv",
+    "clinvar_link_pubmed",
 
     # ==========================================================================
     # TRANSLATE FUNCTIONS - ID mapping between databases
@@ -269,6 +299,9 @@ __all__ = [
     "ORAResult",
     "hypergeometric_test",
     "multiple_test_correction",
+    "load_gmt",
+    "save_gmt",
+    "fetch_gmt",
 
     # ==========================================================================
     # GRAPH FUNCTIONS - Knowledge graph construction and analysis

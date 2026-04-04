@@ -32,6 +32,7 @@ from __future__ import annotations
 import math
 import warnings
 from dataclasses import dataclass, field
+from pathlib import Path
 from enum import Enum
 from typing import (
     TYPE_CHECKING,
@@ -62,65 +63,9 @@ if TYPE_CHECKING:
 # Enums and Constants
 # =============================================================================
 
-
-class Species(Enum):
-    """Species with their NCBI taxon IDs and common names.
-
-    Each member has: (taxon_id, common_name, kegg_code, scientific_name)
-    """
-
-    HUMAN = (9606, "human", "hsa", "Homo sapiens")
-    MOUSE = (10090, "mouse", "mmu", "Mus musculus")
-    RAT = (10116, "rat", "rno", "Rattus norvegicus")
-    ZEBRAFISH = (7955, "zebrafish", "dre", "Danio rerio")
-    FLY = (7227, "fly", "dme", "Drosophila melanogaster")
-    WORM = (6239, "worm", "cel", "Caenorhabditis elegans")
-    YEAST = (559292, "yeast", "sce", "Saccharomyces cerevisiae")
-
-    def __init__(self, taxon_id: int, common_name: str, kegg_code: str, scientific_name: str):
-        self.taxon_id = taxon_id
-        self.common_name = common_name
-        self.kegg_code = kegg_code
-        self.scientific_name = scientific_name
-
-    @classmethod
-    def from_taxon_id(cls, taxon_id: int) -> "Species":
-        """Get Species from NCBI taxon ID."""
-        for species in cls:
-            if species.taxon_id == taxon_id:
-                return species
-        raise ValueError(
-            f"Unknown taxon ID: {taxon_id}. "
-            f"Supported: {', '.join(f'{s.name}={s.taxon_id}' for s in cls)}"
-        )
-
-    @classmethod
-    def from_kegg_code(cls, kegg_code: str) -> "Species":
-        """Get Species from KEGG organism code."""
-        for species in cls:
-            if species.kegg_code == kegg_code:
-                return species
-        raise ValueError(
-            f"Unknown KEGG code: {kegg_code}. "
-            f"Supported: {', '.join(f'{s.kegg_code}' for s in cls)}"
-        )
-
-    @classmethod
-    def from_name(cls, name: str) -> "Species":
-        """Get Species from common name, scientific name, or KEGG code."""
-        name_lower = name.lower().strip()
-        for species in cls:
-            if name_lower in (
-                species.common_name.lower(),
-                species.scientific_name.lower(),
-                species.kegg_code.lower(),
-                species.name.lower(),
-            ):
-                return species
-        raise ValueError(
-            f"Unknown species: {name}. "
-            f"Supported: {', '.join(s.common_name for s in cls)}"
-        )
+# Species is defined in a shared module so translate functions can import it
+# without creating a circular dependency.
+from biodbs._funcs._species import Species, resolve_species  # noqa: E402
 
 
 class PathwayDatabase(str, Enum):
@@ -151,12 +96,9 @@ class CorrectionMethod(str, Enum):
     NONE = "none"
 
 
-class TranslationDatabase(str, Enum):
-    """Databases for ID translation."""
-
-    BIOMART = "biomart"
-    UNIPROT = "uniprot"
-    NCBI = "ncbi"
+# TranslationDatabase is defined in the translate layer (no circular import)
+# and re-exported from here for backwards compatibility.
+from biodbs._funcs.translate._id_types import TranslationDatabase  # noqa: E402
 
 
 # =============================================================================
@@ -849,7 +791,7 @@ def _get_reactome_pathways(
 
 def ora(
     genes: List[str],
-    gene_sets: Union[Dict[str, Tuple[str, Set[str]]], Dict[str, Pathway]],
+    gene_sets: Union[Dict[str, Tuple[str, Set[str]]], Dict[str, Pathway], str, Path],
     background: Optional[Set[str]] = None,
     min_overlap: int = 3,
     correction_method: Union[str, CorrectionMethod] = CorrectionMethod.BH,
@@ -859,7 +801,13 @@ def ora(
 
     Args:
         genes: List of query genes.
-        gene_sets: Dict mapping set_id -> (set_name, set of genes) or Pathway objects.
+        gene_sets: Gene sets to test — one of:
+
+            - ``Dict[str, Pathway]`` — as returned by :func:`fetch_gmt`.
+            - ``Dict[str, Tuple[str, Set[str]]]`` — legacy tuple format.
+            - ``str`` or :class:`~pathlib.Path` — path to a ``.gmt`` file,
+              which will be loaded automatically via :func:`load_gmt`.
+
         background: Background gene set (universe). If None, uses union of all genes.
         min_overlap: Minimum overlap required to test a gene set.
         correction_method: Multiple testing correction method.
@@ -868,6 +816,11 @@ def ora(
     Returns:
         ORAResult with enrichment results.
     """
+    from biodbs._funcs.analysis.gmt import load_gmt
+
+    if isinstance(gene_sets, (str, Path)):
+        gene_sets = load_gmt(gene_sets)
+
     query_set = set(genes)
 
     # Normalize gene_sets to Dict[str, Tuple[str, Set[str]]]
@@ -956,7 +909,7 @@ def ora(
 
 def ora_kegg(
     genes: List[str],
-    organism: str = "hsa",
+    species: Union[Species, str, int] = Species.HUMAN,
     from_id_type: str = "entrez",
     background: Optional[Set[str]] = None,
     min_overlap: int = 3,
@@ -964,12 +917,17 @@ def ora_kegg(
     translation_database: Union[str, TranslationDatabase] = TranslationDatabase.BIOMART,
     use_cache: bool = True,
     cache_dir: Optional[str] = None,
+    # backwards-compat alias kept for one major version
+    organism: Optional[str] = None,
 ) -> ORAResult:
     """Perform KEGG pathway over-representation analysis.
 
     Args:
         genes: List of query genes.
-        organism: KEGG organism code (e.g., "hsa" for human, "mmu" for mouse).
+        species: Species to analyse.  Accepts a :class:`Species` member,
+            a common name (``"human"``), a KEGG code (``"hsa"``), a
+            scientific name, or an NCBI taxon ID (``9606``).
+            Defaults to :attr:`Species.HUMAN`.
         from_id_type: Input gene ID type. Automatically translates to Entrez IDs.
             Supported: "entrez", "symbol", "ensembl", "uniprot", "kegg"
         background: Background gene set. If None, uses all genes in KEGG.
@@ -978,27 +936,41 @@ def ora_kegg(
         translation_database: Database for ID translation ("biomart", "uniprot", "ncbi").
         use_cache: Whether to use cached pathway data.
         cache_dir: Directory for cache files.
+        organism: *Deprecated* — pass ``species`` instead.  A raw KEGG
+            organism code (e.g. ``"hsa"``) still works via this argument
+            for backwards compatibility but will be removed in a future
+            version.
 
     Returns:
         ORAResult with KEGG pathway enrichment results.
 
     Example:
         ```python
+        from biodbs import Species
+
         genes = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"]
-        result = ora_kegg(genes, organism="hsa", from_id_type="symbol")
+        # Preferred — use Species enum
+        result = ora_kegg(genes, species=Species.HUMAN, from_id_type="symbol")
+        # Also accepted — KEGG code, common name, or taxon ID
+        result = ora_kegg(genes, species="hsa",   from_id_type="symbol")
+        result = ora_kegg(genes, species="human", from_id_type="symbol")
+        result = ora_kegg(genes, species=9606,    from_id_type="symbol")
         print(result.summary())
-        # ORA Results Summary (KEGG)
-        # ========================================
-        # Query genes: 5
-        # Mapped genes: 5
-        # Significant (adj.p <= 0.05): 8
-        #
-        # Top 5 terms:
-        #   hsa03440: Homologous recombination... (p=1.2e-06, 3/41)
         ```
     """
-    # Get species from KEGG code
-    species = Species.from_kegg_code(organism)
+    # Backwards-compat: honour the old `organism` kwarg
+    if organism is not None:
+        import warnings as _w
+        _w.warn(
+            "The 'organism' parameter is deprecated; use 'species' instead. "
+            "E.g. ora_kegg(genes, species='hsa') or species=Species.HUMAN.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        species = organism
+
+    # Resolve to Species
+    species = resolve_species(species)
 
     # Normalize ID type
     from_type = _normalize_id_type(from_id_type)
@@ -1012,7 +984,7 @@ def ora_kegg(
     unmapped = []
 
     if from_type == "kegg":
-        mapped_genes = [g.replace(f"{organism}:", "") for g in genes]
+        mapped_genes = [g.replace(f"{species.kegg_code}:", "") for g in genes]
     elif from_type != "entrez":
         mapped_genes, _, unmapped = _translate_ids_for_ora(
             genes,
@@ -1051,7 +1023,8 @@ def ora_kegg(
 
     result.query_genes = genes
     result.unmapped_genes = unmapped
-    result.parameters["organism"] = organism
+    result.parameters["species"] = species.name
+    result.parameters["organism"] = species.kegg_code
     result.parameters["from_id_type"] = from_id_type
     result.parameters["translation_database"] = translation_database.value
 
@@ -1060,7 +1033,7 @@ def ora_kegg(
 
 def ora_go(
     genes: List[str],
-    taxon_id: int = 9606,
+    species: Union[Species, str, int] = Species.HUMAN,
     from_id_type: str = "uniprot",
     aspect: Union[str, GOAspect] = GOAspect.BIOLOGICAL_PROCESS,
     evidence_codes: Optional[List[str]] = None,
@@ -1077,7 +1050,10 @@ def ora_go(
 
     Args:
         genes: List of query genes.
-        taxon_id: NCBI taxonomy ID (9606 for human, 10090 for mouse).
+        species: Species to analyse.  Accepts a :class:`Species` member,
+            a common name (``"human"``), a KEGG code (``"hsa"``), a
+            scientific name, or an NCBI taxon ID (``9606``).
+            Defaults to :attr:`Species.HUMAN`.
         from_id_type: Input gene ID type. Automatically translates to UniProt IDs.
             Supported: "uniprot", "symbol", "ensembl", "entrez"
         aspect: GO aspect to analyze.
@@ -1095,20 +1071,25 @@ def ora_go(
         ORAResult with GO term enrichment results.
 
     Raises:
-        ValueError: If taxon_id is not supported.
+        ValueError: If the species value is not recognised.
 
     Example:
         ```python
+        from biodbs import Species
+
         genes = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"]
-        result = ora_go(genes, taxon_id=9606, from_id_type="symbol")
+        # Preferred — use Species enum
+        result = ora_go(genes, species=Species.HUMAN, from_id_type="symbol")
+        # Also accepted — taxon ID, common name, or KEGG code
+        result = ora_go(genes, species=9606,    from_id_type="symbol")
+        result = ora_go(genes, species="human", from_id_type="symbol")
+        result = ora_go(genes, species="hsa",   from_id_type="symbol")
         print(result.significant_terms().as_dataframe().head())
-        #         term_id                              term_name     p_value
-        # 0  GO:0006281                             DNA repair  1.23e-08
-        # 1  GO:0006974  cellular response to DNA damage stimulus  2.45e-07
         ```
     """
-    # Get species from taxon ID
-    species = Species.from_taxon_id(taxon_id)
+    # Resolve to Species
+    species = resolve_species(species)
+    taxon_id = species.taxon_id
 
     # Normalize ID type
     from_type = _normalize_id_type(from_id_type)

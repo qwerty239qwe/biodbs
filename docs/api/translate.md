@@ -4,21 +4,48 @@ Complete reference for `biodbs.translate` module.
 
 ## Key Features
 
-- **Multiple Target Types**: All main translation functions (`translate_gene_ids`,
-  `translate_chemical_ids`, `translate_protein_ids`) accept either a single target type
-  or a list of target types. When a list is provided, all target IDs are returned in one call.
+- **Universal ID aliases**: Use `GeneIDType` enum values (e.g. `"gene_symbol"`, `"entrez_id"`)
+  instead of database-native field names — the correct name is resolved per backend automatically.
+- **Multiple Target Types**: All main translation functions accept either a single target type
+  or a list. When a list is provided, all target IDs are returned in one call.
 
 ```python
-# Single target type
-result = translate_gene_ids(["TP53"], from_type="external_gene_name", to_type="ensembl_gene_id")
+from biodbs.translate import translate_gene_ids, GeneIDType
 
-# Multiple target types - more efficient than multiple calls
+# Universal alias (works with any database)
+result = translate_gene_ids(["TP53"], from_type="gene_symbol", to_type="ensembl_gene_id")
+
+# Enum members are equivalent
+result = translate_gene_ids(["TP53"], from_type=GeneIDType.GENE_SYMBOL,
+                             to_type=GeneIDType.ENSEMBL_GENE_ID)
+
+# Multiple target types — more efficient than multiple calls
 result = translate_gene_ids(
     ["TP53"],
-    from_type="external_gene_name",
-    to_type=["ensembl_gene_id", "entrezgene_id", "hgnc_id"]
+    from_type="gene_symbol",
+    to_type=["ensembl_gene_id", "entrez_id", "hgnc_id"]
 )
 ```
+
+## Enums
+
+### GeneIDType
+
+::: biodbs._funcs.translate._id_types.GeneIDType
+    options:
+      show_root_heading: true
+      show_source: false
+      members_order: source
+
+### TranslationDatabase
+
+::: biodbs._funcs.translate._id_types.TranslationDatabase
+    options:
+      show_root_heading: true
+      show_source: false
+      members_order: source
+
+---
 
 ## Functions Summary
 
@@ -26,7 +53,7 @@ result = translate_gene_ids(
 
 | Function | Description |
 |----------|-------------|
-| [`translate_gene_ids`](#translate_gene_ids) | Translate gene IDs between databases via BioMart |
+| [`translate_gene_ids`](#translate_gene_ids) | Translate gene IDs between databases |
 | [`translate_gene_ids_kegg`](#translate_gene_ids_kegg) | Translate gene IDs using KEGG API |
 
 ### Chemical Translation
@@ -149,20 +176,28 @@ result = translate_gene_ids(
 
 ## ID Type Reference
 
-### Gene ID Types (BioMart)
+### Universal Gene ID Aliases
 
-| ID Type | Description |
-|---------|-------------|
-| `ensembl_gene_id` | Ensembl gene ID |
-| `ensembl_transcript_id` | Ensembl transcript ID |
-| `external_gene_name` | Gene symbol |
-| `hgnc_symbol` | HGNC symbol |
-| `hgnc_id` | HGNC ID |
-| `entrezgene_id` | NCBI Entrez ID |
-| `uniprot_gn_id` | UniProt gene name |
-| `refseq_mrna` | RefSeq mRNA ID |
+Use these values for `from_type` / `to_type` in `translate_gene_ids`. The correct
+database-native name is resolved automatically per backend.
 
-### Protein ID Types (UniProt)
+| Universal alias | BioMart | NCBI | UniProt | Ensembl REST | HGNC |
+|-----------------|---------|------|---------|--------------|------|
+| `gene_symbol` | `external_gene_name` | `symbol` | `Gene_Name` | `HGNC` | `symbol` |
+| `ensembl_gene_id` | `ensembl_gene_id` | `ensembl_gene_id` | `Ensembl` | `ensembl_gene_id` | `ensembl_gene_id` |
+| `ensembl_transcript_id` | `ensembl_transcript_id` | — | — | — | — |
+| `ensembl_protein_id` | `ensembl_peptide_id` | — | — | — | — |
+| `entrez_id` | `entrezgene_id` | `gene_id` | `GeneID` | `EntrezGene` | `entrez_id` |
+| `hgnc_id` | `hgnc_id` | — | — | — | `hgnc_id` |
+| `hgnc_symbol` | `hgnc_symbol` | — | — | — | `symbol` |
+| `uniprot_id` | `uniprot_gn_id` | `uniprot` | `UniProtKB_AC-ID` | `Uniprot_gn` | `uniprot_ids` |
+| `refseq_mrna` | `refseq_mrna` | `refseq_accession` | — | `RefSeq_mRNA` | `refseq_accession` |
+| `refseq_protein` | `refseq_peptide` | `refseq_accession` | `RefSeq_Protein` | `RefSeq_peptide` | `refseq_accession` |
+| `pdb_id` | — | — | `PDB` | — | — |
+
+Native database strings (e.g. `"external_gene_name"`) are also accepted and passed through unchanged.
+
+### Protein ID Types (UniProt mapping)
 
 | ID Type | Description |
 |---------|-------------|

@@ -26,6 +26,8 @@ The `biodbs.fetch` module provides unified access to biological and chemical dat
 | [Reactome](reactome.md) | Pathway data and analysis | `reactome_analyze`, `reactome_get_pathway_genes` |
 | [EnrichR](enrichr.md) | Gene set enrichment | `enrichr_analyze`, `enrichr_get_libraries` |
 | [Disease Ontology](disease-ontology.md) | Disease terms | `do_get_term`, `do_search` |
+| [HGNC](hgnc.md) | Authoritative human gene nomenclature | `hgnc_fetch_by_symbol`, `hgnc_search_symbol` |
+| [ClinVar](clinvar.md) | Clinical variant classifications | `clinvar_search_gene`, `clinvar_fetch_by_id` |
 
 ## Quick Start
 

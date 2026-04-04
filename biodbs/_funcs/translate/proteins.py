@@ -105,15 +105,35 @@ def translate_protein_ids(
     if isinstance(to_type, list):
         return _translate_protein_multiple_targets(ids, from_type, to_type, organism, return_dict)
 
-    # Special case: Gene_Name to UniProt uses optimized search
-    if from_type == "Gene_Name" and to_type in ("UniProtKB", "UniProtKB_AC-ID"):
-        mapping = gene_to_uniprot(ids, organism=organism, reviewed_only=True)
-        if return_dict:
-            return mapping
-        records = [{"from": k, "to": v} for k, v in mapping.items()]
-        return pd.DataFrame(records)
+    # ── Gene_Name ─────────────────────────────────────────────────────────────
+    # UniProt ID mapping only allows Gene_Name → UniProtKB (full entry).
+    # For any other target, chain: Gene_Name → UniProtKB_AC-ID → to_type.
+    if from_type == "Gene_Name":
+        if to_type in ("UniProtKB", "UniProtKB_AC-ID"):
+            # Optimised path: search-based gene → accession lookup
+            mapping = gene_to_uniprot(ids, organism=organism, reviewed_only=True)
+            if return_dict:
+                return mapping
+            records = [{"from": k, "to": v} for k, v in mapping.items()]
+            return pd.DataFrame(records)
+        else:
+            # Two-step: Gene_Name → UniProt accession → to_type
+            acc_map = gene_to_uniprot(ids, organism=organism, reviewed_only=True)
+            uniprot_ids = [acc_map[g] for g in ids if g in acc_map]
+            if not uniprot_ids:
+                return {} if return_dict else pd.DataFrame(columns=["from", "to"])
+            target_map = uniprot_map_ids(uniprot_ids, from_db="UniProtKB_AC-ID", to_db=to_type)
+            mapping = {
+                g: target_map[acc][0]
+                for g in ids
+                if (acc := acc_map.get(g)) and target_map.get(acc)
+            }
+            if return_dict:
+                return mapping
+            records = [{"from": k, "to": v} for k, v in mapping.items()]
+            return pd.DataFrame(records)
 
-    # Special case: UniProt to Gene_Name uses batch entry retrieval
+    # ── UniProt → Gene_Name ───────────────────────────────────────────────────
     if from_type in ("UniProtKB", "UniProtKB_AC-ID") and to_type == "Gene_Name":
         mapping = uniprot_to_gene(ids)
         if return_dict:
@@ -121,14 +141,40 @@ def translate_protein_ids(
         records = [{"from": k, "to": v} for k, v in mapping.items()]
         return pd.DataFrame(records)
 
-    # Use UniProt ID mapping for other conversions
-    mapping_result = uniprot_map_ids(ids, from_db=from_type, to_db=to_type)
+    # ── GeneID (NCBI Gene ID) ─────────────────────────────────────────────────
+    # UniProt ID mapping allows GeneID → UniProtKB only.
+    # For UniProt accession output, or any other target, chain through UniProtKB.
+    if from_type == "GeneID":
+        # Step 1: GeneID → UniProtKB (returns full entries; map_ids extracts primaryAccession)
+        raw = uniprot_map_ids(ids, from_db="GeneID", to_db="UniProtKB")
+        gene_to_acc = {g: accs[0] for g, accs in raw.items() if accs}
+        if to_type in ("UniProtKB", "UniProtKB_AC-ID"):
+            if return_dict:
+                return gene_to_acc
+            records = [{"from": k, "to": v} for k, v in gene_to_acc.items()]
+            return pd.DataFrame(records)
+        # Step 2: UniProt accession → to_type
+        uniprot_ids = list(gene_to_acc.values())
+        target_map = uniprot_map_ids(uniprot_ids, from_db="UniProtKB_AC-ID", to_db=to_type)
+        mapping = {
+            g: target_map[acc][0]
+            for g in ids
+            if (acc := gene_to_acc.get(g)) and target_map.get(acc)
+        }
+        if return_dict:
+            return mapping
+        records = [{"from": k, "to": v} for k, v in mapping.items()]
+        return pd.DataFrame(records)
+
+    # ── General UniProt ID mapping (UniProtKB_AC-ID or other valid from_db) ──
+    # "UniProtKB_AC-ID" is only valid as *from_db*; the correct *to_db* for
+    # getting UniProt accessions is "UniProtKB" (map_ids extracts primaryAccession).
+    effective_to = "UniProtKB" if to_type == "UniProtKB_AC-ID" else to_type
+    mapping_result = uniprot_map_ids(ids, from_db=from_type, to_db=effective_to)
 
     if return_dict:
-        # Flatten to first result for each ID
         return {k: v[0] if v else None for k, v in mapping_result.items()}
 
-    # Build DataFrame with all mappings
     records = []
     for from_id, to_ids in mapping_result.items():
         if to_ids:

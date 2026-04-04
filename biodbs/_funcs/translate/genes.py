@@ -1,18 +1,23 @@
 """Gene ID translation functions."""
 
-from typing import List, Dict, Union, Literal
+from typing import List, Dict, Union, Literal, TYPE_CHECKING
 import pandas as pd
 
 from biodbs.fetch.biomart.funcs import biomart_convert_ids
 from biodbs.fetch.KEGG.funcs import kegg_conv
+from biodbs._funcs.translate._id_types import GeneIDType, TranslationDatabase, resolve_id_type
+from biodbs._funcs._species import Species, resolve_species
+
+if TYPE_CHECKING:
+    pass
 
 
 def translate_gene_ids(
     ids: List[str],
-    from_type: str,
-    to_type: Union[str, List[str]],
-    species: str = "human",
-    database: Literal["biomart", "ensembl", "ncbi", "uniprot"] = "biomart",
+    from_type: Union[GeneIDType, str],
+    to_type: Union[GeneIDType, str, List[Union[GeneIDType, str]]],
+    species: Union[Species, str, int] = Species.HUMAN,
+    database: Union[TranslationDatabase, Literal["ncbi", "ensembl", "uniprot", "biomart", "hgnc"]] = TranslationDatabase.NCBI,
     return_dict: bool = False,
 ) -> Union[Dict[str, str], Dict[str, Dict[str, str]], "pd.DataFrame"]:
     """Translate gene IDs between different identifier types.
@@ -22,16 +27,22 @@ def translate_gene_ids(
         from_type: Source ID type.
         to_type: Target ID type(s). Can be a single string or a list of strings.
             When a list is provided, multiple target IDs are returned.
-        species: Species name ("human", "mouse", "rat", etc.). Defaults to "human".
-        database: Database to use for translation:
-            - "biomart": Use BioMart/Ensembl query interface (default).
-              Supports batch queries with many ID types.
-            - "ensembl": Use Ensembl REST API (xrefs endpoint).
-              Better for single ID lookups, returns more cross-references.
-            - "ncbi": Use NCBI Datasets API.
-              Best for NCBI Gene IDs (Entrez), RefSeq accessions, and symbols.
-            - "uniprot": Use UniProt ID mapping API.
+        species: Species to translate for.  Accepts a :class:`Species` member,
+            a common name (``"human"``), a KEGG code (``"hsa"``), a
+            scientific name, or an NCBI taxon ID (``9606``).
+            Defaults to :attr:`Species.HUMAN`.
+        database: Database backend for translation.  Accepts a
+            :class:`TranslationDatabase` member or a plain string.
+            Raw strings are matched case-insensitively for backwards compat.
+
+            - :attr:`TranslationDatabase.NCBI` *(default)* — NCBI Datasets API.
+              Most reliable; best for symbol ↔ Entrez ↔ Ensembl translations.
+            - :attr:`TranslationDatabase.ENSEMBL` — Ensembl REST API (xrefs).
+              Stable; natural when working with Ensembl IDs.
+            - :attr:`TranslationDatabase.UNIPROT` — UniProt ID-mapping API.
               Best for protein-centric translations (UniProt, PDB, RefSeq protein).
+            - :attr:`TranslationDatabase.BIOMART` — BioMart query interface.
+              Widest ID-type coverage but less reliable than the other options.
         return_dict: If True, return a dict mapping from_id -> to_id (or dict of to_ids
             when to_type is a list). If False (default), return a DataFrame.
 
@@ -67,6 +78,14 @@ def translate_gene_ids(
         - RefSeq_Protein: RefSeq protein ID
         - PDB: PDB structure ID
 
+    Supported ID types for HGNC (human only):
+        - symbol / gene_symbol / hgnc_symbol: Approved gene symbol
+        - hgnc_id: HGNC ID (e.g., "HGNC:11998")
+        - entrez_id: NCBI Gene ID
+        - ensembl_gene_id: Ensembl stable gene ID
+        - uniprot_id → uniprot_ids field (first accession returned)
+        - refseq_mrna / refseq_protein → refseq_accession field (first returned)
+
     Returns:
         When to_type is a string:
             Dict mapping source IDs to target IDs, or DataFrame with both columns.
@@ -75,13 +94,15 @@ def translate_gene_ids(
             DataFrame with from_type column and one column per target type.
 
     Example:
-        Gene symbols to Ensembl IDs (using BioMart):
+        Gene symbols to Ensembl IDs using the universal enum:
 
         ```python
+        from biodbs.translate import GeneIDType
+
         result = translate_gene_ids(
             ["TP53", "BRCA1", "EGFR"],
-            from_type="external_gene_name",
-            to_type="ensembl_gene_id",
+            from_type=GeneIDType.GENE_SYMBOL,
+            to_type=GeneIDType.ENSEMBL_GENE_ID,
         )
         print(result)
         #   external_gene_name    ensembl_gene_id
@@ -90,19 +111,25 @@ def translate_gene_ids(
         # 2               EGFR  ENSG00000146648
         ```
 
+        Raw database-native strings still work (backwards compatible):
+
+        ```python
+        result = translate_gene_ids(
+            ["TP53", "BRCA1"],
+            from_type="external_gene_name",   # BioMart native
+            to_type="ensembl_gene_id",
+        )
+        ```
+
         Ensembl IDs to HGNC (using Ensembl REST API):
 
         ```python
         result = translate_gene_ids(
             ["ENSG00000141510", "ENSG00000012048"],
-            from_type="ensembl_gene_id",
-            to_type="HGNC",
+            from_type=GeneIDType.ENSEMBL_GENE_ID,
+            to_type=GeneIDType.GENE_SYMBOL,
             database="ensembl",
         )
-        print(result)
-        #      ensembl_gene_id   HGNC     dbname
-        # 0  ENSG00000141510  11998       HGNC
-        # 1  ENSG00000012048   1100       HGNC
         ```
 
         Multiple target types (BioMart):
@@ -110,8 +137,8 @@ def translate_gene_ids(
         ```python
         result = translate_gene_ids(
             ["TP53", "BRCA1"],
-            from_type="external_gene_name",
-            to_type=["ensembl_gene_id", "entrezgene_id"],
+            from_type=GeneIDType.GENE_SYMBOL,
+            to_type=[GeneIDType.ENSEMBL_GENE_ID, GeneIDType.ENTREZ_ID],
         )
         print(result)
         #   external_gene_name    ensembl_gene_id  entrezgene_id
@@ -119,24 +146,51 @@ def translate_gene_ids(
         # 1              BRCA1  ENSG00000012048            672
         ```
     """
-    valid_databases = {"biomart", "ensembl", "ncbi", "uniprot"}
-    if database not in valid_databases:
-        raise ValueError(f"Unsupported database: {database}. Valid options: {valid_databases}")
+    # Normalise database: accept TranslationDatabase member or plain string
+    if isinstance(database, TranslationDatabase):
+        database = database.value   # e.g. "ncbi"
+    else:
+        database = str(database).lower()
+        try:
+            database = TranslationDatabase(database).value
+        except ValueError:
+            valid = [m.value for m in TranslationDatabase]
+            raise ValueError(
+                f"Unsupported database: {database!r}. "
+                f"Valid options: {valid}  "
+                f"(or use TranslationDatabase enum)"
+            )
+
+    # Resolve species to a Species enum (accepts str common name, KEGG code,
+    # scientific name, taxon ID int, or Species member)
+    species_obj = resolve_species(species)
+
+    # Resolve universal ID type aliases to database-native names
+    from_type = resolve_id_type(from_type, database)
 
     # Handle multiple target types
     if isinstance(to_type, list):
+        to_type = [resolve_id_type(t, database) for t in to_type]
         return _translate_multiple_targets(
-            ids, from_type, to_type, species, database, return_dict
+            ids, from_type, to_type, species_obj.common_name, database, return_dict
         )
 
+    to_type = resolve_id_type(to_type, database)
+
+    # Use common name string for the backend helpers (they have their own
+    # species → dataset/taxon mappings that accept common names)
+    species_name = species_obj.common_name
+
     if database == "biomart":
-        return _translate_via_biomart(ids, from_type, to_type, species, return_dict)
+        return _translate_via_biomart(ids, from_type, to_type, species_name, return_dict)
     elif database == "ensembl":
-        return _translate_via_ensembl(ids, from_type, to_type, species, return_dict)
+        return _translate_via_ensembl(ids, from_type, to_type, species_name, return_dict)
     elif database == "uniprot":
-        return _translate_via_uniprot(ids, from_type, to_type, species, return_dict)
+        return _translate_via_uniprot(ids, from_type, to_type, species_name, return_dict)
+    elif database == "hgnc":
+        return _translate_via_hgnc(ids, from_type, to_type, species_name, return_dict)
     else:  # ncbi
-        return _translate_via_ncbi(ids, from_type, to_type, species, return_dict)
+        return _translate_via_ncbi(ids, from_type, to_type, species_name, return_dict)
 
 
 def _translate_multiple_targets(
@@ -214,6 +268,43 @@ def _translate_via_biomart(
     return df
 
 
+def _ensembl_xref_first(xrefs_data, db_name: str) -> str:
+    """Return the first matching xref value from an EnsemblFetchedData result."""
+    for xref in xrefs_data.results:
+        if xref.get("dbname", "").upper() == db_name.upper():
+            if db_name.upper() == "HGNC":
+                # display_id = gene symbol ("TP53"), primary_id = accession ("HGNC:11998")
+                return xref.get("display_id") or xref.get("primary_id")
+            return xref.get("primary_id") or xref.get("display_id")
+    return None
+
+
+def _ensembl_lookup_parent(id_val: str, ensembl_lookup_fn) -> str:
+    """Return the Parent Ensembl ID one level up (ENSP→ENST or ENST→ENSG)."""
+    data = ensembl_lookup_fn(id_val)
+    return data.results[0].get("Parent") if data.results else None
+
+
+def _ensembl_gene_id_for(id_val: str, from_type: str, ensembl_lookup_fn) -> str:
+    """Resolve any Ensembl stable ID to its parent gene ID (ENSG...)."""
+    if from_type == "ensembl_gene_id":
+        return id_val
+    if from_type == "ensembl_transcript_id":
+        return _ensembl_lookup_parent(id_val, ensembl_lookup_fn)
+    if from_type == "ensembl_protein_id":
+        transcript_id = _ensembl_lookup_parent(id_val, ensembl_lookup_fn)
+        if transcript_id:
+            return _ensembl_lookup_parent(transcript_id, ensembl_lookup_fn)
+    return None
+
+
+def _ensembl_gene_to_xref(gene_id: str, to_type: str, ensembl_get_xrefs_fn) -> str:
+    """Get an external ID for an Ensembl gene ID via xrefs/id."""
+    # to_type here is already the resolved external_db name from ENSEMBL_ID_MAP
+    data = ensembl_get_xrefs_fn(gene_id, external_db=to_type)
+    return _ensembl_xref_first(data, to_type)
+
+
 def _translate_via_ensembl(
     ids: List[str],
     from_type: str,
@@ -221,59 +312,135 @@ def _translate_via_ensembl(
     species: str,
     return_dict: bool,
 ) -> Union[Dict[str, str], "pd.DataFrame"]:
-    """Translate gene IDs using Ensembl REST API xrefs endpoint."""
-    from biodbs.fetch.ensembl.funcs import ensembl_get_xrefs, ensembl_get_xrefs_symbol
+    """Translate gene IDs using Ensembl REST API.
 
-    # Map common species names to Ensembl species names
-    species_map = {
-        "human": "homo_sapiens",
-        "mouse": "mus_musculus",
-        "rat": "rattus_norvegicus",
-        "zebrafish": "danio_rerio",
-        "fly": "drosophila_melanogaster",
-        "worm": "caenorhabditis_elegans",
-        "yeast": "saccharomyces_cerevisiae",
-    }
-    ensembl_species = species_map.get(species.lower(), species)
+    Handles three translation modes:
 
-    results = []
+    1. **Ensembl-stable → external** (gene/transcript/protein ID → symbol, EntrezGene, UniProt, …):
+       Uses ``xrefs/id`` on the gene ID.  Transcript and protein inputs are first
+       resolved to their parent gene via ``lookup/id``, then xrefs are fetched on
+       the gene.  Exceptions: transcript→RefSeq_mRNA and protein→RefSeq_peptide /
+       UniProt are fetched directly on the respective stable ID.
 
-    for id_val in ids:
-        try:
-            # Determine if input is an Ensembl ID or external symbol
-            if id_val.startswith(("ENSG", "ENST", "ENSP", "ENSMUS", "ENSRNO")):
-                # Input is Ensembl ID - get xrefs
-                data = ensembl_get_xrefs(id_val, external_db=to_type if to_type else None)
-                if data.results:
-                    # Get the primary_id from the first matching xref
-                    for xref in data.results:
-                        if to_type is None or xref.get("dbname", "").upper() == to_type.upper():
-                            results.append({
-                                from_type: id_val,
-                                to_type: xref.get("primary_id") or xref.get("display_id"),
-                                "dbname": xref.get("dbname"),
-                            })
-                            break
+    2. **Ensembl-stable → Ensembl-stable** (gene↔transcript↔protein hierarchy):
+       Uses ``lookup/id?expand=1`` to navigate the gene → transcript → translation
+       tree, preferring the canonical transcript where applicable.
+
+    3. **External → Ensembl-stable** (symbol → Ensembl gene ID):
+       Uses ``xrefs/symbol``.  This endpoint always returns Ensembl gene IDs; a
+       warning is emitted if a non-gene Ensembl type was requested.
+    """
+    import warnings
+    from biodbs.fetch.ensembl.funcs import (
+        ensembl_get_xrefs,
+        ensembl_get_xrefs_symbol,
+        ensembl_lookup,
+    )
+
+    ensembl_species = (
+        resolve_species(species).scientific_name.lower().replace(" ", "_")
+    )
+
+    ENSEMBL_STABLE = {"ensembl_gene_id", "ensembl_transcript_id", "ensembl_protein_id"}
+
+    # External DB names that carry protein/transcript-level xrefs directly
+    # (no need to chain through the gene for these)
+    TRANSCRIPT_DIRECT_XREFS = {"RefSeq_mRNA"}
+    PROTEIN_DIRECT_XREFS = {"RefSeq_peptide", "Uniprot/SWISSPROT"}
+
+    # UniProt for proteins uses a different db name than for genes
+    PROTEIN_UNIPROT_DB = "Uniprot/SWISSPROT"
+
+    results: List[Dict] = []
+
+    if from_type in ENSEMBL_STABLE:
+
+        for id_val in ids:
+            to_val = None
+            try:
+                # ── Ensembl → Ensembl (hierarchy navigation) ────────────────
+                if to_type in ENSEMBL_STABLE:
+                    if from_type == "ensembl_gene_id":
+                        gene_data = ensembl_lookup(id_val, expand=True)
+                        if gene_data.results:
+                            transcripts = gene_data.results[0].get("Transcript", [])
+                            canonical = next(
+                                (t for t in transcripts if t.get("is_canonical")),
+                                transcripts[0] if transcripts else None,
+                            )
+                            if canonical:
+                                if to_type == "ensembl_transcript_id":
+                                    to_val = canonical.get("id")
+                                elif to_type == "ensembl_protein_id":
+                                    trans = canonical.get("Translation")
+                                    to_val = trans.get("id") if trans else None
+
+                    elif from_type == "ensembl_transcript_id":
+                        if to_type == "ensembl_gene_id":
+                            to_val = _ensembl_lookup_parent(id_val, ensembl_lookup)
+                        elif to_type == "ensembl_protein_id":
+                            tx_data = ensembl_lookup(id_val, expand=True)
+                            if tx_data.results:
+                                trans = tx_data.results[0].get("Translation")
+                                to_val = trans.get("id") if trans else None
+
+                    elif from_type == "ensembl_protein_id":
+                        if to_type == "ensembl_transcript_id":
+                            to_val = _ensembl_lookup_parent(id_val, ensembl_lookup)
+                        elif to_type == "ensembl_gene_id":
+                            transcript_id = _ensembl_lookup_parent(id_val, ensembl_lookup)
+                            if transcript_id:
+                                to_val = _ensembl_lookup_parent(transcript_id, ensembl_lookup)
+
+                # ── Ensembl → external ───────────────────────────────────────
+                else:
+                    if from_type == "ensembl_transcript_id" and to_type in TRANSCRIPT_DIRECT_XREFS:
+                        # RefSeq_mRNA xrefs live on the transcript
+                        xref_data = ensembl_get_xrefs(id_val, external_db=to_type)
+                        to_val = _ensembl_xref_first(xref_data, to_type)
+
+                    elif from_type == "ensembl_protein_id" and to_type in PROTEIN_DIRECT_XREFS:
+                        # RefSeq_peptide / UniProt xrefs live on the protein
+                        xref_data = ensembl_get_xrefs(id_val, external_db=to_type)
+                        to_val = _ensembl_xref_first(xref_data, to_type)
+
+                    elif from_type == "ensembl_protein_id" and to_type == "Uniprot_gn":
+                        # Redirect: proteins use Uniprot/SWISSPROT, not Uniprot_gn
+                        xref_data = ensembl_get_xrefs(id_val, external_db=PROTEIN_UNIPROT_DB)
+                        to_val = _ensembl_xref_first(xref_data, PROTEIN_UNIPROT_DB)
+
                     else:
-                        # No matching xref found
-                        results.append({from_type: id_val, to_type: None})
-                else:
-                    results.append({from_type: id_val, to_type: None})
-            else:
-                # Input is external symbol - look up Ensembl ID
+                        # General case: resolve to gene ID, then fetch gene-level xrefs
+                        gene_id = _ensembl_gene_id_for(id_val, from_type, ensembl_lookup)
+                        if gene_id:
+                            xref_data = ensembl_get_xrefs(gene_id, external_db=to_type)
+                            to_val = _ensembl_xref_first(xref_data, to_type)
+
+            except Exception:
+                pass
+
+            results.append({from_type: id_val, to_type: to_val})
+
+    else:
+        # ── External → Ensembl stable ID ────────────────────────────────────
+        # xrefs/symbol always returns Ensembl gene IDs regardless of to_type.
+        if to_type not in ENSEMBL_STABLE:
+            warnings.warn(
+                f"Ensembl REST symbol lookup always returns Ensembl gene IDs; "
+                f"cannot translate directly to {to_type!r}. "
+                f"The result column will contain Ensembl gene IDs instead. "
+                f"To get {to_type!r} output use database=TranslationDatabase.NCBI "
+                f"or database=TranslationDatabase.UNIPROT.",
+                UserWarning,
+                stacklevel=3,
+            )
+        for id_val in ids:
+            try:
                 data = ensembl_get_xrefs_symbol(ensembl_species, id_val)
-                if data.results:
-                    # Return the Ensembl ID
-                    ensembl_id = data.results[0].get("id")
-                    results.append({
-                        from_type: id_val,
-                        to_type: ensembl_id,
-                        "type": data.results[0].get("type"),
-                    })
-                else:
-                    results.append({from_type: id_val, to_type: None})
-        except Exception:
-            results.append({from_type: id_val, to_type: None})
+                ensembl_id = data.results[0].get("id") if data.results else None
+                results.append({from_type: id_val, to_type: ensembl_id})
+            except Exception:
+                results.append({from_type: id_val, to_type: None})
 
     df = pd.DataFrame(results)
 
@@ -403,3 +570,76 @@ def _translate_via_uniprot(
         organism=organism,
         return_dict=return_dict,
     )
+
+
+# HGNC fields that return lists in HGNCEntry — we take the first element.
+_HGNC_LIST_FIELDS = frozenset({
+    "uniprot_ids", "refseq_accession", "omim_id", "ccds_id",
+    "alias_symbol", "alias_name", "prev_symbol", "prev_name",
+    "gene_group", "ena", "mgd_id", "rgd_id", "enzyme_id", "pubmed_id",
+})
+
+
+def _hgnc_extract_field(entry, field: str):
+    """Extract *field* from an HGNCEntry, returning a scalar."""
+    val = getattr(entry, field, None)
+    if val is None:
+        return None
+    if isinstance(val, list):
+        return val[0] if val else None
+    return val
+
+
+def _translate_via_hgnc(
+    ids: List[str],
+    from_type: str,
+    to_type: str,
+    species: str,
+    return_dict: bool,
+) -> Union[Dict[str, str], "pd.DataFrame"]:
+    """Translate gene IDs using the HGNC REST API.
+
+    HGNC covers **human genes only**.  Each ID is looked up with a single
+    ``/fetch/{from_type}/{id}`` call; the target field is extracted from
+    the first returned :class:`HGNCEntry`.
+
+    Supports translation between any pair of::
+
+        symbol, hgnc_id, entrez_id, ensembl_gene_id,
+        uniprot_ids, refseq_accession, omim_id, location, name
+    """
+    import warnings
+    from biodbs.fetch.HGNC.hgnc_fetcher import HGNC_Fetcher
+
+    if species.lower() not in ("human", "homo sapiens", "homo_sapiens"):
+        warnings.warn(
+            f"HGNC only covers human genes; species={species!r} is ignored.",
+            UserWarning,
+            stacklevel=4,
+        )
+
+    fetcher = HGNC_Fetcher()
+    results = []
+
+    for id_val in ids:
+        to_val = None
+        try:
+            data = fetcher.fetch(from_type, id_val)
+            if data.results:
+                to_val = _hgnc_extract_field(data.results[0], to_type)
+        except Exception:
+            pass
+        results.append({from_type: id_val, to_type: to_val})
+
+    df = pd.DataFrame(results)
+
+    if return_dict:
+        if df.empty:
+            return {}
+        return {
+            row[from_type]: row[to_type]
+            for _, row in df.iterrows()
+            if row[to_type] is not None
+        }
+
+    return df

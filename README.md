@@ -37,6 +37,8 @@
 | **NCBI** | Gene information, taxonomy, and genome assemblies |
 | **Reactome** | Pathway analysis and biological reactions |
 | **Disease Ontology** | Disease terms and cross-references |
+| **HGNC** | Authoritative human gene nomenclature |
+| **ClinVar** | Clinical variant classifications |
 
 ## Installation
 

@@ -10,6 +10,7 @@ import pandas as pd
 
 from biodbs.fetch.ensembl.ensembl_fetcher import Ensembl_Fetcher
 from biodbs.data.Ensembl.data import EnsemblFetchedData
+from biodbs.exceptions import APIError
 
 
 @pytest.fixture
@@ -469,8 +470,8 @@ class TestErrorHandling:
 
     @pytest.mark.integration
     def test_invalid_id_raises_error(self, fetcher):
-        """Test that invalid ID raises ValueError (400 error from API)."""
-        with pytest.raises(ValueError, match="not found|Bad request"):
+        """Test that invalid ID raises APIError (400 error from API)."""
+        with pytest.raises(APIError):
             fetcher.lookup("INVALID_ID_12345")
 
     def test_vep_missing_hgvs(self, fetcher):

@@ -95,6 +95,34 @@ class NCBIGeneFetchedData(BaseFetchedData):
         """Get gene results."""
         return self.genes
 
+    def __getitem__(self, key):
+        if isinstance(key, (int, slice)):
+            return self.genes[key]
+        if isinstance(key, str):
+            return self._get_by_id(key)
+        raise TypeError(
+            f"Indices must be integers, slices, or strings, not {type(key).__name__}"
+        )
+
+    def __iter__(self):
+        return iter(self.genes)
+
+    def _get_by_id(self, id_value: str) -> GeneReport:
+        """Return the GeneReport matching *id_value*.
+
+        Matches against ``symbol`` (case-insensitive) and ``gene_id``
+        (numeric Entrez ID).
+
+        Raises:
+            KeyError: If no matching gene is found.
+        """
+        id_lower = id_value.lower()
+        for gene in self.genes:
+            if (gene.symbol and gene.symbol.lower() == id_lower) or \
+               str(gene.gene_id) == id_value:
+                return gene
+        raise KeyError(id_value)
+
     def _flatten_dict(
         self, d: Dict[str, Any], parent_key: str = "", sep: str = "."
     ) -> Dict[str, Any]:

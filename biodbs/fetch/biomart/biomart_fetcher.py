@@ -178,7 +178,19 @@ class BioMart_Fetcher(BaseDataFetcher):
                 if response.status_code == 200:
                     # Check for error in response content
                     if response.text.startswith("Query ERROR"):
-                        raise ValueError(f"BioMart query error: {response.text[:200]}")
+                        err_text = response.text[:300]
+                        # Server-side infrastructure errors (MySQL down, etc.)
+                        if any(kw in response.text for kw in (
+                            "Exception::Database", "mysql database", "Can't conn",
+                            "DBI connect", "database server",
+                        )):
+                            raise APIServerError(
+                                service="BioMart",
+                                status_code=503,
+                                url=url,
+                                response_text=err_text,
+                            )
+                        raise ValueError(f"BioMart query error: {err_text}")
                     return response
                 elif response.status_code >= 500:
                     # Server error, retry
@@ -427,6 +439,8 @@ class BioMart_Fetcher(BaseDataFetcher):
                     result = future.result()
                     if not result.has_error() and len(result) > 0:
                         results.append(result)
+                except APIServerError:
+                    raise
                 except Exception as e:
                     logger.warning("Batch %d failed: %s", futures[future], e)
 

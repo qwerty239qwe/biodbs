@@ -70,6 +70,10 @@ from biodbs._funcs.analysis import (
     # Utility functions
     hypergeometric_test,
     multiple_test_correction,
+    # GMT I/O
+    load_gmt,
+    save_gmt,
+    fetch_gmt,
 )
 
 __all__ = [
@@ -93,4 +97,8 @@ __all__ = [
     # Utility functions
     "hypergeometric_test",
     "multiple_test_correction",
+    # GMT I/O
+    "load_gmt",
+    "save_gmt",
+    "fetch_gmt",
 ]
