@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "biodbs"
-version = "0.3.0"
+version = "0.3.1"
 description = "biodbs is a Python library providing unified access to major biological and chemical databases with built-in support for ID translation and enrichment analysis."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -55,3 +55,17 @@ module-root = ""
 
 [tool.coverage.run]
 omit = ["biodbs/deprecated.py"]
+
+[tool.ruff.lint]
+
+[tool.ruff.lint.per-file-ignores]
+"biodbs/__init__.py" = ["F401", "F403", "F405"]
+"biodbs/fetch/__init__.py" = ["F401", "F403", "F405"]
+"biodbs/utils/__init__.py" = ["F403"]
+"biodbs/BioMart.py" = ["E402"]
+"biodbs/HPA.py" = ["E402"]
+"biodbs/KEGG.py" = ["E402"]
+"biodbs/deprecated.py" = ["E741", "F841"]
+"tests/**/*.py" = ["E402", "F401", "F841"]
+"benchmarks/**/*.py" = ["F401"]
+"scripts/**/*.py" = ["F401"]

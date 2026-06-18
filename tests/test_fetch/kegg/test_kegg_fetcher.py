@@ -11,6 +11,8 @@ import polars as pl
 
 from biodbs.fetch.KEGG.kegg_fetcher import KEGG_Fetcher
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture
 def fetcher():

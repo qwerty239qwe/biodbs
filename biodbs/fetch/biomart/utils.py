@@ -33,7 +33,7 @@ def find_contained_rows(df, contain, cols, ignore_case=True):
     contain = contain.lower() if ignore_case else contain
     boolean_dfs = [df[col].str.contains(contain, case=ignore_case)
                    for col in cols]
-    return df.loc[reduce(lambda l, r: l | r, boolean_dfs)]
+    return df.loc[reduce(lambda left, right: left | right, boolean_dfs)]
 
 
 def find_matched_rows(df: pd.DataFrame,
@@ -65,6 +65,6 @@ def find_matched_rows(df: pd.DataFrame,
     try:
         boolean_dfs = [df[col].str.match(pattern)
                        for col in cols]
-        return df.loc[reduce(lambda l, r: l | r, boolean_dfs)]
+        return df.loc[reduce(lambda left, right: left | right, boolean_dfs)]
     except re.error as e:
         raise ValueError(f"Invalid regular expression: {pattern}") from e

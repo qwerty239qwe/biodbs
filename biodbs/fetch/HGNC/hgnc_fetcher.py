@@ -6,7 +6,7 @@ from urllib.parse import quote
 
 from biodbs.data.HGNC.data import HGNCFetchedData
 from biodbs.data.HGNC._data_model import HGNC_SEARCHABLE_FIELDS
-from biodbs.exceptions import raise_for_status, APIValidationError
+from biodbs.exceptions import raise_for_status
 from biodbs.fetch._rate_limit import get_rate_limiter, request_with_retry
 
 logger = logging.getLogger(__name__)

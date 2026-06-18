@@ -13,7 +13,7 @@ Reference:
 """
 
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
-from biodbs.exceptions import APIServerError, APIError
+from biodbs.exceptions import APIServerError
 from biodbs.data.BioMart._data_model import (
     BioMartHost,
     BioMartMart,

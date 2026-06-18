@@ -30,7 +30,7 @@ from __future__ import annotations
 import logging
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, FrozenSet, Literal, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, FrozenSet, Literal, Optional, Tuple, Union
 
 if TYPE_CHECKING:
     from biodbs._funcs._species import Species
@@ -291,10 +291,8 @@ def fetch_gmt(
         # name) resolve it to a Species and use its kegg_code.
         try:
             sp = resolve_species(name)
-            kegg_name = sp.kegg_code
         except Exception:
             # Assume it's already a KEGG organism code.
-            kegg_name = name
             try:
                 sp = resolve_species(species)
             except Exception:

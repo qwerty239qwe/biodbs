@@ -25,10 +25,10 @@ Or with pip:
 pip install -e ".[dev]"
 ```
 
-3. Run tests:
+3. Run offline tests:
 
 ```bash
-uv run pytest
+uv run pytest -m "not integration"
 ```
 
 ## Development Workflow
@@ -36,17 +36,17 @@ uv run pytest
 ### Running Tests
 
 ```bash
-# Run all tests
-uv run pytest
+# Run the default offline test gate
+uv run pytest -m "not integration"
+
+# Run live API integration tests
+uv run pytest -m integration
 
 # Run specific test file
 uv run pytest tests/test_fetch/uniprot/
 
-# Run with coverage
-uv run pytest --cov=biodbs
-
-# Run only fast tests (skip integration)
-uv run pytest -m "not integration"
+# Run offline tests with coverage
+uv run pytest -m "not integration" --cov=biodbs
 ```
 
 ### Code Style
@@ -63,7 +63,7 @@ uv run black biodbs tests
 uv run isort biodbs tests
 
 # Lint
-uv run ruff check biodbs
+uv run ruff check .
 ```
 
 ### Type Checking
@@ -167,7 +167,7 @@ Create documentation in `docs/fetch/newdb.md`.
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/new-database`
 3. Make your changes
-4. Run tests: `uv run pytest`
+4. Run offline tests: `uv run pytest -m "not integration"`
 5. Format code: `uv run black biodbs tests`
 6. Commit with a clear message
 7. Push and create a Pull Request

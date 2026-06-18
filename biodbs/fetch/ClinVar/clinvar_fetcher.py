@@ -26,7 +26,6 @@ from __future__ import annotations
 import logging
 import os
 from typing import List, Optional, Union
-from urllib.parse import quote
 
 from biodbs.data.ClinVar.data import ClinVarFetchedData
 from biodbs.exceptions import raise_for_status

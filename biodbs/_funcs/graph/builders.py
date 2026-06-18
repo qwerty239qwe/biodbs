@@ -39,7 +39,6 @@ from typing import (
     Optional,
     Set,
     Tuple,
-    Union,
 )
 
 from biodbs._funcs.graph.core import (

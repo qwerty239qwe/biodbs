@@ -19,7 +19,6 @@ from biodbs.exceptions import (
     APIRateLimitError,
     APITimeoutError,
     APIError,
-    raise_for_status,
 )
 
 logger = logging.getLogger(__name__)
