@@ -63,8 +63,8 @@ class TestListOperation:
     """Tests for the list operation."""
 
     def test_list_organism(self, fetcher):
-        """Test listing organisms."""
-        data = fetcher.get(operation="list", database="organism")
+        """Test listing a stable KEGG database."""
+        data = fetcher.get(operation="list", database="pathway", organism="hsa")
         assert data.format == "tabular"
         assert len(data.records) > 0
         assert "entry_id" in data.records[0]
@@ -103,7 +103,7 @@ class TestListOperation:
 
     def test_list_as_dataframe_pandas(self, fetcher):
         """Test converting list results to pandas DataFrame."""
-        data = fetcher.get(operation="list", database="organism")
+        data = fetcher.get(operation="list", database="pathway", organism="hsa")
         df = data.as_dataframe(engine="pandas")
         assert isinstance(df, pd.DataFrame)
         assert len(df) > 0
@@ -112,7 +112,7 @@ class TestListOperation:
 
     def test_list_as_dataframe_polars(self, fetcher):
         """Test converting list results to polars DataFrame."""
-        data = fetcher.get(operation="list", database="organism")
+        data = fetcher.get(operation="list", database="pathway", organism="hsa")
         df = data.as_dataframe(engine="polars")
         assert isinstance(df, pl.DataFrame)
         assert len(df) > 0
@@ -519,7 +519,7 @@ class TestKEGGFetchedData:
 
     def test_show_columns(self, fetcher):
         """Test showing available columns."""
-        data = fetcher.get(operation="list", database="organism")
+        data = fetcher.get(operation="list", database="pathway", organism="hsa")
         columns = data.show_columns()
         assert "entry_id" in columns
         assert "description" in columns
