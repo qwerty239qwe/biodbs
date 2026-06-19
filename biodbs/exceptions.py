@@ -66,6 +66,8 @@ class APIServerError(APIError):
         )
         if url:
             msg += f"\nURL: {url}"
+        if response_text:
+            msg += f"\nResponse: {response_text[:300]}"
         super().__init__(
             msg, service=service, status_code=status_code, url=url
         )
