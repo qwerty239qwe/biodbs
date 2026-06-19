@@ -42,6 +42,9 @@ uv run pytest -m "not integration"
 # Run live API integration tests
 uv run pytest -m integration
 
+# Run one live API service group
+uv run pytest -m integration tests/test_fetch/biomart
+
 # Run specific test file
 uv run pytest tests/test_fetch/uniprot/
 
