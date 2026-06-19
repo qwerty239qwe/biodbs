@@ -71,13 +71,11 @@ PostgreSQL Example:
 
 from __future__ import annotations
 
-import json
 import sqlite3
 import time
 import warnings
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from dataclasses import asdict
 from enum import Enum
 from pathlib import Path
 from typing import (

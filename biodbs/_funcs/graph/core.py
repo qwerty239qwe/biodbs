@@ -49,7 +49,6 @@ from typing import (
     Optional,
     Set,
     Tuple,
-    Union,
 )
 
 if TYPE_CHECKING:

@@ -32,7 +32,6 @@ from __future__ import annotations
 from collections import deque
 from typing import (
     Any,
-    Callable,
     Dict,
     List,
     Optional,
@@ -42,9 +41,7 @@ from typing import (
 
 from biodbs._funcs.graph.core import (
     Edge,
-    EdgeType,
     KnowledgeGraph,
-    Node,
     NodeType,
 )
 

@@ -116,6 +116,12 @@ nav:
     - Building Graphs: graph/building.md
     - Exporting Graphs: graph/exporting.md
     - Graph Analysis: graph/analysis.md
+  - Releases:
+    - Overview: releases/index.md
+    - 0.3.1: releases/0.3.1.md
+    - 0.3.0: releases/0.3.0.md
+    - 0.2.1: releases/0.2.1.md
+    - 0.2.0: releases/0.2.0.md
   - API Reference:
     - Overview: api/index.md
     - Fetch Module: api/fetch.md

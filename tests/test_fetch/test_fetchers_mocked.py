@@ -61,6 +61,9 @@ class TestKEGGFetcherMocked:
         result = fetcher.get("info", database="pathway")
         assert result is not None
         assert result.text == "kegg db info for pathway..."
+        mock_requests.get.assert_called_once_with(
+            "https://rest.kegg.jp/info/pathway", params=None
+        )
 
     @patch("biodbs.utils.fetch.requests")
     def test_get_server_error_503(self, mock_requests):
@@ -171,6 +174,43 @@ class TestKEGGFetcherMocked:
         fetcher = KEGG_Fetcher()
         result = fetcher.get("list", database="pathway", organism="hsa")
         assert result is not None
+        mock_requests.get.assert_called_once_with(
+            "https://rest.kegg.jp/list/pathway/hsa", params=None
+        )
+
+    @patch("biodbs.utils.fetch.requests")
+    def test_get_list_organism_url(self, mock_requests):
+        """Test organism list URL construction without a live KEGG call."""
+        mock_requests.get.return_value = _mock_response(
+            200,
+            text="T01001\thsa\tHomo sapiens (human)\tEukaryotes;Animals\n",
+        )
+
+        from biodbs.fetch.KEGG.kegg_fetcher import KEGG_Fetcher
+
+        fetcher = KEGG_Fetcher()
+        result = fetcher.get("list", database="organism")
+        assert result is not None
+        mock_requests.get.assert_called_once_with(
+            "https://rest.kegg.jp/list/organism", params=None
+        )
+
+    @patch("biodbs.utils.fetch.requests")
+    def test_get_list_dbentries_url(self, mock_requests):
+        """Test dbentries list URL construction without a live KEGG call."""
+        mock_requests.get.return_value = _mock_response(
+            200,
+            text="hsa:10458\tBCAM\nhsa:7157\tTP53\n",
+        )
+
+        from biodbs.fetch.KEGG.kegg_fetcher import KEGG_Fetcher
+
+        fetcher = KEGG_Fetcher()
+        result = fetcher.get("list", dbentries=["hsa:10458", "hsa:7157"])
+        assert result is not None
+        mock_requests.get.assert_called_once_with(
+            "https://rest.kegg.jp/list/hsa:10458+hsa:7157", params=None
+        )
 
     @patch("biodbs.utils.fetch.requests")
     def test_get_find_operation(self, mock_requests):
@@ -185,6 +225,100 @@ class TestKEGGFetcherMocked:
         fetcher = KEGG_Fetcher()
         result = fetcher.get("find", database="genes", query="tp53")
         assert result is not None
+        mock_requests.get.assert_called_once_with(
+            "https://rest.kegg.jp/find/genes/tp53", params=None
+        )
+
+    @patch("biodbs.utils.fetch.requests")
+    def test_get_conv_entries_url(self, mock_requests):
+        """Test conv URL construction for explicit entries."""
+        mock_requests.get.return_value = _mock_response(
+            200,
+            text="hsa:7157\tncbi-geneid:7157\n",
+        )
+
+        from biodbs.fetch.KEGG.kegg_fetcher import KEGG_Fetcher
+
+        fetcher = KEGG_Fetcher()
+        result = fetcher.get(
+            "conv", target_db="ncbi-geneid", dbentries=["hsa:7157"]
+        )
+        assert result is not None
+        mock_requests.get.assert_called_once_with(
+            "https://rest.kegg.jp/conv/ncbi-geneid/hsa:7157", params=None
+        )
+
+    @patch("biodbs.utils.fetch.requests")
+    def test_get_conv_database_url(self, mock_requests):
+        """Test conv URL construction for database-to-database mapping."""
+        mock_requests.get.return_value = _mock_response(
+            200,
+            text="ncbi-geneid:7157\thsa:7157\n",
+        )
+
+        from biodbs.fetch.KEGG.kegg_fetcher import KEGG_Fetcher
+
+        fetcher = KEGG_Fetcher()
+        result = fetcher.get(
+            "conv", target_db="hsa", source_db="ncbi-geneid"
+        )
+        assert result is not None
+        mock_requests.get.assert_called_once_with(
+            "https://rest.kegg.jp/conv/hsa/ncbi-geneid", params=None
+        )
+
+    @patch("biodbs.utils.fetch.requests")
+    def test_get_link_entries_url(self, mock_requests):
+        """Test link URL construction for explicit entries."""
+        mock_requests.get.return_value = _mock_response(
+            200,
+            text="hsa:7157\tpath:hsa04115\n",
+        )
+
+        from biodbs.fetch.KEGG.kegg_fetcher import KEGG_Fetcher
+
+        fetcher = KEGG_Fetcher()
+        result = fetcher.get(
+            "link", target_db="pathway", dbentries=["hsa:7157"]
+        )
+        assert result is not None
+        mock_requests.get.assert_called_once_with(
+            "https://rest.kegg.jp/link/pathway/hsa:7157", params=None
+        )
+
+    @patch("biodbs.utils.fetch.requests")
+    def test_get_link_database_url(self, mock_requests):
+        """Test link URL construction for database-to-database mapping."""
+        mock_requests.get.return_value = _mock_response(
+            200,
+            text="path:hsa04115\thsa:7157\n",
+        )
+
+        from biodbs.fetch.KEGG.kegg_fetcher import KEGG_Fetcher
+
+        fetcher = KEGG_Fetcher()
+        result = fetcher.get("link", target_db="genes", source_db="pathway")
+        assert result is not None
+        mock_requests.get.assert_called_once_with(
+            "https://rest.kegg.jp/link/genes/pathway", params=None
+        )
+
+    @patch("biodbs.utils.fetch.requests")
+    def test_get_ddi_url(self, mock_requests):
+        """Test ddi URL construction without a live KEGG call."""
+        mock_requests.get.return_value = _mock_response(
+            200,
+            text="D00001\tD00002\n",
+        )
+
+        from biodbs.fetch.KEGG.kegg_fetcher import KEGG_Fetcher
+
+        fetcher = KEGG_Fetcher()
+        result = fetcher.get("ddi", dbentries=["D00001", "D00002"])
+        assert result is not None
+        mock_requests.get.assert_called_once_with(
+            "https://rest.kegg.jp/ddi/D00001+D00002", params=None
+        )
 
     @patch("biodbs.utils.fetch.requests")
     def test_get_client_error_raises_api_error(self, mock_requests):

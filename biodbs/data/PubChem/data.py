@@ -414,7 +414,7 @@ class PUGViewFetchedData(BaseFetchedData):
 
     def __repr__(self) -> str:
         """Return a human-readable representation."""
-        parts = [f"PUGViewFetchedData("]
+        parts = ["PUGViewFetchedData("]
         if self.record_type:
             parts.append(f"type='{self.record_type}'")
         if self.record_id:

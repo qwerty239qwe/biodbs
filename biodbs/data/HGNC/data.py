@@ -2,7 +2,7 @@
 
 from biodbs.data._base import BaseFetchedData
 from biodbs.data.HGNC._data_model import HGNCEntry
-from typing import List, Optional, Dict, Any, Union
+from typing import List, Dict, Any, Union
 import pandas as pd
 
 

@@ -23,7 +23,7 @@ async def fetch_resp(url, param, session: aiohttp.ClientSession, **kwargs):
     resp = await session.request(method="GET", url=url, params=param, ssl=False, **kwargs)
     try:
         resp = await resp.json()
-    except:
+    except (aiohttp.ContentTypeError, ValueError):
         print("url: ", url, " cannot be processed")
         print(await resp.text())
         resp = {}

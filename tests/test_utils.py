@@ -280,7 +280,7 @@ class TestAsyncGetResps:
         """When resp.json() raises, fetch_resp should return an empty dict."""
         mock_session = AsyncMock()
         mock_resp = AsyncMock()
-        mock_resp.json.side_effect = Exception("Invalid JSON")
+        mock_resp.json.side_effect = ValueError("Invalid JSON")
         mock_resp.text.return_value = "not json"
         mock_session.request.return_value = mock_resp
         mock_session.__aenter__.return_value = mock_session

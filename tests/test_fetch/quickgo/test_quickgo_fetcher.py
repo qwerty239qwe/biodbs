@@ -12,6 +12,8 @@ import pytest
 from biodbs.fetch.QuickGO.quickgo_fetcher import QuickGO_Fetcher
 from biodbs.data.QuickGO.data import QuickGOFetchedData
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture
 def fetcher():

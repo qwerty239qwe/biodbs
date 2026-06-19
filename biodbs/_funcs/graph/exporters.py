@@ -32,8 +32,6 @@ from typing import (
 )
 
 from biodbs._funcs.graph.core import (
-    DataSource,
-    Edge,
     EdgeType,
     KnowledgeGraph,
     Node,
@@ -42,7 +40,6 @@ from biodbs._funcs.graph.core import (
 
 if TYPE_CHECKING:
     import networkx as nx
-    from rdflib import Graph as RDFGraph
 
 
 # =============================================================================
@@ -376,7 +373,7 @@ def to_rdf(
     try:
         from rdflib import Graph as RDFGraph
         from rdflib import Literal, Namespace, URIRef
-        from rdflib.namespace import OWL, RDF, RDFS, XSD
+        from rdflib.namespace import RDF, RDFS
     except ImportError:
         raise ImportError(
             "rdflib is required for to_rdf(). "
