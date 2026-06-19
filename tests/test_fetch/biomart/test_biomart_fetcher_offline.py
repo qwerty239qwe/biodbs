@@ -91,6 +91,18 @@ def test_biomart_discovery_cache_and_list_delegation(monkeypatch):
     assert fetcher.list_filters("dataset", pattern="id") == ["filter", None, "id"]
 
 
+def test_biomart_empty_registry_raises_server_error(monkeypatch):
+    fetcher = BioMart_Fetcher()
+    monkeypatch.setattr(
+        fetcher,
+        "_make_request",
+        lambda url, params: DummyResponse(text="<root></root>"),
+    )
+
+    with pytest.raises(APIServerError, match="empty mart registry"):
+        fetcher.list_marts()
+
+
 def test_biomart_convenience_methods_delegate_query_or_batch(monkeypatch):
     fetcher = BioMart_Fetcher()
     query_calls = []

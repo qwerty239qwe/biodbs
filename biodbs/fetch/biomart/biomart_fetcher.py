@@ -228,7 +228,18 @@ class BioMart_Fetcher(BaseDataFetcher):
         params = model.build_query_params()
 
         response = self._make_request(url, params)
-        return BioMartRegistryData(response.text)
+        data = BioMartRegistryData(response.text)
+        if len(data) == 0:
+            raise APIServerError(
+                service="BioMart",
+                status_code=503,
+                url=url,
+                response_text=(
+                    "BioMart returned an empty mart registry. The host is likely "
+                    "degraded or temporarily unavailable."
+                ),
+            )
+        return data
 
     def list_datasets(
         self,

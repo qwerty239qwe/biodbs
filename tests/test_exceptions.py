@@ -99,6 +99,7 @@ class TestAPIServerError:
     def test_with_response_text(self):
         e = APIServerError("Ensembl", 502, response_text="Bad Gateway")
         assert e.response_text == "Bad Gateway"
+        assert "Bad Gateway" in str(e)
 
     def test_url_in_message(self):
         e = APIServerError("KEGG", 503, url="https://rest.kegg.jp")
