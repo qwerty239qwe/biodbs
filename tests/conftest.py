@@ -4,19 +4,22 @@ This module configures rate limiting for integration tests to avoid
 hitting API rate limits during CI runs.
 """
 
-import pytest
 import os
+
+import pytest
 
 # Network/server error types that indicate an external service is unavailable
 # (not a bug in our code).  Integration tests that raise these are skipped
 # rather than failed so CI passes even when a third-party API is down.
-_NETWORK_ERROR_TYPES: tuple = ()
+_EXTERNAL_SERVICE_ERROR_TYPES: tuple = (ConnectionError, TimeoutError)
 
 try:
     import requests.exceptions as _req_exc
-    _NETWORK_ERROR_TYPES += (
+
+    _EXTERNAL_SERVICE_ERROR_TYPES += (
         _req_exc.ConnectTimeout,
         _req_exc.ConnectionError,
+        _req_exc.JSONDecodeError,
         _req_exc.Timeout,
         _req_exc.ReadTimeout,
     )
@@ -24,8 +27,17 @@ except ImportError:
     pass
 
 try:
-    from biodbs.exceptions import APIServerError as _APIServerError
-    _NETWORK_ERROR_TYPES += (_APIServerError,)
+    from biodbs.exceptions import (
+        APIRateLimitError as _APIRateLimitError,
+        APIServerError as _APIServerError,
+        APITimeoutError as _APITimeoutError,
+    )
+
+    _EXTERNAL_SERVICE_ERROR_TYPES += (
+        _APIRateLimitError,
+        _APIServerError,
+        _APITimeoutError,
+    )
 except ImportError:
     pass
 
@@ -87,6 +99,13 @@ def rate_limiter():
     return get_rate_limiter()
 
 
+def _external_service_skip_reason(exc: BaseException) -> str | None:
+    """Return a skip reason for external service failures."""
+    if isinstance(exc, _EXTERNAL_SERVICE_ERROR_TYPES):
+        return f"External service unavailable ({type(exc).__name__}): {exc}"
+    return None
+
+
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_call(item):
     """Convert network/server errors in integration tests into skips.
@@ -96,10 +115,9 @@ def pytest_runtest_call(item):
     CI green even during third-party outages.
     """
     outcome = yield
-    if _NETWORK_ERROR_TYPES and item.get_closest_marker("integration") and outcome.excinfo:
-        exc_type, exc_val, _ = outcome.excinfo
-        if isinstance(exc_val, _NETWORK_ERROR_TYPES):
-            skip_msg = f"External service unavailable ({type(exc_val).__name__}): {exc_val}"
+    if item.get_closest_marker("integration") and outcome.excinfo:
+        _, exc_val, _ = outcome.excinfo
+        if skip_msg := _external_service_skip_reason(exc_val):
             outcome.force_exception(pytest.skip.Exception(skip_msg))
 
 

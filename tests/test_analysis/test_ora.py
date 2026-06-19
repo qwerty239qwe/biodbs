@@ -7,7 +7,6 @@ Skip slow tests: uv run pytest tests/test_analysis/test_ora.py -v -m "not slow"
 import pytest
 import math
 
-from biodbs.exceptions import APIRateLimitError
 from biodbs._funcs.analysis.ora import (
     hypergeometric_test,
     multiple_test_correction,
@@ -432,26 +431,20 @@ class TestORAEnrichr:
         """Test EnrichR ORA with KEGG library."""
         genes = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"]
 
-        try:
-            result = ora_enrichr(genes, gene_set_library="KEGG_2021_Human")
+        result = ora_enrichr(genes, gene_set_library="KEGG_2021_Human")
 
-            assert isinstance(result, ORAResult)
-            assert "EnrichR" in result.database
-            assert len(result.query_genes) == 5
-        except (ConnectionError, APIRateLimitError):
-            pytest.skip("EnrichR API not available")
+        assert isinstance(result, ORAResult)
+        assert "EnrichR" in result.database
+        assert len(result.query_genes) == 5
 
     @pytest.mark.integration
     def test_enrichr_go(self):
         """Test EnrichR ORA with GO library."""
         genes = ["TP53", "MDM2", "CDKN1A", "BAX", "BCL2"]
 
-        try:
-            result = ora_enrichr(genes, gene_set_library="GO_Biological_Process_2021")
+        result = ora_enrichr(genes, gene_set_library="GO_Biological_Process_2021")
 
-            assert isinstance(result, ORAResult)
-        except (ConnectionError, APIRateLimitError):
-            pytest.skip("EnrichR API not available")
+        assert isinstance(result, ORAResult)
 
 
 # =============================================================================
