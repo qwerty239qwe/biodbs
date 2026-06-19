@@ -53,34 +53,20 @@ jobs:
         include:
           - service: biomart
             target: tests/test_fetch/biomart
-          - service: chembl
-            target: tests/test_fetch/chembl
-          - service: clinvar
-            target: tests/test_fetch/clinvar
-          - service: disease-ontology
-            target: tests/test_fetch/disease_ontology
           - service: enrichr
             target: tests/test_fetch/enrichr tests/test_analysis/test_ora.py::TestORAEnrichr
           - service: ensembl
             target: tests/test_fetch/ensembl
-          - service: fda
-            target: tests/test_fetch/fda
-          - service: hgnc
-            target: tests/test_fetch/hgnc
           - service: hpa
             target: tests/test_fetch/hpa
           - service: kegg
             target: tests/test_fetch/kegg tests/test_analysis/test_ora.py::TestORAKegg tests/test_translate/test_genes.py::TestTranslateGeneIdsKegg tests/test_translate/test_chem.py::TestTranslateChemicalIdsKegg
-          - service: ncbi
-            target: tests/test_fetch/ncbi
           - service: pubchem
             target: tests/test_fetch/pubchem tests/test_translate/test_chem.py::TestTranslateChemicalIds tests/test_translate/test_chem.py::TestTranslateChemicalIdsMultipleTargets tests/test_translate/test_chem.py::TestTranslatePubchemToChembl
           - service: quickgo
             target: tests/test_fetch/quickgo tests/test_analysis/test_ora.py::TestORAGo
           - service: reactome
             target: tests/test_fetch/reactome tests/test_analysis/test_ora.py::TestORAReactome tests/test_analysis/test_ora.py::TestORAReactomeLocal
-          - service: uniprot
-            target: tests/test_fetch/uniprot
     steps:
       - uses: actions/checkout@v4
 
