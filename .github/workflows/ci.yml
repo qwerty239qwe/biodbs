@@ -46,6 +46,27 @@ jobs:
   integration:
     runs-on: ubuntu-latest
     needs: test
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: biomart
+            target: tests/test_fetch/biomart
+          - service: enrichr
+            target: tests/test_fetch/enrichr tests/test_analysis/test_ora.py::TestORAEnrichr
+          - service: ensembl
+            target: tests/test_fetch/ensembl
+          - service: hpa
+            target: tests/test_fetch/hpa
+          - service: kegg
+            target: tests/test_fetch/kegg tests/test_analysis/test_ora.py::TestORAKegg tests/test_translate/test_genes.py::TestTranslateGeneIdsKegg tests/test_translate/test_chem.py::TestTranslateChemicalIdsKegg
+          - service: pubchem
+            target: tests/test_fetch/pubchem tests/test_translate/test_chem.py::TestTranslateChemicalIds tests/test_translate/test_chem.py::TestTranslateChemicalIdsMultipleTargets tests/test_translate/test_chem.py::TestTranslatePubchemToChembl
+          - service: quickgo
+            target: tests/test_fetch/quickgo tests/test_analysis/test_ora.py::TestORAGo
+          - service: reactome
+            target: tests/test_fetch/reactome tests/test_analysis/test_ora.py::TestORAReactome tests/test_analysis/test_ora.py::TestORAReactomeLocal
     steps:
       - uses: actions/checkout@v4
 
@@ -60,5 +81,5 @@ jobs:
           uv sync --dev --extra graph
           uv pip install -e .
 
-      - name: Run integration tests
-        run: uv run pytest -m integration -v --tb=short
+      - name: Run ${{ matrix.service }} integration tests
+        run: uv run pytest -m integration -v --tb=short ${{ matrix.target }}
