@@ -15,6 +15,7 @@ from unittest.mock import MagicMock, patch
 import importlib
 _ora_mod = importlib.import_module('biodbs._funcs.analysis.ora')
 
+from biodbs.exceptions import APIError
 from biodbs._funcs.analysis.ora import (
     ORAResult,
     ORATermResult,
@@ -197,7 +198,7 @@ class TestTranslateIdsForOra:
 
     @patch.object(_ora_mod, "translate_gene_ids")
     def test_failed_translation_warns_and_passthrough(self, mock_trans):
-        mock_trans.side_effect = RuntimeError("network fail")
+        mock_trans.side_effect = APIError("network fail")
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             mapped, mapping, unmapped = _translate_ids_for_ora(
@@ -305,12 +306,20 @@ class TestGetGoTerms:
     @patch.object(_ora_mod, "quickgo_search_annotations_all")
     def test_failed_fetch_returns_empty(self, mock_qgo, mock_get):
         mock_get.return_value = None
-        mock_qgo.side_effect = RuntimeError("network down")
+        mock_qgo.side_effect = APIError("network down")
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             result = _get_go_terms(Species.HUMAN, use_cache=False)
         assert result == {}
         assert any("Failed to fetch GO annotations" in str(x.message) for x in w)
+
+    @patch.object(_ora_mod, "get_cached_pathways")
+    @patch.object(_ora_mod, "quickgo_search_annotations_all")
+    def test_unexpected_fetch_error_propagates(self, mock_qgo, mock_get):
+        mock_get.return_value = None
+        mock_qgo.side_effect = RuntimeError("bug")
+        with pytest.raises(RuntimeError, match="bug"):
+            _get_go_terms(Species.HUMAN, use_cache=False)
 
     @patch.object(_ora_mod, "get_cached_pathways")
     @patch.object(_ora_mod, "quickgo_search_annotations_all")
@@ -355,7 +364,7 @@ class TestGetReactomePathways:
     def test_failed_hierarchy_returns_empty(self, MockFetcher, mock_get):
         mock_get.return_value = None
         inst = MockFetcher.return_value
-        inst.get_events_hierarchy.side_effect = RuntimeError("API down")
+        inst.get_events_hierarchy.side_effect = APIError("API down")
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             result = _get_reactome_pathways(Species.HUMAN, use_cache=False)

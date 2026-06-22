@@ -34,6 +34,7 @@
 | **HGNC** | Authoritative human gene nomenclature | `biodbs.fetch.HGNC` |
 | **ClinVar** | Clinical variant classifications | `biodbs.fetch.ClinVar` |
 | **LPSN** | Prokaryotic nomenclature and taxonomy records | `biodbs.fetch.LPSN` |
+| **SILVA** | rRNA release files and classifier resources | `biodbs.fetch.SILVA` |
 
 ## Quick Example
 

@@ -22,6 +22,7 @@ from biodbs._funcs.translate.genes import (
 from biodbs._funcs.translate._id_types import GeneIDType, TranslationDatabase
 from biodbs.data.HGNC._data_model import HGNCEntry
 from biodbs.data.HGNC.data import HGNCFetchedData
+from biodbs.exceptions import APIError
 
 
 # =============================================================================
@@ -262,7 +263,7 @@ class TestTranslateViaHgncUnit:
     @patch("biodbs.fetch.HGNC.hgnc_fetcher.HGNC_Fetcher")
     def test_exception_per_id_produces_none(self, MockFetcher):
         inst = MockFetcher.return_value
-        inst.fetch.side_effect = RuntimeError("network down")
+        inst.fetch.side_effect = APIError("network down")
         result = _translate_via_hgnc(["TP53"], "symbol", "entrez_id", "human", False)
         assert isinstance(result, pd.DataFrame)
         assert pd.isna(result["entrez_id"].iloc[0])
@@ -312,7 +313,7 @@ class TestTranslateMultipleTargetsUnit:
     def test_partial_failure_sets_none(self, mock_bm):
         # First call raises, second call succeeds
         mock_bm.side_effect = [
-            RuntimeError("fail"),
+            APIError("fail"),
             _mock_biomart_data([{"external_gene_name": "TP53", "entrezgene_id": "7157"}]),
         ]
         result = _translate_multiple_targets(
@@ -476,7 +477,7 @@ class TestTranslateViaEnsemblUnit:
         assert result == {"ENSG00000141510": "7157"}
 
     def test_exception_per_id_produces_none(self):
-        with patch("biodbs.fetch.ensembl.funcs.ensembl_get_xrefs", side_effect=RuntimeError("fail")), \
+        with patch("biodbs.fetch.ensembl.funcs.ensembl_get_xrefs", side_effect=APIError("fail")), \
              patch("biodbs.fetch.ensembl.funcs.ensembl_get_xrefs_symbol"), \
              patch("biodbs.fetch.ensembl.funcs.ensembl_lookup"):
             result = translate_gene_ids(
@@ -484,6 +485,16 @@ class TestTranslateViaEnsemblUnit:
                 to_type="EntrezGene", database="ensembl",
             )
         assert pd.isna(result["EntrezGene"].iloc[0])
+
+    def test_unexpected_exception_propagates(self):
+        with patch("biodbs.fetch.ensembl.funcs.ensembl_get_xrefs", side_effect=RuntimeError("bug")), \
+             patch("biodbs.fetch.ensembl.funcs.ensembl_get_xrefs_symbol"), \
+             patch("biodbs.fetch.ensembl.funcs.ensembl_lookup"):
+            with pytest.raises(RuntimeError, match="bug"):
+                translate_gene_ids(
+                    ["ENSG00000141510"], from_type="ensembl_gene_id",
+                    to_type="EntrezGene", database="ensembl",
+                )
 
 
 # =============================================================================

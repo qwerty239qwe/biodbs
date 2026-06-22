@@ -1,7 +1,9 @@
 """Chemical/Compound ID translation functions."""
 
 from typing import List, Dict, Union
+import logging
 import pandas as pd
+from requests.exceptions import RequestException
 
 from biodbs.fetch.pubchem.funcs import (
         pubchem_search_by_name,
@@ -12,6 +14,16 @@ from biodbs.fetch.pubchem.funcs import (
 
 from biodbs.fetch.KEGG.funcs import kegg_conv
 from biodbs.fetch.ChEMBL.funcs import chembl_get_molecule, chembl_search_molecules
+from biodbs.exceptions import APIError
+
+logger = logging.getLogger(__name__)
+_EXPECTED_TRANSLATION_ERRORS = (
+    APIError,
+    RequestException,
+    KeyError,
+    IndexError,
+    ValueError,
+)
 
 
 def translate_chemical_ids(
@@ -164,7 +176,8 @@ def translate_chemical_ids(
 
             results.append({from_type: id_val, to_type: to_val, "cid": cid})
 
-        except Exception:
+        except _EXPECTED_TRANSLATION_ERRORS as exc:
+            logger.debug("Failed to translate chemical ID %s", id_val, exc_info=exc)
             results.append({from_type: id_val, to_type: None})
 
     df = pd.DataFrame(results)
@@ -264,7 +277,8 @@ def _translate_chemical_multiple_targets(
                 for tt in to_types:
                     record[tt] = cid if tt == "cid" else None
 
-        except Exception:
+        except _EXPECTED_TRANSLATION_ERRORS as exc:
+            logger.debug("Failed to translate chemical ID %s", id_val, exc_info=exc)
             for tt in to_types:
                 record[tt] = cid if (tt == "cid" and cid is not None) else record.get(tt)
 
@@ -375,13 +389,18 @@ def translate_chembl_to_pubchem(
                             search_data = pubchem_search_by_inchikey(inchikey)
                             cids = search_data.get_cids()
                             pubchem_cid = cids[0] if cids else None
-                        except Exception:
-                            pass
+                        except _EXPECTED_TRANSLATION_ERRORS as exc:
+                            logger.debug(
+                                "Failed PubChem InChIKey lookup for %s",
+                                chembl_id,
+                                exc_info=exc,
+                            )
 
                 results.append({"chembl_id": chembl_id, "pubchem_cid": pubchem_cid})
             else:
                 results.append({"chembl_id": chembl_id, "pubchem_cid": None})
-        except Exception:
+        except _EXPECTED_TRANSLATION_ERRORS as exc:
+            logger.debug("Failed to translate ChEMBL ID %s", chembl_id, exc_info=exc)
             results.append({"chembl_id": chembl_id, "pubchem_cid": None})
 
     df = pd.DataFrame(results)
@@ -434,7 +453,8 @@ def translate_pubchem_to_chembl(
                     results.append({"pubchem_cid": cid, "chembl_id": None})
             else:
                 results.append({"pubchem_cid": cid, "chembl_id": None})
-        except Exception:
+        except _EXPECTED_TRANSLATION_ERRORS as exc:
+            logger.debug("Failed to translate PubChem CID %s", cid, exc_info=exc)
             results.append({"pubchem_cid": cid, "chembl_id": None})
 
     df = pd.DataFrame(results)

@@ -1,12 +1,24 @@
 """Protein ID translation functions using UniProt."""
 
 from typing import List, Dict, Union
+import logging
 import pandas as pd
+from requests.exceptions import RequestException
 
 from biodbs.fetch.uniprot.funcs import (
     gene_to_uniprot,
     uniprot_to_gene,
     uniprot_map_ids,
+)
+from biodbs.exceptions import APIError
+
+logger = logging.getLogger(__name__)
+_EXPECTED_TRANSLATION_ERRORS = (
+    APIError,
+    RequestException,
+    KeyError,
+    IndexError,
+    ValueError,
 )
 
 
@@ -205,7 +217,8 @@ def _translate_protein_multiple_targets(
             for from_id, to_id in result.items():
                 if from_id in all_results:
                     all_results[from_id][target_type] = to_id
-        except Exception:
+        except _EXPECTED_TRANSLATION_ERRORS as exc:
+            logger.debug("Failed to translate target type %s", target_type, exc_info=exc)
             # If a target type fails, set None for all IDs
             for from_id in ids:
                 if from_id in all_results:

@@ -1,12 +1,24 @@
 """Gene ID translation functions."""
 
 from typing import List, Dict, Union, Literal, TYPE_CHECKING
+import logging
 import pandas as pd
+from requests.exceptions import RequestException
 
 from biodbs.fetch.biomart.funcs import biomart_convert_ids
 from biodbs.fetch.KEGG.funcs import kegg_conv
 from biodbs._funcs.translate._id_types import GeneIDType, TranslationDatabase, resolve_id_type
 from biodbs._funcs._species import Species, resolve_species
+from biodbs.exceptions import APIError
+
+logger = logging.getLogger(__name__)
+_EXPECTED_TRANSLATION_ERRORS = (
+    APIError,
+    RequestException,
+    KeyError,
+    IndexError,
+    ValueError,
+)
 
 if TYPE_CHECKING:
     pass
@@ -213,7 +225,8 @@ def _translate_multiple_targets(
             for from_id, to_id in result.items():
                 if from_id in all_results:
                     all_results[from_id][target_type] = to_id
-        except Exception:
+        except _EXPECTED_TRANSLATION_ERRORS as exc:
+            logger.debug("Failed to translate target type %s", target_type, exc_info=exc)
             # If a target type fails, set None for all IDs
             for from_id in ids:
                 if from_id in all_results:
@@ -416,8 +429,8 @@ def _translate_via_ensembl(
                             xref_data = ensembl_get_xrefs(gene_id, external_db=to_type)
                             to_val = _ensembl_xref_first(xref_data, to_type)
 
-            except Exception:
-                pass
+            except _EXPECTED_TRANSLATION_ERRORS as exc:
+                logger.debug("Failed to translate Ensembl ID %s", id_val, exc_info=exc)
 
             results.append({from_type: id_val, to_type: to_val})
 
@@ -439,7 +452,8 @@ def _translate_via_ensembl(
                 data = ensembl_get_xrefs_symbol(ensembl_species, id_val)
                 ensembl_id = data.results[0].get("id") if data.results else None
                 results.append({from_type: id_val, to_type: ensembl_id})
-            except Exception:
+            except _EXPECTED_TRANSLATION_ERRORS as exc:
+                logger.debug("Failed to translate Ensembl symbol %s", id_val, exc_info=exc)
                 results.append({from_type: id_val, to_type: None})
 
     df = pd.DataFrame(results)
@@ -627,8 +641,8 @@ def _translate_via_hgnc(
             data = fetcher.fetch(from_type, id_val)
             if data.results:
                 to_val = _hgnc_extract_field(data.results[0], to_type)
-        except Exception:
-            pass
+        except _EXPECTED_TRANSLATION_ERRORS as exc:
+            logger.debug("Failed to translate HGNC ID %s", id_val, exc_info=exc)
         results.append({from_type: id_val, to_type: to_val})
 
     df = pd.DataFrame(results)

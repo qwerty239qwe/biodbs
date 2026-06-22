@@ -40,6 +40,7 @@
 | **HGNC** | Authoritative human gene nomenclature |
 | **ClinVar** | Clinical variant classifications |
 | **LPSN** | Prokaryotic nomenclature and taxonomy records |
+| **SILVA** | rRNA release files and classifier resources |
 
 ## Installation
 

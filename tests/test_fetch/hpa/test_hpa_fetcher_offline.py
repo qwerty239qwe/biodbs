@@ -6,6 +6,7 @@ import json
 import pytest
 
 from biodbs.data.HPA.data import HPAFetchedData
+from biodbs.exceptions import APIValidationError
 from biodbs.fetch.HPA.hpa_fetcher import HPA_Fetcher
 
 
@@ -55,6 +56,16 @@ def test_hpa_search_and_search_download_handle_compressed_json(monkeypatch):
 
     assert HPA_Fetcher().search("TP53", compress="yes").results == [{"Gene": "TP53"}]
     assert HPA_Fetcher().search_download("TP53", compress="yes").results == [{"Gene": "TP53"}]
+
+
+def test_hpa_search_rejects_bad_compressed_json(monkeypatch):
+    monkeypatch.setattr(
+        "biodbs.fetch.HPA.hpa_fetcher.requests.get",
+        lambda url, params=None, headers=None: DummyResponse(content=b"not-json-gzip"),
+    )
+
+    with pytest.raises(APIValidationError, match="Could not decode json response"):
+        HPA_Fetcher().search("TP53", compress="yes")
 
 
 def test_hpa_search_download_raises_helpful_bad_request(monkeypatch):

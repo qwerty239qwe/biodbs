@@ -265,6 +265,19 @@ from biodbs.fetch.LPSN.funcs import (
 )
 
 # =============================================================================
+# SILVA functions
+# =============================================================================
+from biodbs.fetch.SILVA.funcs import (
+    silva_get_version,
+    silva_list_current_files,
+    silva_list_archive_releases,
+    silva_get_readme,
+    silva_get_citation,
+    silva_download_file,
+    silva_download_classifier,
+)
+
+# =============================================================================
 # ClinVar functions
 # =============================================================================
 from biodbs.fetch.ClinVar.funcs import (
@@ -453,6 +466,14 @@ __all__ = [
     "lpsn_advanced_search",
     "lpsn_flexible_search",
     "lpsn_search_and_fetch",
+    # SILVA
+    "silva_get_version",
+    "silva_list_current_files",
+    "silva_list_archive_releases",
+    "silva_get_readme",
+    "silva_get_citation",
+    "silva_download_file",
+    "silva_download_classifier",
     # ClinVar
     "clinvar_search",
     "clinvar_count",

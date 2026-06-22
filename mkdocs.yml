@@ -104,6 +104,7 @@ nav:
     - HGNC: fetch/hgnc.md
     - ClinVar: fetch/clinvar.md
     - LPSN: fetch/lpsn.md
+    - SILVA: fetch/silva.md
   - ID Translation:
     - Overview: translate/index.md
     - Gene IDs: translate/genes.md

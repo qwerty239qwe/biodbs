@@ -24,6 +24,7 @@ Complete reference for `biodbs.fetch` module.
 | [`HGNC_Fetcher`](#hgnc_fetcher) | Fetch gene nomenclature from HGNC |
 | [`ClinVar_Fetcher`](#clinvar_fetcher) | Fetch clinical variant data from ClinVar |
 | [`LPSN_Fetcher`](#lpsn_fetcher) | Fetch prokaryotic nomenclature records from LPSN |
+| [`SILVA_Fetcher`](#silva_fetcher) | Fetch SILVA release files and classifier resources |
 
 ### UniProt Functions
 
@@ -51,6 +52,15 @@ Complete reference for `biodbs.fetch` module.
 | [`lpsn_advanced_search`](#lpsn_advanced_search) | Search LPSN with documented parameters |
 | [`lpsn_flexible_search`](#lpsn_flexible_search) | Search LPSN by JSON field matches |
 | [`lpsn_search_and_fetch`](#lpsn_search_and_fetch) | Search IDs and fetch full records |
+
+### SILVA Functions
+
+| Function | Description |
+|----------|-------------|
+| [`silva_get_version`](#silva_get_version) | Fetch current SILVA version text |
+| [`silva_list_current_files`](#silva_list_current_files) | List current release files |
+| [`silva_list_archive_releases`](#silva_list_archive_releases) | List archive releases |
+| [`silva_download_file`](#silva_download_file) | Download a release file |
 
 ### Ensembl Functions
 
@@ -767,6 +777,66 @@ Complete reference for `biodbs.fetch` module.
 ### lpsn_search_and_fetch
 
 ::: biodbs.fetch.LPSN.funcs.lpsn_search_and_fetch
+    options:
+      show_root_heading: true
+      show_source: false
+
+---
+
+## SILVA
+
+### SILVA_Fetcher
+
+::: biodbs.fetch.SILVA.silva_fetcher.SILVA_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+
+### silva_get_version
+
+::: biodbs.fetch.SILVA.funcs.silva_get_version
+    options:
+      show_root_heading: true
+      show_source: false
+
+### silva_list_current_files
+
+::: biodbs.fetch.SILVA.funcs.silva_list_current_files
+    options:
+      show_root_heading: true
+      show_source: false
+
+### silva_list_archive_releases
+
+::: biodbs.fetch.SILVA.funcs.silva_list_archive_releases
+    options:
+      show_root_heading: true
+      show_source: false
+
+### silva_get_readme
+
+::: biodbs.fetch.SILVA.funcs.silva_get_readme
+    options:
+      show_root_heading: true
+      show_source: false
+
+### silva_get_citation
+
+::: biodbs.fetch.SILVA.funcs.silva_get_citation
+    options:
+      show_root_heading: true
+      show_source: false
+
+### silva_download_file
+
+::: biodbs.fetch.SILVA.funcs.silva_download_file
+    options:
+      show_root_heading: true
+      show_source: false
+
+### silva_download_classifier
+
+::: biodbs.fetch.SILVA.funcs.silva_download_classifier
     options:
       show_root_heading: true
       show_source: false

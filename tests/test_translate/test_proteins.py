@@ -11,6 +11,7 @@ from biodbs._funcs import (
     translate_uniprot_to_refseq,
 )
 from biodbs._funcs.translate.proteins import _translate_protein_multiple_targets
+from biodbs.exceptions import APIError
 
 
 # =============================================================================
@@ -177,7 +178,7 @@ class TestTranslateProteinMultipleTargetsUnit:
     @patch("biodbs._funcs.translate.proteins.uniprot_map_ids")
     def test_partial_failure_sets_none(self, mock_map):
         mock_map.side_effect = [
-            RuntimeError("fail"),
+            APIError("fail"),
             {"P04637": ["ENSG00000141510"]},
         ]
         result = _translate_protein_multiple_targets(
@@ -185,6 +186,14 @@ class TestTranslateProteinMultipleTargetsUnit:
         )
         assert isinstance(result, pd.DataFrame)
         assert result["GeneID"].iloc[0] is None
+
+    @patch("biodbs._funcs.translate.proteins.uniprot_map_ids")
+    def test_unexpected_exception_propagates(self, mock_map):
+        mock_map.side_effect = RuntimeError("bug")
+        with pytest.raises(RuntimeError, match="bug"):
+            _translate_protein_multiple_targets(
+                ["P04637"], "UniProtKB_AC-ID", ["GeneID"], 9606, False
+            )
 
 
 # =============================================================================

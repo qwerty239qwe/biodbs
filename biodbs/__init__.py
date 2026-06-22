@@ -276,6 +276,17 @@ __all__ = [
     "lpsn_search_and_fetch",
 
     # ==========================================================================
+    # SILVA FUNCTIONS - rRNA release files and classifier resources
+    # ==========================================================================
+    "silva_get_version",
+    "silva_list_current_files",
+    "silva_list_archive_releases",
+    "silva_get_readme",
+    "silva_get_citation",
+    "silva_download_file",
+    "silva_download_classifier",
+
+    # ==========================================================================
     # CLINVAR FUNCTIONS - Clinical variant data
     # ==========================================================================
     "clinvar_search",
