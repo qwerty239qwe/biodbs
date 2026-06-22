@@ -193,6 +193,11 @@ __all__ = [
     "hgnc_fetch_by_uniprot_id",
     "hgnc_fetch_by_refseq",
     "hgnc_search_symbol",
+    # LPSN
+    "lpsn_fetch",
+    "lpsn_advanced_search",
+    "lpsn_flexible_search",
+    "lpsn_search_and_fetch",
     # UniProt
     "uniprot_get_entry",
     "uniprot_get_entries",

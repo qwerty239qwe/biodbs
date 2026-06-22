@@ -268,6 +268,14 @@ __all__ = [
     "hgnc_search_symbol",
 
     # ==========================================================================
+    # LPSN FUNCTIONS - Prokaryotic nomenclature
+    # ==========================================================================
+    "lpsn_fetch",
+    "lpsn_advanced_search",
+    "lpsn_flexible_search",
+    "lpsn_search_and_fetch",
+
+    # ==========================================================================
     # CLINVAR FUNCTIONS - Clinical variant data
     # ==========================================================================
     "clinvar_search",

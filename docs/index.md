@@ -33,6 +33,7 @@
 | **Disease Ontology** | Disease terms and cross-references | `biodbs.fetch.DiseaseOntology` |
 | **HGNC** | Authoritative human gene nomenclature | `biodbs.fetch.HGNC` |
 | **ClinVar** | Clinical variant classifications | `biodbs.fetch.ClinVar` |
+| **LPSN** | Prokaryotic nomenclature and taxonomy records | `biodbs.fetch.LPSN` |
 
 ## Quick Example
 

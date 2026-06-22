@@ -39,6 +39,7 @@
 | **Disease Ontology** | Disease terms and cross-references |
 | **HGNC** | Authoritative human gene nomenclature |
 | **ClinVar** | Clinical variant classifications |
+| **LPSN** | Prokaryotic nomenclature and taxonomy records |
 
 ## Installation
 

@@ -23,6 +23,7 @@ Complete reference for `biodbs.fetch` module.
 | [`EnrichR_Fetcher`](#enrichr_fetcher) | Perform gene set enrichment via EnrichR |
 | [`HGNC_Fetcher`](#hgnc_fetcher) | Fetch gene nomenclature from HGNC |
 | [`ClinVar_Fetcher`](#clinvar_fetcher) | Fetch clinical variant data from ClinVar |
+| [`LPSN_Fetcher`](#lpsn_fetcher) | Fetch prokaryotic nomenclature records from LPSN |
 
 ### UniProt Functions
 
@@ -41,6 +42,15 @@ Complete reference for `biodbs.fetch` module.
 | [`pubchem_get_compound`](#pubchem_get_compound) | Get compound record by CID |
 | [`pubchem_search_by_name`](#pubchem_search_by_name) | Search compounds by name |
 | [`pubchem_get_properties`](#pubchem_get_properties) | Get compound properties |
+
+### LPSN Functions
+
+| Function | Description |
+|----------|-------------|
+| [`lpsn_fetch`](#lpsn_fetch) | Fetch LPSN records by ID |
+| [`lpsn_advanced_search`](#lpsn_advanced_search) | Search LPSN with documented parameters |
+| [`lpsn_flexible_search`](#lpsn_flexible_search) | Search LPSN by JSON field matches |
+| [`lpsn_search_and_fetch`](#lpsn_search_and_fetch) | Search IDs and fetch full records |
 
 ### Ensembl Functions
 
@@ -718,6 +728,45 @@ Complete reference for `biodbs.fetch` module.
 ### clinvar_link_pubmed
 
 ::: biodbs.fetch.ClinVar.funcs.clinvar_link_pubmed
+    options:
+      show_root_heading: true
+      show_source: false
+
+---
+
+## LPSN
+
+### LPSN_Fetcher
+
+::: biodbs.fetch.LPSN.lpsn_fetcher.LPSN_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+
+### lpsn_fetch
+
+::: biodbs.fetch.LPSN.funcs.lpsn_fetch
+    options:
+      show_root_heading: true
+      show_source: false
+
+### lpsn_advanced_search
+
+::: biodbs.fetch.LPSN.funcs.lpsn_advanced_search
+    options:
+      show_root_heading: true
+      show_source: false
+
+### lpsn_flexible_search
+
+::: biodbs.fetch.LPSN.funcs.lpsn_flexible_search
+    options:
+      show_root_heading: true
+      show_source: false
+
+### lpsn_search_and_fetch
+
+::: biodbs.fetch.LPSN.funcs.lpsn_search_and_fetch
     options:
       show_root_heading: true
       show_source: false

@@ -255,6 +255,16 @@ from biodbs.fetch.HGNC.funcs import (
 )
 
 # =============================================================================
+# LPSN functions
+# =============================================================================
+from biodbs.fetch.LPSN.funcs import (
+    lpsn_fetch,
+    lpsn_advanced_search,
+    lpsn_flexible_search,
+    lpsn_search_and_fetch,
+)
+
+# =============================================================================
 # ClinVar functions
 # =============================================================================
 from biodbs.fetch.ClinVar.funcs import (
@@ -438,6 +448,11 @@ __all__ = [
     "hgnc_fetch_by_uniprot_id",
     "hgnc_fetch_by_refseq",
     "hgnc_search_symbol",
+    # LPSN
+    "lpsn_fetch",
+    "lpsn_advanced_search",
+    "lpsn_flexible_search",
+    "lpsn_search_and_fetch",
     # ClinVar
     "clinvar_search",
     "clinvar_count",
