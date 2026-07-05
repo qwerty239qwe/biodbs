@@ -7,6 +7,7 @@ import warnings
 import pytest
 import pandas as pd
 from unittest.mock import MagicMock, patch
+from requests.exceptions import RequestException
 
 from biodbs._funcs.translate.genes import _hgnc_extract_field, _translate_via_hgnc
 from biodbs._funcs.translate._id_types import HGNC_ID_MAP, GeneIDType, TranslationDatabase
@@ -212,8 +213,11 @@ class TestTranslateViaHgnc:
 
     @patch("biodbs.fetch.HGNC.hgnc_fetcher.HGNC_Fetcher")
     def test_exception_during_fetch_skips_id(self, MockFetcher):
+        # A fetch/network failure (RequestException) is caught per-id and skipped;
+        # unexpected errors are intentionally left to propagate (see
+        # _EXPECTED_TRANSLATION_ERRORS).
         fetcher = MagicMock()
-        fetcher.fetch.side_effect = RuntimeError("Network error")
+        fetcher.fetch.side_effect = RequestException("Network error")
         MockFetcher.return_value = fetcher
         result = _translate_via_hgnc(
             ["TP53"], "symbol", "entrez_id", "human", return_dict=True
