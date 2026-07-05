@@ -7,3 +7,6 @@ __pycache__
 site/
 biodbs.egg-info/
 .tokensave
+.coverage
+*.stackdump
+nul

@@ -25,6 +25,8 @@ Complete reference for `biodbs.fetch` module.
 | [`ClinVar_Fetcher`](#clinvar_fetcher) | Fetch clinical variant data from ClinVar |
 | [`LPSN_Fetcher`](#lpsn_fetcher) | Fetch prokaryotic nomenclature records from LPSN |
 | [`SILVA_Fetcher`](#silva_fetcher) | Fetch SILVA release files and classifier resources |
+| [`HOMD_Fetcher`](#homd_fetcher) | Fetch HOMD public downloads and reference tables |
+| [`GTDB_Fetcher`](#gtdb_fetcher) | Fetch GTDB release files and taxonomy resources |
 
 ### UniProt Functions
 
@@ -61,6 +63,24 @@ Complete reference for `biodbs.fetch` module.
 | [`silva_list_current_files`](#silva_list_current_files) | List current release files |
 | [`silva_list_archive_releases`](#silva_list_archive_releases) | List archive releases |
 | [`silva_download_file`](#silva_download_file) | Download a release file |
+
+### HOMD Functions
+
+| Function | Description |
+|----------|-------------|
+| [`homd_list_ftp`](#homd_list_ftp) | List HOMD FTP files |
+| [`homd_list_downloads`](#homd_list_downloads) | List HOMD batch downloads |
+| [`homd_get_taxon_table`](#homd_get_taxon_table) | Fetch HOMD taxon table |
+| [`homd_download_file`](#homd_download_file) | Download a HOMD file |
+
+### GTDB Functions
+
+| Function | Description |
+|----------|-------------|
+| [`gtdb_list_releases`](#gtdb_list_releases) | List GTDB releases |
+| [`gtdb_list_release_files`](#gtdb_list_release_files) | List files in a release |
+| [`gtdb_get_taxonomy`](#gtdb_get_taxonomy) | Fetch GTDB taxonomy table |
+| [`gtdb_download_taxonomy`](#gtdb_download_taxonomy) | Download GTDB taxonomy |
 
 ### Ensembl Functions
 
@@ -837,6 +857,195 @@ Complete reference for `biodbs.fetch` module.
 ### silva_download_classifier
 
 ::: biodbs.fetch.SILVA.funcs.silva_download_classifier
+    options:
+      show_root_heading: true
+      show_source: false
+
+---
+
+## HOMD
+
+### HOMD_Fetcher
+
+::: biodbs.fetch.HOMD.homd_fetcher.HOMD_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+
+### homd_list_ftp
+
+::: biodbs.fetch.HOMD.funcs.homd_list_ftp
+    options:
+      show_root_heading: true
+      show_source: false
+
+### homd_list_downloads
+
+::: biodbs.fetch.HOMD.funcs.homd_list_downloads
+    options:
+      show_root_heading: true
+      show_source: false
+
+### homd_get_taxon_table
+
+::: biodbs.fetch.HOMD.funcs.homd_get_taxon_table
+    options:
+      show_root_heading: true
+      show_source: false
+
+### homd_download_file
+
+::: biodbs.fetch.HOMD.funcs.homd_download_file
+    options:
+      show_root_heading: true
+      show_source: false
+
+---
+
+## GTDB
+
+### GTDB_Fetcher
+
+::: biodbs.fetch.GTDB.gtdb_fetcher.GTDB_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+
+### gtdb_list_releases
+
+::: biodbs.fetch.GTDB.funcs.gtdb_list_releases
+    options:
+      show_root_heading: true
+      show_source: false
+
+### gtdb_list_release_files
+
+::: biodbs.fetch.GTDB.funcs.gtdb_list_release_files
+    options:
+      show_root_heading: true
+      show_source: false
+
+### gtdb_get_taxonomy
+
+::: biodbs.fetch.GTDB.funcs.gtdb_get_taxonomy
+    options:
+      show_root_heading: true
+      show_source: false
+
+### gtdb_download_taxonomy
+
+::: biodbs.fetch.GTDB.funcs.gtdb_download_taxonomy
+    options:
+      show_root_heading: true
+      show_source: false
+
+---
+
+## PR2
+
+### PR2_Fetcher
+
+::: biodbs.fetch.PR2.pr2_fetcher.PR2_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+
+### pr2_list_releases
+
+::: biodbs.fetch.PR2.funcs.pr2_list_releases
+    options:
+      show_root_heading: true
+      show_source: false
+
+### pr2_list_assets
+
+::: biodbs.fetch.PR2.funcs.pr2_list_assets
+    options:
+      show_root_heading: true
+      show_source: false
+
+### pr2_download_asset
+
+::: biodbs.fetch.PR2.funcs.pr2_download_asset
+    options:
+      show_root_heading: true
+      show_source: false
+
+---
+
+## GreenGenes
+
+### GreenGenes_Fetcher
+
+::: biodbs.fetch.GreenGenes.greengenes_fetcher.GreenGenes_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+
+### greengenes_list_releases
+
+::: biodbs.fetch.GreenGenes.funcs.greengenes_list_releases
+    options:
+      show_root_heading: true
+      show_source: false
+
+### greengenes_download_file
+
+::: biodbs.fetch.GreenGenes.funcs.greengenes_download_file
+    options:
+      show_root_heading: true
+      show_source: false
+
+---
+
+## EUKARYOME
+
+### EUKARYOME_Fetcher
+
+::: biodbs.fetch.EUKARYOME.eukaryome_fetcher.EUKARYOME_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+
+### eukaryome_download
+
+::: biodbs.fetch.EUKARYOME.funcs.eukaryome_download
+    options:
+      show_root_heading: true
+      show_source: false
+
+---
+
+## MIDORI2
+
+### MIDORI2_Fetcher
+
+::: biodbs.fetch.MIDORI2.midori2_fetcher.MIDORI2_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+
+### midori2_download
+
+::: biodbs.fetch.MIDORI2.funcs.midori2_download
+    options:
+      show_root_heading: true
+      show_source: false
+
+---
+
+## UNITE
+
+### UNITE_Fetcher
+
+::: biodbs.fetch.UNITE.unite_fetcher.UNITE_Fetcher
+    options:
+      show_root_heading: true
+      show_source: false
+
+### unite_download
+
+::: biodbs.fetch.UNITE.funcs.unite_download
     options:
       show_root_heading: true
       show_source: false

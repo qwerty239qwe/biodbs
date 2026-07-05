@@ -287,6 +287,74 @@ __all__ = [
     "silva_download_classifier",
 
     # ==========================================================================
+    # HOMD FUNCTIONS - Human Oral Microbiome Database public downloads
+    # ==========================================================================
+    "homd_list_ftp",
+    "homd_list_downloads",
+    "homd_download_file",
+    "homd_get_table",
+    "homd_get_text",
+    "homd_get_taxon_table",
+    "homd_get_taxonomic_hierarchy",
+    "homd_get_hmt_lineage",
+    "homd_get_genome_metadata",
+    "homd_get_gtdb_taxonomy",
+    "homd_get_phage_table",
+    "homd_get_crispr_table",
+    "homd_list_16s_refseq",
+    "homd_download_16s_refseq",
+
+    # ==========================================================================
+    # GTDB FUNCTIONS - Genome Taxonomy Database release files
+    # ==========================================================================
+    "gtdb_list_releases",
+    "gtdb_list_release_files",
+    "gtdb_get_version",
+    "gtdb_get_release_notes",
+    "gtdb_get_file_descriptions",
+    "gtdb_get_md5sums",
+    "gtdb_get_taxonomy",
+    "gtdb_get_metadata",
+    "gtdb_get_tree",
+    "gtdb_download_file",
+    "gtdb_download_taxonomy",
+    "gtdb_download_metadata",
+    "gtdb_download_tree",
+
+    # ==========================================================================
+    # PR2 FUNCTIONS - Protist Ribosomal Reference release files
+    # ==========================================================================
+    "pr2_list_releases",
+    "pr2_list_assets",
+    "pr2_download_asset",
+
+    # ==========================================================================
+    # GREENGENES FUNCTIONS - GreenGenes release directory files
+    # ==========================================================================
+    "greengenes_list_releases",
+    "greengenes_list_files",
+    "greengenes_download_file",
+
+    # ==========================================================================
+    # EUKARYOME FUNCTIONS - eukaryotic rRNA reference archives
+    # ==========================================================================
+    "eukaryome_build_url",
+    "eukaryome_download",
+
+    # ==========================================================================
+    # MIDORI2 FUNCTIONS - mitochondrial reference files
+    # ==========================================================================
+    "midori2_build_url",
+    "midori2_download",
+
+    # ==========================================================================
+    # UNITE FUNCTIONS - fungal/eukaryote ITS reference archives (via PlutoF)
+    # ==========================================================================
+    "unite_resolve_doi",
+    "unite_get_download_url",
+    "unite_download",
+
+    # ==========================================================================
     # CLINVAR FUNCTIONS - Clinical variant data
     # ==========================================================================
     "clinvar_search",
