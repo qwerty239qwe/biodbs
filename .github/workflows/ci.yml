@@ -67,6 +67,16 @@ jobs:
             target: tests/test_fetch/quickgo tests/test_analysis/test_ora.py::TestORAGo
           - service: reactome
             target: tests/test_fetch/reactome tests/test_analysis/test_ora.py::TestORAReactome tests/test_analysis/test_ora.py::TestORAReactomeLocal
+          - service: pr2
+            target: tests/test_fetch/pr2
+          - service: greengenes
+            target: tests/test_fetch/greengenes
+          - service: eukaryome
+            target: tests/test_fetch/eukaryome
+          - service: midori2
+            target: tests/test_fetch/midori2
+          - service: unite
+            target: tests/test_fetch/unite
     steps:
       - uses: actions/checkout@v4
 

@@ -19,7 +19,9 @@ All functions are also available at the top level for convenience:
    from biodbs import pubchem_get_compound, translate_gene_ids, ora_kegg
 """
 
-__version__ = "0.3.1"
+# Keep in sync with pyproject.toml [project].version — guarded by
+# tests/test_version_matches_pyproject.py so drift fails CI.
+__version__ = "0.4.0"
 
 # =============================================================================
 # Exceptions (custom error hierarchy for API errors)
