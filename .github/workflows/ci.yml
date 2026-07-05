@@ -82,4 +82,7 @@ jobs:
           uv pip install -e .
 
       - name: Run ${{ matrix.service }} integration tests
-        run: uv run pytest -m integration -v --tb=short ${{ matrix.target }}
+        # Live third-party APIs (notably PubChem) throttle CI IP ranges; rerun
+        # only the failed tests, spaced out, so transient throttling doesn't fail
+        # the job without adding request load.
+        run: uv run pytest -m integration -v --tb=short --reruns 3 --reruns-delay 15 ${{ matrix.target }}
