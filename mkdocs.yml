@@ -103,6 +103,15 @@ nav:
     - Disease Ontology: fetch/disease-ontology.md
     - HGNC: fetch/hgnc.md
     - ClinVar: fetch/clinvar.md
+    - LPSN: fetch/lpsn.md
+    - SILVA: fetch/silva.md
+    - HOMD: fetch/homd.md
+    - GTDB: fetch/gtdb.md
+    - PR2: fetch/pr2.md
+    - GreenGenes: fetch/greengenes.md
+    - EUKARYOME: fetch/eukaryome.md
+    - MIDORI2: fetch/midori2.md
+    - UNITE: fetch/unite.md
   - ID Translation:
     - Overview: translate/index.md
     - Gene IDs: translate/genes.md
@@ -118,6 +127,7 @@ nav:
     - Graph Analysis: graph/analysis.md
   - Releases:
     - Overview: releases/index.md
+    - 0.4.0: releases/0.4.0.md
     - 0.3.1: releases/0.3.1.md
     - 0.3.0: releases/0.3.0.md
     - 0.2.1: releases/0.2.1.md

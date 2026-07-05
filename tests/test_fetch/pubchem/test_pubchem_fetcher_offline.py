@@ -16,7 +16,7 @@ class DummyResponse:
 
 def test_pubchem_pug_rest_get_json_binary_and_404(monkeypatch):
     monkeypatch.setattr(
-        "biodbs.fetch.pubchem.pubchem_fetcher.requests.get",
+        "biodbs.fetch.pubchem.pubchem_fetcher.request_with_retry",
         lambda url, params=None: DummyResponse(
             json_data={"PC_Compounds": [{"id": {"id": {"cid": 2244}}}]}
         ),
@@ -25,14 +25,14 @@ def test_pubchem_pug_rest_get_json_binary_and_404(monkeypatch):
     assert compound.results[0]["id"]["id"]["cid"] == 2244
 
     monkeypatch.setattr(
-        "biodbs.fetch.pubchem.pubchem_fetcher.requests.get",
+        "biodbs.fetch.pubchem.pubchem_fetcher.request_with_retry",
         lambda url, params=None: DummyResponse(content=b"PNG"),
     )
     image = PubChem_Fetcher().get("compound", "cid", 2244, output="PNG")
     assert image.binary_data == b"PNG"
 
     monkeypatch.setattr(
-        "biodbs.fetch.pubchem.pubchem_fetcher.requests.get",
+        "biodbs.fetch.pubchem.pubchem_fetcher.request_with_retry",
         lambda url, params=None: DummyResponse(status_code=404),
     )
     assert PubChem_Fetcher().get("compound", "cid", 999999).results == []
@@ -122,7 +122,7 @@ def test_pubchem_get_all_empty_single_and_stream(monkeypatch, tmp_path):
 
 def test_pubchem_pug_view_fetch_and_wrappers(monkeypatch):
     monkeypatch.setattr(
-        "biodbs.fetch.pubchem.pubchem_fetcher.requests.get",
+        "biodbs.fetch.pubchem.pubchem_fetcher.request_with_retry",
         lambda url, params=None: DummyResponse(
             json_data={
                 "Record": {

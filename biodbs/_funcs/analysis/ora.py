@@ -46,10 +46,12 @@ from typing import (
     Tuple,
     Union,
 )
+from requests.exceptions import RequestException
 
 # Import fetchers and utilities at module level
 from biodbs._funcs.analysis._cache import cache_pathways, get_cached_pathways
 from biodbs._funcs.translate import translate_gene_ids
+from biodbs.exceptions import APIError
 from biodbs.fetch.EnrichR import EnrichR_Fetcher
 from biodbs.fetch.KEGG.funcs import kegg_link, kegg_list
 from biodbs.fetch.QuickGO.funcs import quickgo_search_annotations_all
@@ -66,6 +68,14 @@ if TYPE_CHECKING:
 # Species is defined in a shared module so translate functions can import it
 # without creating a circular dependency.
 from biodbs._funcs._species import Species, resolve_species  # noqa: E402
+
+_EXPECTED_EXTERNAL_ERRORS = (
+    APIError,
+    RequestException,
+    KeyError,
+    IndexError,
+    ValueError,
+)
 
 
 class PathwayDatabase(str, Enum):
@@ -540,7 +550,7 @@ def _translate_ids_for_ora(
 
         return mapped, mapping, unmapped
 
-    except Exception as e:
+    except _EXPECTED_EXTERNAL_ERRORS as e:
         warnings.warn(f"ID translation failed ({from_type} -> {to_type}): {e}")
         return genes, {g: g for g in genes}, []
 
@@ -678,7 +688,7 @@ def _get_go_terms(
 
     try:
         data = quickgo_search_annotations_all(max_records=100000, **kwargs)
-    except Exception as e:
+    except _EXPECTED_EXTERNAL_ERRORS as e:
         warnings.warn(f"Failed to fetch GO annotations: {e}")
         return {}
 
@@ -755,7 +765,7 @@ def _get_reactome_pathways(
 
     try:
         hierarchy = fetcher.get_events_hierarchy(species_name)
-    except Exception as e:
+    except _EXPECTED_EXTERNAL_ERRORS as e:
         warnings.warn(f"Failed to fetch Reactome hierarchy: {e}")
         return {}
 
@@ -774,7 +784,7 @@ def _get_reactome_pathways(
                     species=species_name,
                     url=f"https://reactome.org/content/detail/{pathway_id}",
                 )
-        except Exception:
+        except _EXPECTED_EXTERNAL_ERRORS:
             continue
 
     if use_cache and pathways:
@@ -1340,7 +1350,7 @@ def ora_reactome(
             try:
                 found = fetcher.get_found_entities(reactome_data.token, pathway.stId)
                 overlap_genes = [e.get("id", "") for e in found if isinstance(e, dict)]
-            except Exception:
+            except _EXPECTED_EXTERNAL_ERRORS:
                 pass
 
         result = ORATermResult(
@@ -1364,7 +1374,7 @@ def ora_reactome(
     if reactome_data.token:
         try:
             unmapped_reactome = fetcher.get_not_found_identifiers(reactome_data.token)
-        except Exception:
+        except _EXPECTED_EXTERNAL_ERRORS:
             pass
 
     all_unmapped = list(set(unmapped_translate + unmapped_reactome))

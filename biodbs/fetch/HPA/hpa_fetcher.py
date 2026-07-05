@@ -17,7 +17,7 @@ Reference:
 """
 
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
-from biodbs.exceptions import raise_for_status
+from biodbs.exceptions import APIValidationError, raise_for_status
 from biodbs.data.HPA._data_model import (
     HPAEntryModel,
     HPASearchModel,
@@ -35,6 +35,7 @@ from pathlib import Path
 import logging
 import requests
 import gzip
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,27 @@ def _build_search_url(params: Dict[str, Any]) -> str:
 def _build_search_download_url(params: Dict[str, Any]) -> str:
     """Build HPA search/download API URL."""
     return params.get("_url", "")
+
+
+def _decode_response(response: requests.Response, compress: str, format: str, url: str) -> Any:
+    """Decode an HPA response in the requested format."""
+    fmt = format.lower()
+    try:
+        if compress == "yes" and response.content:
+            text = gzip.decompress(response.content).decode("utf-8")
+            return json.loads(text) if fmt == "json" else text
+        return response.json() if fmt == "json" else response.text
+    except (
+        OSError,
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        requests.exceptions.JSONDecodeError,
+    ) as exc:
+        raise APIValidationError(
+            "HPA",
+            detail=f"Could not decode {format} response.",
+            url=url,
+        ) from exc
 
 
 class HPAEntryNameSpaceValidator(NameSpace):
@@ -292,22 +314,7 @@ class HPA_Fetcher(BaseDataFetcher):
         if response.status_code != 200:
             raise_for_status(response, "HPA", url=url)
 
-        # Handle compressed response
-        if compress == "yes" and response.content:
-            try:
-                content = gzip.decompress(response.content)
-                if format.lower() == "json":
-                    import json
-                    content = json.loads(content.decode("utf-8"))
-                else:
-                    content = content.decode("utf-8")
-            except Exception:
-                content = response.content
-        else:
-            if format.lower() == "json":
-                content = response.json()
-            else:
-                content = response.text
+        content = _decode_response(response, compress, format, url)
 
         return HPAFetchedData(content, format=format, query_type="search")
 
@@ -362,22 +369,7 @@ class HPA_Fetcher(BaseDataFetcher):
         if response.status_code != 200:
             raise_for_status(response, "HPA", url=url)
 
-        # Handle compressed response
-        if compress == "yes" and response.content:
-            try:
-                content = gzip.decompress(response.content)
-                if format.lower() == "json":
-                    import json
-                    content = json.loads(content.decode("utf-8"))
-                else:
-                    content = content.decode("utf-8")
-            except Exception:
-                content = response.content
-        else:
-            if format.lower() == "json":
-                content = response.json()
-            else:
-                content = response.text
+        content = _decode_response(response, compress, format, url)
 
         return HPAFetchedData(content, format=format, query_type="search_download")
 

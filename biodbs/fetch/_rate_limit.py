@@ -92,9 +92,9 @@ class RateLimiter:
         with self._global_lock:
             if host in self._rates:
                 return self._rates[host]
-            # Check if any registered host is a substring match
+            # Match exact hosts or real subdomains only.
             for registered_host, rate in self._rates.items():
-                if registered_host in host or host in registered_host:
+                if host.endswith(f".{registered_host}"):
                     return rate
             return self.DEFAULT_RATE
 
@@ -260,6 +260,7 @@ def request_with_retry(
     initial_delay: float = 1.0,
     rate_limit: bool = True,
     timeout: float = 30.0,
+    stream: bool = False,
 ) -> requests.Response:
     """Make an HTTP request with rate limiting and automatic retry.
 
@@ -276,6 +277,7 @@ def request_with_retry(
         initial_delay: Initial retry delay in seconds
         rate_limit: Whether to apply rate limiting
         timeout: Request timeout in seconds
+        stream: Whether to stream response content
 
     Returns:
         Response object
@@ -302,7 +304,7 @@ def request_with_retry(
             # Make request
             if method.upper() == "GET":
                 response = requests.get(
-                    url, params=params, headers=headers, timeout=timeout
+                    url, params=params, headers=headers, timeout=timeout, stream=stream
                 )
             elif method.upper() == "POST":
                 response = requests.post(

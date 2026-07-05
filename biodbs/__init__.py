@@ -19,7 +19,9 @@ All functions are also available at the top level for convenience:
    from biodbs import pubchem_get_compound, translate_gene_ids, ora_kegg
 """
 
-__version__ = "0.3.1"
+# Keep in sync with pyproject.toml [project].version — guarded by
+# tests/test_version_matches_pyproject.py so drift fails CI.
+__version__ = "0.4.0"
 
 # =============================================================================
 # Exceptions (custom error hierarchy for API errors)
@@ -266,6 +268,93 @@ __all__ = [
     "hgnc_fetch_by_uniprot_id",
     "hgnc_fetch_by_refseq",
     "hgnc_search_symbol",
+
+    # ==========================================================================
+    # LPSN FUNCTIONS - Prokaryotic nomenclature
+    # ==========================================================================
+    "lpsn_fetch",
+    "lpsn_advanced_search",
+    "lpsn_flexible_search",
+    "lpsn_search_and_fetch",
+
+    # ==========================================================================
+    # SILVA FUNCTIONS - rRNA release files and classifier resources
+    # ==========================================================================
+    "silva_get_version",
+    "silva_list_current_files",
+    "silva_list_archive_releases",
+    "silva_get_readme",
+    "silva_get_citation",
+    "silva_download_file",
+    "silva_download_classifier",
+
+    # ==========================================================================
+    # HOMD FUNCTIONS - Human Oral Microbiome Database public downloads
+    # ==========================================================================
+    "homd_list_ftp",
+    "homd_list_downloads",
+    "homd_download_file",
+    "homd_get_table",
+    "homd_get_text",
+    "homd_get_taxon_table",
+    "homd_get_taxonomic_hierarchy",
+    "homd_get_hmt_lineage",
+    "homd_get_genome_metadata",
+    "homd_get_gtdb_taxonomy",
+    "homd_get_phage_table",
+    "homd_get_crispr_table",
+    "homd_list_16s_refseq",
+    "homd_download_16s_refseq",
+
+    # ==========================================================================
+    # GTDB FUNCTIONS - Genome Taxonomy Database release files
+    # ==========================================================================
+    "gtdb_list_releases",
+    "gtdb_list_release_files",
+    "gtdb_get_version",
+    "gtdb_get_release_notes",
+    "gtdb_get_file_descriptions",
+    "gtdb_get_md5sums",
+    "gtdb_get_taxonomy",
+    "gtdb_get_metadata",
+    "gtdb_get_tree",
+    "gtdb_download_file",
+    "gtdb_download_taxonomy",
+    "gtdb_download_metadata",
+    "gtdb_download_tree",
+
+    # ==========================================================================
+    # PR2 FUNCTIONS - Protist Ribosomal Reference release files
+    # ==========================================================================
+    "pr2_list_releases",
+    "pr2_list_assets",
+    "pr2_download_asset",
+
+    # ==========================================================================
+    # GREENGENES FUNCTIONS - GreenGenes release directory files
+    # ==========================================================================
+    "greengenes_list_releases",
+    "greengenes_list_files",
+    "greengenes_download_file",
+
+    # ==========================================================================
+    # EUKARYOME FUNCTIONS - eukaryotic rRNA reference archives
+    # ==========================================================================
+    "eukaryome_build_url",
+    "eukaryome_download",
+
+    # ==========================================================================
+    # MIDORI2 FUNCTIONS - mitochondrial reference files
+    # ==========================================================================
+    "midori2_build_url",
+    "midori2_download",
+
+    # ==========================================================================
+    # UNITE FUNCTIONS - fungal/eukaryote ITS reference archives (via PlutoF)
+    # ==========================================================================
+    "unite_resolve_doi",
+    "unite_get_download_url",
+    "unite_download",
 
     # ==========================================================================
     # CLINVAR FUNCTIONS - Clinical variant data

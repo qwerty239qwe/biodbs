@@ -39,6 +39,15 @@
 | **Disease Ontology** | Disease terms and cross-references |
 | **HGNC** | Authoritative human gene nomenclature |
 | **ClinVar** | Clinical variant classifications |
+| **LPSN** | Prokaryotic nomenclature and taxonomy records |
+| **SILVA** | rRNA release files and classifier resources |
+| **HOMD** | Human oral microbiome taxonomy and reference downloads |
+| **GTDB** | Genome Taxonomy Database release files |
+| **PR2** | Protist Ribosomal Reference release files |
+| **GreenGenes** | GreenGenes rRNA release directory files |
+| **EUKARYOME** | Eukaryote-wide rRNA (SSU/LSU/ITS) reference archives |
+| **MIDORI2** | Mitochondrial reference files (QIIME format) |
+| **UNITE** | Fungal/eukaryote ITS reference archives (via PlutoF) |
 
 ## Installation
 

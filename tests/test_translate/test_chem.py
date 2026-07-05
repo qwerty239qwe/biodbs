@@ -8,6 +8,7 @@ from biodbs._funcs import (
     translate_chembl_to_pubchem,
     translate_pubchem_to_chembl
 )
+from biodbs.exceptions import APIError
 
 
 # =============================================================================
@@ -94,7 +95,7 @@ class TestTranslateChemicalIdsUnit:
 
     def test_exception_produces_none(self):
         with patch("biodbs._funcs.translate.chem.pubchem_search_by_name") as mock_search:
-            mock_search.side_effect = RuntimeError("network fail")
+            mock_search.side_effect = APIError("network fail")
             result = translate_chemical_ids(["aspirin"], from_type="name", to_type="smiles")
         assert pd.isna(result["smiles"].iloc[0])
 
@@ -178,7 +179,7 @@ class TestTranslateChemicalIdsMultipleTargetsUnit:
 
     def test_exception_sets_all_none(self):
         with patch("biodbs._funcs.translate.chem.pubchem_search_by_name") as mock_search:
-            mock_search.side_effect = RuntimeError("fail")
+            mock_search.side_effect = APIError("fail")
             result = translate_chemical_ids(
                 ["aspirin"], from_type="name", to_type=["cid", "smiles"]
             )
@@ -222,7 +223,7 @@ class TestTranslateChemblToPubchemUnit:
         assert pd.isna(result["pubchem_cid"].iloc[0])
 
     def test_exception_produces_none(self):
-        with patch("biodbs._funcs.translate.chem.chembl_get_molecule", side_effect=RuntimeError("fail")):
+        with patch("biodbs._funcs.translate.chem.chembl_get_molecule", side_effect=APIError("fail")):
             result = translate_chembl_to_pubchem(["CHEMBL25"])
         assert pd.isna(result["pubchem_cid"].iloc[0])
 
@@ -283,9 +284,14 @@ class TestTranslatePubchemToChemblUnit:
         assert pd.isna(result["chembl_id"].iloc[0])
 
     def test_exception_produces_none(self):
-        with patch("biodbs._funcs.translate.chem.pubchem_get_properties", side_effect=RuntimeError("fail")):
+        with patch("biodbs._funcs.translate.chem.pubchem_get_properties", side_effect=APIError("fail")):
             result = translate_pubchem_to_chembl([2244])
         assert pd.isna(result["chembl_id"].iloc[0])
+
+    def test_unexpected_exception_propagates(self):
+        with patch("biodbs._funcs.translate.chem.pubchem_get_properties", side_effect=RuntimeError("bug")):
+            with pytest.raises(RuntimeError, match="bug"):
+                translate_pubchem_to_chembl([2244])
 
     def test_return_dict(self):
         prop_data = MagicMock()

@@ -255,6 +255,111 @@ from biodbs.fetch.HGNC.funcs import (
 )
 
 # =============================================================================
+# LPSN functions
+# =============================================================================
+from biodbs.fetch.LPSN.funcs import (
+    lpsn_fetch,
+    lpsn_advanced_search,
+    lpsn_flexible_search,
+    lpsn_search_and_fetch,
+)
+
+# =============================================================================
+# SILVA functions
+# =============================================================================
+from biodbs.fetch.SILVA.funcs import (
+    silva_get_version,
+    silva_list_current_files,
+    silva_list_archive_releases,
+    silva_get_readme,
+    silva_get_citation,
+    silva_download_file,
+    silva_download_classifier,
+)
+
+# =============================================================================
+# HOMD functions
+# =============================================================================
+from biodbs.fetch.HOMD.funcs import (
+    homd_download_16s_refseq,
+    homd_download_file,
+    homd_get_crispr_table,
+    homd_get_genome_metadata,
+    homd_get_gtdb_taxonomy,
+    homd_get_hmt_lineage,
+    homd_get_phage_table,
+    homd_get_table,
+    homd_get_taxon_table,
+    homd_get_taxonomic_hierarchy,
+    homd_get_text,
+    homd_list_16s_refseq,
+    homd_list_downloads,
+    homd_list_ftp,
+)
+
+# =============================================================================
+# GTDB functions
+# =============================================================================
+from biodbs.fetch.GTDB.funcs import (
+    gtdb_download_file,
+    gtdb_download_metadata,
+    gtdb_download_taxonomy,
+    gtdb_download_tree,
+    gtdb_get_file_descriptions,
+    gtdb_get_md5sums,
+    gtdb_get_metadata,
+    gtdb_get_release_notes,
+    gtdb_get_taxonomy,
+    gtdb_get_tree,
+    gtdb_get_version,
+    gtdb_list_release_files,
+    gtdb_list_releases,
+)
+
+# =============================================================================
+# PR2 functions
+# =============================================================================
+from biodbs.fetch.PR2.funcs import (
+    pr2_list_releases,
+    pr2_list_assets,
+    pr2_download_asset,
+)
+
+# =============================================================================
+# GreenGenes functions
+# =============================================================================
+from biodbs.fetch.GreenGenes.funcs import (
+    greengenes_list_releases,
+    greengenes_list_files,
+    greengenes_download_file,
+)
+
+# =============================================================================
+# EUKARYOME functions
+# =============================================================================
+from biodbs.fetch.EUKARYOME.funcs import (
+    eukaryome_build_url,
+    eukaryome_download,
+)
+
+# =============================================================================
+# MIDORI2 functions
+# =============================================================================
+from biodbs.fetch.MIDORI2.funcs import (
+    midori2_build_url,
+    midori2_download,
+)
+
+# =============================================================================
+# UNITE functions
+# =============================================================================
+from biodbs.fetch.UNITE.funcs import (
+    unite_resolve_doi,
+    unite_get_download_url,
+    unite_download,
+)
+
+# =============================================================================
 # ClinVar functions
 # =============================================================================
 from biodbs.fetch.ClinVar.funcs import (
@@ -438,6 +543,66 @@ __all__ = [
     "hgnc_fetch_by_uniprot_id",
     "hgnc_fetch_by_refseq",
     "hgnc_search_symbol",
+    # LPSN
+    "lpsn_fetch",
+    "lpsn_advanced_search",
+    "lpsn_flexible_search",
+    "lpsn_search_and_fetch",
+    # SILVA
+    "silva_get_version",
+    "silva_list_current_files",
+    "silva_list_archive_releases",
+    "silva_get_readme",
+    "silva_get_citation",
+    "silva_download_file",
+    "silva_download_classifier",
+    # HOMD
+    "homd_list_ftp",
+    "homd_list_downloads",
+    "homd_download_file",
+    "homd_get_table",
+    "homd_get_text",
+    "homd_get_taxon_table",
+    "homd_get_taxonomic_hierarchy",
+    "homd_get_hmt_lineage",
+    "homd_get_genome_metadata",
+    "homd_get_gtdb_taxonomy",
+    "homd_get_phage_table",
+    "homd_get_crispr_table",
+    "homd_list_16s_refseq",
+    "homd_download_16s_refseq",
+    # GTDB
+    "gtdb_list_releases",
+    "gtdb_list_release_files",
+    "gtdb_get_version",
+    "gtdb_get_release_notes",
+    "gtdb_get_file_descriptions",
+    "gtdb_get_md5sums",
+    "gtdb_get_taxonomy",
+    "gtdb_get_metadata",
+    "gtdb_get_tree",
+    "gtdb_download_file",
+    "gtdb_download_taxonomy",
+    "gtdb_download_metadata",
+    "gtdb_download_tree",
+    # PR2
+    "pr2_list_releases",
+    "pr2_list_assets",
+    "pr2_download_asset",
+    # GreenGenes
+    "greengenes_list_releases",
+    "greengenes_list_files",
+    "greengenes_download_file",
+    # EUKARYOME
+    "eukaryome_build_url",
+    "eukaryome_download",
+    # MIDORI2
+    "midori2_build_url",
+    "midori2_download",
+    # UNITE
+    "unite_resolve_doi",
+    "unite_get_download_url",
+    "unite_download",
     # ClinVar
     "clinvar_search",
     "clinvar_count",

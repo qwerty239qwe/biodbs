@@ -10,6 +10,7 @@ PubChem provides two REST APIs:
 """
 
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
+from biodbs.fetch._rate_limit import request_with_retry
 from biodbs.exceptions import raise_for_status
 from biodbs.data.PubChem._data_model import (
     PUGRestModel, PUGViewModel, PUGViewHeading,
@@ -21,7 +22,6 @@ from biodbs.data.PubChem.data import (
 from typing import Dict, Any, List, Literal, Optional, Union
 from pathlib import Path
 import logging
-import requests
 
 logger = logging.getLogger(__name__)
 
@@ -219,7 +219,7 @@ class PubChem_Fetcher(BaseDataFetcher):
         # Determine if binary response expected
         is_binary = output.upper() in ["PNG", "SDF"]
 
-        response = requests.get(url, params=query_params)
+        response = request_with_retry(url, params=query_params)
         if response.status_code == 404:
             return PUGRestFetchedData({}, domain=domain, operation=operation)
         if response.status_code != 200:
@@ -240,7 +240,7 @@ class PubChem_Fetcher(BaseDataFetcher):
         operation: Optional[str] = None,
     ) -> PUGRestFetchedData:
         """Thread-safe fetch for a batch."""
-        response = requests.get(url, params=query_params)
+        response = request_with_retry(url, params=query_params)
         if response.status_code != 200:
             raise_for_status(response, "PubChem", url=url)
         return PUGRestFetchedData(response.json(), domain=domain, operation=operation)
@@ -581,7 +581,7 @@ class PubChem_Fetcher(BaseDataFetcher):
         url = self._view_api_config.api_url
         query_params = self._view_namespace.valid_params.get("_query_params", {})
 
-        response = requests.get(url, params=query_params)
+        response = request_with_retry(url, params=query_params)
         if response.status_code == 404:
             return PUGViewFetchedData({}, record_type=record_type)
         if response.status_code != 200:

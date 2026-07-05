@@ -54,10 +54,15 @@ class TestRateLimiter:
         limiter = RateLimiter()
         assert limiter.get_rate("unknown.host") == RateLimiter.DEFAULT_RATE
 
-    def test_substring_host_match(self):
+    def test_subdomain_host_match(self):
+        limiter = RateLimiter()
+        limiter.set_rate("ncbi.nlm.nih.gov", 3.0)
+        assert limiter.get_rate("api.ncbi.nlm.nih.gov") == 3.0
+
+    def test_unrelated_substring_host_does_not_match(self):
         limiter = RateLimiter()
         limiter.set_rate("api.ncbi", 3.0)
-        assert limiter.get_rate("api.ncbi.nlm.nih.gov") == 3.0
+        assert limiter.get_rate("notapi.ncbi.example") == RateLimiter.DEFAULT_RATE
 
     def test_acquire_no_delay_first_call(self):
         limiter = RateLimiter()

@@ -33,6 +33,15 @@
 | **Disease Ontology** | Disease terms and cross-references | `biodbs.fetch.DiseaseOntology` |
 | **HGNC** | Authoritative human gene nomenclature | `biodbs.fetch.HGNC` |
 | **ClinVar** | Clinical variant classifications | `biodbs.fetch.ClinVar` |
+| **LPSN** | Prokaryotic nomenclature and taxonomy records | `biodbs.fetch.LPSN` |
+| **SILVA** | rRNA release files and classifier resources | `biodbs.fetch.SILVA` |
+| **HOMD** | Human oral microbiome taxonomy and reference downloads | `biodbs.fetch.HOMD` |
+| **GTDB** | Genome Taxonomy Database release files | `biodbs.fetch.GTDB` |
+| **PR2** | Protist Ribosomal Reference release files | `biodbs.fetch.PR2` |
+| **GreenGenes** | GreenGenes rRNA release directory files | `biodbs.fetch.GreenGenes` |
+| **EUKARYOME** | Eukaryote-wide rRNA (SSU/LSU/ITS) reference archives | `biodbs.fetch.EUKARYOME` |
+| **MIDORI2** | Mitochondrial reference files (QIIME format) | `biodbs.fetch.MIDORI2` |
+| **UNITE** | Fungal/eukaryote ITS reference archives (via PlutoF) | `biodbs.fetch.UNITE` |
 
 ## Quick Example
 
