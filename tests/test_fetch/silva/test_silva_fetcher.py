@@ -4,15 +4,16 @@ from pathlib import Path
 
 import pytest
 
+from biodbs.exceptions import APIError
 from biodbs.fetch.SILVA.silva_fetcher import SILVA_Fetcher
 
 
 class DummyResponse:
-    def __init__(self, status_code=200, text="", content=b""):
+    def __init__(self, status_code=200, text="", content=b"", content_type=None):
         self.status_code = status_code
         self.text = text
         self.content = content or text.encode()
-        self.headers = {}
+        self.headers = {"content-type": content_type} if content_type else {}
 
     def iter_content(self, chunk_size=8192):
         yield self.content
@@ -119,3 +120,65 @@ def test_download_classifier_unknown_kind_raises_value_error(tmp_path):
 
     with pytest.raises(ValueError, match="Valid kinds"):
         fetcher.download_classifier("qiime", "taxonomy.qza", tmp_path)
+
+
+def test_download_file_uses_fileadmin_base(tmp_path, monkeypatch):
+    seen = {}
+
+    def fake_request(url, stream=False):
+        seen["url"] = url
+        return DummyResponse(content=b"data", content_type="application/octet-stream")
+
+    monkeypatch.setattr("biodbs.fetch.SILVA.silva_fetcher.request_with_retry", fake_request)
+
+    SILVA_Fetcher().download_file("QIIME2/2025.7/taxonomic-weights/w.qza", tmp_path)
+
+    assert seen["url"] == (
+        "https://www.arb-silva.de/fileadmin/silva_databases/current/"
+        "QIIME2/2025.7/taxonomic-weights/w.qza"
+    )
+
+
+def test_download_file_rejects_html_page(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "biodbs.fetch.SILVA.silva_fetcher.request_with_retry",
+        lambda url, stream=False: DummyResponse(
+            content=b"<!DOCTYPE html><html>...", content_type="text/html; charset=utf-8"
+        ),
+    )
+
+    with pytest.raises(APIError, match="HTML page"):
+        SILVA_Fetcher().download_file("QIIME2/whatever.qza", tmp_path)
+
+    # nothing should have been written
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_download_classifier_builds_fileadmin_classifier_url(tmp_path, monkeypatch):
+    seen = {}
+
+    def fake_request(url, stream=False):
+        seen["url"] = url
+        return DummyResponse(content=b"data", content_type="application/octet-stream")
+
+    monkeypatch.setattr("biodbs.fetch.SILVA.silva_fetcher.request_with_retry", fake_request)
+
+    SILVA_Fetcher().download_classifier(
+        "qiime2", "2025.7/taxonomic-weights/SILVA_138.2_Ref_NR99_taxonomic-weight_human-oral.qza", tmp_path
+    )
+
+    assert seen["url"] == (
+        "https://www.arb-silva.de/fileadmin/silva_databases/current/"
+        "QIIME2/2025.7/taxonomic-weights/SILVA_138.2_Ref_NR99_taxonomic-weight_human-oral.qza"
+    )
+
+
+def test_get_version_uses_fileadmin_base(monkeypatch):
+    monkeypatch.setattr(
+        "biodbs.fetch.SILVA.silva_fetcher.request_with_retry",
+        lambda url: DummyResponse(text="138.2", content_type="text/plain"),
+    )
+
+    data = SILVA_Fetcher().get_version()
+
+    assert data.url == "https://www.arb-silva.de/fileadmin/silva_databases/current/VERSION.txt"

@@ -7,11 +7,14 @@ from pathlib import Path
 from urllib.parse import urljoin
 
 from biodbs.data.SILVA import SILVAFile, SILVARelease, SILVAFileListData, SILVAReleaseListData, SILVATextData
-from biodbs.exceptions import raise_for_status
+from biodbs.exceptions import APIError, raise_for_status
 from biodbs.fetch._rate_limit import get_rate_limiter, request_with_retry
 
 _CURRENT_RELEASE_URL = "https://www.arb-silva.de/current-release/"
 _ARCHIVE_URL = "https://www.arb-silva.de/archive/"
+# SILVA's CMS serves current-release/ and archive/ as HTML browse pages; the
+# actual downloadable files (VERSION.txt, .qza classifiers, ...) live here.
+_FILE_BASE_URL = "https://www.arb-silva.de/fileadmin/silva_databases/current/"
 _HOST = "www.arb-silva.de"
 
 get_rate_limiter().set_rate(_HOST, 3)
@@ -42,9 +45,15 @@ class SILVA_Fetcher:
         "exports": "Exports",
     }
 
-    def __init__(self, current_release_url: str = _CURRENT_RELEASE_URL, archive_url: str = _ARCHIVE_URL):
+    def __init__(
+        self,
+        current_release_url: str = _CURRENT_RELEASE_URL,
+        archive_url: str = _ARCHIVE_URL,
+        file_base_url: str = _FILE_BASE_URL,
+    ):
         self.current_release_url = current_release_url
         self.archive_url = archive_url
+        self.file_base_url = file_base_url
 
     def list_current_files(self, path: str = "") -> SILVAFileListData:
         """List files/directories in the current SILVA release."""
@@ -79,16 +88,22 @@ class SILVA_Fetcher:
         return self._get_text("CITATION.txt")
 
     def download_file(self, path: str, dest: str | Path, overwrite: bool = False) -> Path:
-        """Download a SILVA release file to *dest*."""
+        """Download a SILVA release file to *dest*.
+
+        *path* is relative to the SILVA file base (``fileadmin/silva_databases/
+        current/``), e.g. ``"VERSION.txt"`` or
+        ``"QIIME2/2025.7/taxonomic-weights/<file>.qza"``.
+        """
         target = Path(dest)
         if target.is_dir() or str(dest).endswith(("/", "\\")):
             target = target / Path(path).name
         if target.exists() and not overwrite:
             return target
-        target.parent.mkdir(parents=True, exist_ok=True)
-        url = self._release_url(path)
+        url = self._file_url(path)
         response = request_with_retry(url, stream=True)
         raise_for_status(response, "SILVA", url=url)
+        self._reject_html(response, url)
+        target.parent.mkdir(parents=True, exist_ok=True)
         with target.open("wb") as handle:
             for chunk in response.iter_content(chunk_size=1024 * 1024):
                 if chunk:
@@ -96,7 +111,14 @@ class SILVA_Fetcher:
         return target
 
     def download_classifier(self, kind: str, filename: str, dest: str | Path, overwrite: bool = False) -> Path:
-        """Download a file from a common classifier directory."""
+        """Download a classifier file from a common classifier directory.
+
+        *filename* is the path **below** the classifier directory (SILVA nests
+        classifiers by release/marker), e.g. for ``kind="qiime2"``::
+
+            "2025.7/taxonomic-weights/SILVA_138.2_Ref_NR99_taxonomic-weight_human-oral.qza"
+            "2025.7/SSU/V4V5-515f-926r/weighted/human-oral/SILVA138.2_..._human-oral.qza"
+        """
         directory = self.classifier_dirs.get(kind.lower())
         if directory is None:
             valid = ", ".join(sorted(self.classifier_dirs))
@@ -104,7 +126,7 @@ class SILVA_Fetcher:
         return self.download_file(f"{directory}/{filename}", dest=dest, overwrite=overwrite)
 
     def _get_text(self, path: str) -> SILVATextData:
-        url = self._release_url(path)
+        url = self._file_url(path)
         response = request_with_retry(url)
         raise_for_status(response, "SILVA", url=url)
         return SILVATextData(response.text, url=url)
@@ -116,8 +138,29 @@ class SILVA_Fetcher:
         parser.feed(response.text)
         return parser.links
 
+    @staticmethod
+    def _reject_html(response, url: str) -> None:
+        """Guard against SILVA's CMS returning an HTML browse page for a file.
+
+        SILVA serves ``current-release/`` and ``archive/`` paths as HTML pages;
+        only ``fileadmin/silva_databases/current/`` paths return real files.
+        Without this check a wrong path silently writes an HTML page to disk.
+        """
+        content_type = response.headers.get("content-type", "")
+        if content_type.startswith("text/html"):
+            raise APIError(
+                f"SILVA returned an HTML page instead of a file for {url!r}. "
+                "This path is a CMS browse page, not a direct download; use a "
+                "path under 'fileadmin/silva_databases/current/'.",
+                service="SILVA",
+                url=url,
+            )
+
     def _release_url(self, path: str = "") -> str:
         return urljoin(self.current_release_url, path)
+
+    def _file_url(self, path: str = "") -> str:
+        return urljoin(self.file_base_url, path)
 
     @staticmethod
     def _display_name(href: str) -> str:

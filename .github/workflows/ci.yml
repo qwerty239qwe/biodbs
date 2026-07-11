@@ -67,6 +67,8 @@ jobs:
             target: tests/test_fetch/quickgo tests/test_analysis/test_ora.py::TestORAGo
           - service: reactome
             target: tests/test_fetch/reactome tests/test_analysis/test_ora.py::TestORAReactome tests/test_analysis/test_ora.py::TestORAReactomeLocal
+          - service: silva
+            target: tests/test_fetch/silva
           - service: pr2
             target: tests/test_fetch/pr2
           - service: greengenes

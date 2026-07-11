@@ -31,18 +31,34 @@ print(version.text)
 
 ## Download Files
 
+Paths are relative to the SILVA file base (`fileadmin/silva_databases/current/`):
+
 ```python
 path = fetcher.download_file("README.txt", dest="data/silva")
 ```
 
-Existing files are kept by default. Use `overwrite=True` to download again.
+Existing files are kept by default. Use `overwrite=True` to download again. If a
+path resolves to a SILVA CMS browse page instead of a real file, the download
+raises an `APIError` rather than silently saving an HTML page.
 
 ## Classifier Resources
 
+SILVA nests classifier files by release and marker, so `filename` is the full
+path **below** the classifier directory:
+
 ```python
+# a taxonomic-weight classifier
 path = fetcher.download_classifier(
     kind="qiime2",
-    filename="taxonomy.qza",
+    filename="2025.7/taxonomic-weights/SILVA_138.2_Ref_NR99_taxonomic-weight_human-oral.qza",
+    dest="data/silva",
+)
+
+# a weighted region classifier
+path = fetcher.download_classifier(
+    kind="qiime2",
+    filename="2025.7/SSU/V4V5-515f-926r/weighted/human-oral/"
+             "SILVA138.2_SSURef_NR99_weighted_classifier_V4V5-515f-926r_human-oral.qza",
     dest="data/silva",
 )
 ```
@@ -54,6 +70,9 @@ Supported classifier/resource directories:
 - `kraken2`
 - `megan`
 - `exports`
+
+Browse the SILVA site (e.g. `current-release/QIIME2/...`) to find the exact
+nested path for the classifier you need.
 
 ## Convenience Functions
 

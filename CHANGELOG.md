@@ -11,6 +11,10 @@
 - Added the **GTDB** and **HOMD** fetchers.
 - Each fetcher ships offline (mocked) unit tests and live integration tests, plus
   API docs and user guides.
+- Fixed SILVA file and classifier downloads after SILVA's site migration: files
+  are now fetched from `fileadmin/silva_databases/current/` (the `current-release/`
+  paths became CMS browse pages), and a download that receives an HTML page now
+  raises a clear error instead of silently saving it.
 - Routed PubChem requests through the shared rate-limited `request_with_retry`
   helper so the configured per-host rate limit and 429 backoff take effect.
 - Hardened live integration CI by rerunning only failed tests
