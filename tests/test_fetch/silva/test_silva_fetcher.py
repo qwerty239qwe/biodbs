@@ -19,15 +19,17 @@ class DummyResponse:
         yield self.content
 
 
-LISTING = """
+# SILVA's CMS links subpages with root-relative hrefs, mixed with global nav.
+CURRENT_RELEASE_PAGE = """
 <html><body>
-<a href="../">Parent Directory</a>
-<a href="?C=N;O=D">Name</a>
-<a href="/absolute/">Absolute</a>
-<a href="https://example.org/file.txt">External</a>
-<a href="README.txt">README.txt</a>
-<a href="QIIME2/">QIIME2/</a>
-<a href="DADA2/">DADA2/</a>
+<a href="/">Home</a>
+<a href="/contact">Contact</a>
+<a href="/current-release">Current release</a>
+<a href="/current-release/QIIME2">QIIME2</a>
+<a href="/current-release/DADA2">DADA2</a>
+<a href="/current-release/QIIME2/2025.7">deep link, root should only show QIIME2</a>
+<a href="/fileadmin/silva_databases/current/VERSION.txt">VERSION</a>
+<a href="https://x.com/ARB_SILVA">external</a>
 </body></html>
 """
 
@@ -35,37 +37,42 @@ LISTING = """
 def test_list_current_files(monkeypatch):
     monkeypatch.setattr(
         "biodbs.fetch.SILVA.silva_fetcher.request_with_retry",
-        lambda url: DummyResponse(text=LISTING),
+        lambda url: DummyResponse(text=CURRENT_RELEASE_PAGE),
     )
 
     data = SILVA_Fetcher().list_current_files()
 
-    assert data.names() == ["README.txt", "QIIME2", "DADA2"]
+    # only immediate children under /current-release/, nav/external excluded
+    assert data.names() == ["QIIME2", "DADA2"]
     assert data["QIIME2"].is_dir is True
 
 
 def test_list_current_files_preserves_subdirectory_in_child_urls(monkeypatch):
     monkeypatch.setattr(
         "biodbs.fetch.SILVA.silva_fetcher.request_with_retry",
-        lambda url: DummyResponse(text='<a href="taxonomy.qza">taxonomy.qza</a>'),
+        lambda url: DummyResponse(
+            text='<a href="/current-release/QIIME2/2025.7">2025.7</a>'
+        ),
     )
 
     data = SILVA_Fetcher().list_current_files("QIIME2")
 
-    assert data["taxonomy.qza"].url.endswith("/current-release/QIIME2/taxonomy.qza")
+    assert data["2025.7"].url.endswith("/current-release/QIIME2/2025.7")
 
 
 def test_list_archive_releases(monkeypatch):
     monkeypatch.setattr(
         "biodbs.fetch.SILVA.silva_fetcher.request_with_retry",
         lambda url: DummyResponse(
-            text='<a href="release_138/">release_138</a><a href="misc/">misc</a>'
+            text='<a href="/archive/release_138">release_138</a>'
+            '<a href="/archive/qiime">qiime</a>'
         ),
     )
 
     data = SILVA_Fetcher().list_archive_releases()
 
     assert data.names() == ["release_138"]
+    assert data["release_138"].url.endswith("/archive/release_138")
 
 
 def test_get_text_files(monkeypatch):
@@ -171,6 +178,43 @@ def test_download_classifier_builds_fileadmin_classifier_url(tmp_path, monkeypat
         "https://www.arb-silva.de/fileadmin/silva_databases/current/"
         "QIIME2/2025.7/taxonomic-weights/SILVA_138.2_Ref_NR99_taxonomic-weight_human-oral.qza"
     )
+
+
+def test_download_file_writes_into_fresh_directory(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "biodbs.fetch.SILVA.silva_fetcher.request_with_retry",
+        lambda url, stream=False: DummyResponse(content=b"data", content_type="application/octet-stream"),
+    )
+    dest = tmp_path / "data" / "silva"  # does not exist yet, no suffix -> a directory
+
+    path = SILVA_Fetcher().download_file("QIIME2/x.qza", dest)
+
+    assert path == dest / "x.qza"
+    assert path.read_bytes() == b"data"
+    assert dest.is_dir()
+
+
+def test_download_file_partial_transfer_not_cached(tmp_path, monkeypatch):
+    class FailingResponse:
+        status_code = 200
+        headers = {"content-type": "application/octet-stream"}
+
+        def iter_content(self, chunk_size=8192):
+            yield b"partial"
+            raise OSError("connection dropped")
+
+    monkeypatch.setattr(
+        "biodbs.fetch.SILVA.silva_fetcher.request_with_retry",
+        lambda url, stream=False: FailingResponse(),
+    )
+    fetcher = SILVA_Fetcher()
+
+    with pytest.raises(OSError):
+        fetcher.download_file("QIIME2/x.qza", tmp_path)
+
+    # no valid target and no leftover partial that a later call could reuse
+    assert not (tmp_path / "x.qza").exists()
+    assert list(tmp_path.glob("*.part")) == []
 
 
 def test_get_version_uses_fileadmin_base(monkeypatch):

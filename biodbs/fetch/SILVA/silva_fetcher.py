@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import os
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse, urlunparse
 
 from biodbs.data.SILVA import SILVAFile, SILVARelease, SILVAFileListData, SILVAReleaseListData, SILVATextData
 from biodbs.exceptions import APIError, raise_for_status
@@ -21,17 +22,17 @@ get_rate_limiter().set_rate(_HOST, 3)
 
 
 class _ListingParser(HTMLParser):
+    """Collect every href on an HTML page (SILVA's CMS uses root-relative links)."""
+
     def __init__(self):
         super().__init__()
-        self.links: list[str] = []
+        self.hrefs: list[str] = []
 
     def handle_starttag(self, tag, attrs):
-        if tag != "a":
-            return
-        attrs_dict = dict(attrs)
-        href = attrs_dict.get("href")
-        if href and href not in ("../", "/") and not href.startswith(("?", "/", "http://", "https://", "mailto:")):
-            self.links.append(href)
+        if tag == "a":
+            href = dict(attrs).get("href")
+            if href:
+                self.hrefs.append(href)
 
 
 class SILVA_Fetcher:
@@ -56,22 +57,27 @@ class SILVA_Fetcher:
         self.file_base_url = file_base_url
 
     def list_current_files(self, path: str = "") -> SILVAFileListData:
-        """List files/directories in the current SILVA release."""
-        url = self._release_url(path)
-        if path and not url.endswith("/"):
-            url += "/"
+        """List the immediate sub-entries of a current-release page.
+
+        SILVA's CMS exposes a browsable tree (``QIIME2`` -> release -> marker ->
+        ...); this returns the child directories linked on the page so you can
+        navigate down. Leaf classifier filenames are injected by the site's
+        JavaScript and are not present in the served HTML, so they are not
+        discoverable here — browse the SILVA website to get the exact filename.
+        """
+        page_url = self._release_url(path)
         files = [
-            SILVAFile(name=self._display_name(href), url=urljoin(url, href), is_dir=href.endswith("/"))
-            for href in self._list_links(url)
+            SILVAFile(name=name, url=url, is_dir=True)
+            for name, url in self._child_entries(page_url)
         ]
         return SILVAFileListData(files)
 
     def list_archive_releases(self) -> SILVAReleaseListData:
         """List archived SILVA releases."""
         releases = [
-            SILVARelease(name=self._display_name(href), url=urljoin(self.archive_url, href))
-            for href in self._list_links(self.archive_url)
-            if self._display_name(href).startswith("release_")
+            SILVARelease(name=name, url=url)
+            for name, url in self._child_entries(self.archive_url)
+            if name.startswith("release_")
         ]
         return SILVAReleaseListData(releases)
 
@@ -95,7 +101,10 @@ class SILVA_Fetcher:
         ``"QIIME2/2025.7/taxonomic-weights/<file>.qza"``.
         """
         target = Path(dest)
-        if target.is_dir() or str(dest).endswith(("/", "\\")):
+        # Treat *dest* as a directory when it is one, ends with a separator, or
+        # has no file suffix (e.g. "data/silva") — otherwise a fresh directory
+        # path would be mistaken for the output filename.
+        if target.is_dir() or str(dest).endswith(("/", "\\")) or target.suffix == "":
             target = target / Path(path).name
         if target.exists() and not overwrite:
             return target
@@ -104,10 +113,18 @@ class SILVA_Fetcher:
         raise_for_status(response, "SILVA", url=url)
         self._reject_html(response, url)
         target.parent.mkdir(parents=True, exist_ok=True)
-        with target.open("wb") as handle:
-            for chunk in response.iter_content(chunk_size=1024 * 1024):
-                if chunk:
-                    handle.write(chunk)
+        # Stream to a temp file and atomically move into place, so an interrupted
+        # transfer never leaves a partial file that later calls would reuse.
+        part = target.with_name(target.name + ".part")
+        try:
+            with part.open("wb") as handle:
+                for chunk in response.iter_content(chunk_size=1024 * 1024):
+                    if chunk:
+                        handle.write(chunk)
+            os.replace(part, target)
+        except BaseException:
+            part.unlink(missing_ok=True)
+            raise
         return target
 
     def download_classifier(self, kind: str, filename: str, dest: str | Path, overwrite: bool = False) -> Path:
@@ -131,12 +148,31 @@ class SILVA_Fetcher:
         raise_for_status(response, "SILVA", url=url)
         return SILVATextData(response.text, url=url)
 
-    def _list_links(self, url: str) -> list[str]:
-        response = request_with_retry(url)
-        raise_for_status(response, "SILVA", url=url)
+    def _child_entries(self, page_url: str) -> list[tuple[str, str]]:
+        """Return (name, url) for the immediate children linked under *page_url*.
+
+        Handles SILVA's root-relative CMS links and scopes them to the page's own
+        path so global navigation links are excluded.
+        """
+        response = request_with_retry(page_url)
+        raise_for_status(response, "SILVA", url=page_url)
         parser = _ListingParser()
         parser.feed(response.text)
-        return parser.links
+        parsed = urlparse(page_url)
+        base = parsed.path.rstrip("/") + "/"
+        entries: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        for href in parser.hrefs:
+            href_path = urlparse(href).path
+            if not href_path.startswith(base):
+                continue
+            child = href_path[len(base):].strip("/").split("/")[0]
+            if not child or child in seen:
+                continue
+            seen.add(child)
+            child_url = urlunparse((parsed.scheme, parsed.netloc, base + child, "", "", ""))
+            entries.append((child, child_url))
+        return entries
 
     @staticmethod
     def _reject_html(response, url: str) -> None:
@@ -161,7 +197,3 @@ class SILVA_Fetcher:
 
     def _file_url(self, path: str = "") -> str:
         return urljoin(self.file_base_url, path)
-
-    @staticmethod
-    def _display_name(href: str) -> str:
-        return href.rstrip("/").split("/")[-1]

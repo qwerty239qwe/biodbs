@@ -13,11 +13,17 @@ files = fetcher.list_current_files()
 print(files.names())
 ```
 
-To list a subdirectory:
+To browse into a subdirectory:
 
 ```python
-qiime2_files = fetcher.list_current_files("QIIME2/")
+qiime2 = fetcher.list_current_files("QIIME2")        # -> ['2025.7']
+ssu = fetcher.list_current_files("QIIME2/2025.7/SSU") # -> marker regions
 ```
+
+Listing walks SILVA's browsable release tree. The exact leaf `.qza` filenames are
+loaded by the site's JavaScript and are not part of the served HTML, so browse the
+[SILVA website](https://www.arb-silva.de/current-release/) to copy the final
+filename, then pass its nested path to `download_classifier`.
 
 ## Version, README, Citation
 

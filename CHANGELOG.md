@@ -8,6 +8,13 @@
   receives an HTML page now raises a clear error instead of silently saving it.
 - `download_classifier` now takes the nested path below the classifier directory,
   matching SILVA's per-release/marker layout.
+- Fixed SILVA listings (`list_current_files`, `list_archive_releases`), which
+  returned nothing because SILVA's CMS uses root-relative links; they now browse
+  the release tree correctly.
+- `download_file` now treats a suffix-less destination (e.g. `"data/silva"`) as a
+  directory instead of a filename, and streams to a temporary file that is moved
+  into place only on success, so an interrupted download is no longer cached as a
+  valid file.
 
 ## 0.4.0
 

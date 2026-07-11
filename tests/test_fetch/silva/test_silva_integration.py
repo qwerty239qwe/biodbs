@@ -42,3 +42,22 @@ def test_get_version_returns_plain_text():
     data = SILVA_Fetcher().get_version()
     assert data.text.strip()
     assert "<html" not in data.text.lower()
+
+
+def test_list_current_files_live_is_not_empty():
+    data = SILVA_Fetcher().list_current_files()
+    names = data.names()
+    assert names, "current-release listing returned nothing"
+    assert "QIIME2" in names
+
+
+def test_list_current_files_navigates_into_qiime2_live():
+    data = SILVA_Fetcher().list_current_files("QIIME2")
+    assert len(data) > 0, "could not navigate into the QIIME2 subtree"
+
+
+def test_list_archive_releases_live_is_not_empty():
+    data = SILVA_Fetcher().list_archive_releases()
+    names = data.names()
+    assert names, "archive listing returned nothing"
+    assert all(name.startswith("release_") for name in names)
