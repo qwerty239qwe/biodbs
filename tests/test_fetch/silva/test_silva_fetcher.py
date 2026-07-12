@@ -33,6 +33,16 @@ CURRENT_RELEASE_PAGE = """
 </body></html>
 """
 
+LEAF_PAGE = """
+<html><body>
+<a href="/current-release/QIIME2/2025.7">Parent</a>
+<a href="/fileadmin/silva_databases/current/QIIME2/2025.7/taxonomic-weights/human-oral.qza">human-oral.qza</a>
+<a href="/fileadmin/silva_databases/current/QIIME2/2025.7/taxonomic-weights/human-oral.qza.md5">human-oral.qza.md5</a>
+<a href="/fileadmin/silva_databases/current/QIIME2/2025.7/taxonomic-weights/deep/ignored.qza">deep file</a>
+<a href="/contact">Contact</a>
+</body></html>
+"""
+
 
 def test_list_current_files(monkeypatch):
     monkeypatch.setattr(
@@ -42,9 +52,11 @@ def test_list_current_files(monkeypatch):
 
     data = SILVA_Fetcher().list_current_files()
 
-    # only immediate children under /current-release/, nav/external excluded
-    assert data.names() == ["QIIME2", "DADA2"]
+    # immediate browse children plus direct fileadmin-backed files
+    assert data.names() == ["QIIME2", "DADA2", "VERSION.txt"]
     assert data["QIIME2"].is_dir is True
+    assert data["DADA2"].is_dir is True
+    assert data["VERSION.txt"].is_dir is False
 
 
 def test_list_current_files_preserves_subdirectory_in_child_urls(monkeypatch):
@@ -60,12 +72,53 @@ def test_list_current_files_preserves_subdirectory_in_child_urls(monkeypatch):
     assert data["2025.7"].url.endswith("/current-release/QIIME2/2025.7")
 
 
+def test_list_current_files_returns_leaf_fileadmin_links(monkeypatch):
+    monkeypatch.setattr(
+        "biodbs.fetch.SILVA.silva_fetcher.request_with_retry",
+        lambda url: DummyResponse(text=LEAF_PAGE),
+    )
+
+    data = SILVA_Fetcher().list_current_files("QIIME2/2025.7/taxonomic-weights")
+
+    assert data.names() == ["human-oral.qza", "human-oral.qza.md5"]
+    assert data["human-oral.qza"].is_dir is False
+    assert data["human-oral.qza"].url == (
+        "https://www.arb-silva.de/fileadmin/silva_databases/current/"
+        "QIIME2/2025.7/taxonomic-weights/human-oral.qza"
+    )
+    assert data["human-oral.qza.md5"].is_dir is False
+    assert data["human-oral.qza.md5"].url == (
+        "https://www.arb-silva.de/fileadmin/silva_databases/current/"
+        "QIIME2/2025.7/taxonomic-weights/human-oral.qza.md5"
+    )
+
+
+def test_list_current_files_keeps_same_name_directory_and_file(monkeypatch):
+    monkeypatch.setattr(
+        "biodbs.fetch.SILVA.silva_fetcher.request_with_retry",
+        lambda url: DummyResponse(
+            text='<a href="/current-release/shared">directory</a>'
+            '<a href="/current-release/shared">duplicate directory</a>'
+            '<a href="/fileadmin/silva_databases/current/shared">file</a>'
+        ),
+    )
+
+    data = SILVA_Fetcher().list_current_files()
+
+    assert [(item.name, item.is_dir) for item in data] == [
+        ("shared", True),
+        ("shared", False),
+    ]
+
+
 def test_list_archive_releases(monkeypatch):
     monkeypatch.setattr(
         "biodbs.fetch.SILVA.silva_fetcher.request_with_retry",
         lambda url: DummyResponse(
             text='<a href="/archive/release_138">release_138</a>'
+            '<a href="/archive/release_138/deep">deep</a>'
             '<a href="/archive/qiime">qiime</a>'
+            '<a href="/current-release/release_fake">unrelated</a>'
         ),
     )
 
@@ -94,7 +147,9 @@ def test_download_file(tmp_path, monkeypatch):
         calls.append((url, stream))
         return DummyResponse(content=b"abc")
 
-    monkeypatch.setattr("biodbs.fetch.SILVA.silva_fetcher.request_with_retry", fake_request)
+    monkeypatch.setattr(
+        "biodbs.fetch.SILVA.silva_fetcher.request_with_retry", fake_request
+    )
     fetcher = SILVA_Fetcher()
 
     path = fetcher.download_file("README.txt", tmp_path)
@@ -136,7 +191,9 @@ def test_download_file_uses_fileadmin_base(tmp_path, monkeypatch):
         seen["url"] = url
         return DummyResponse(content=b"data", content_type="application/octet-stream")
 
-    monkeypatch.setattr("biodbs.fetch.SILVA.silva_fetcher.request_with_retry", fake_request)
+    monkeypatch.setattr(
+        "biodbs.fetch.SILVA.silva_fetcher.request_with_retry", fake_request
+    )
 
     SILVA_Fetcher().download_file("QIIME2/2025.7/taxonomic-weights/w.qza", tmp_path)
 
@@ -168,10 +225,14 @@ def test_download_classifier_builds_fileadmin_classifier_url(tmp_path, monkeypat
         seen["url"] = url
         return DummyResponse(content=b"data", content_type="application/octet-stream")
 
-    monkeypatch.setattr("biodbs.fetch.SILVA.silva_fetcher.request_with_retry", fake_request)
+    monkeypatch.setattr(
+        "biodbs.fetch.SILVA.silva_fetcher.request_with_retry", fake_request
+    )
 
     SILVA_Fetcher().download_classifier(
-        "qiime2", "2025.7/taxonomic-weights/SILVA_138.2_Ref_NR99_taxonomic-weight_human-oral.qza", tmp_path
+        "qiime2",
+        "2025.7/taxonomic-weights/SILVA_138.2_Ref_NR99_taxonomic-weight_human-oral.qza",
+        tmp_path,
     )
 
     assert seen["url"] == (
@@ -183,7 +244,9 @@ def test_download_classifier_builds_fileadmin_classifier_url(tmp_path, monkeypat
 def test_download_file_writes_into_fresh_directory(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "biodbs.fetch.SILVA.silva_fetcher.request_with_retry",
-        lambda url, stream=False: DummyResponse(content=b"data", content_type="application/octet-stream"),
+        lambda url, stream=False: DummyResponse(
+            content=b"data", content_type="application/octet-stream"
+        ),
     )
     dest = tmp_path / "data" / "silva"  # does not exist yet, no suffix -> a directory
 
@@ -225,4 +288,7 @@ def test_get_version_uses_fileadmin_base(monkeypatch):
 
     data = SILVA_Fetcher().get_version()
 
-    assert data.url == "https://www.arb-silva.de/fileadmin/silva_databases/current/VERSION.txt"
+    assert (
+        data.url
+        == "https://www.arb-silva.de/fileadmin/silva_databases/current/VERSION.txt"
+    )

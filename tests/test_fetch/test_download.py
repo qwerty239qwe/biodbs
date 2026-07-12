@@ -63,8 +63,8 @@ def test_download_binary_removes_partial_on_stream_failure(tmp_path, monkeypatch
 
 def test_download_binary_rejects_bad_md5(tmp_path, monkeypatch):
     binary = Response([b"abc"])
-    checksum = Response(text="deadbeef  db.tar.gz\n")
-    responses = iter([binary, checksum])
+    checksum = Response(text="00000000000000000000000000000000  db.tar.gz\n")
+    responses = iter([checksum, binary])
     monkeypatch.setattr(
         "biodbs.fetch._download.request_with_retry",
         lambda url, stream=False: next(responses),
@@ -82,4 +82,61 @@ def test_download_binary_rejects_bad_md5(tmp_path, monkeypatch):
     assert not target.exists()
     assert list(tmp_path.glob("*.part")) == []
     assert binary.closed
+    assert checksum.closed
+
+
+def test_download_binary_replaces_corrupt_cached_file(tmp_path, monkeypatch):
+    target = tmp_path / "db.tar.gz"
+    target.write_bytes(b"corrupt")
+    checksum = Response(text="755f85c2723bb39381c7379a604160d8  db.tar.gz\n")
+    binary = Response([b"good"])
+    responses = iter([checksum, binary])
+    monkeypatch.setattr(
+        "biodbs.fetch._download.request_with_retry",
+        lambda url, stream=False: next(responses),
+    )
+
+    download_binary(
+        "https://example/db.tar.gz",
+        target,
+        "test",
+        md5_url="https://example/db.tar.gz.md5",
+    )
+
+    assert target.read_bytes() == b"good"
+    assert checksum.closed
+    assert binary.closed
+
+
+def test_download_binary_rejects_html(tmp_path, monkeypatch):
+    response = Response([b"<!DOCTYPE html>"])
+    response.headers = {}
+    monkeypatch.setattr(
+        "biodbs.fetch._download.request_with_retry",
+        lambda url, stream=False: response,
+    )
+    target = tmp_path / "db.tar.gz"
+
+    with pytest.raises(APIError, match="HTML"):
+        download_binary("https://example/db.tar.gz", target, "test")
+
+    assert not target.exists()
+    assert response.closed
+
+
+def test_download_binary_rejects_invalid_md5_response(tmp_path, monkeypatch):
+    checksum = Response(text="")
+    monkeypatch.setattr(
+        "biodbs.fetch._download.request_with_retry",
+        lambda url, stream=False: checksum,
+    )
+
+    with pytest.raises(APIError, match="Invalid MD5"):
+        download_binary(
+            "https://example/db.tar.gz",
+            tmp_path / "db.tar.gz",
+            "test",
+            md5_url="https://example/db.tar.gz.md5",
+        )
+
     assert checksum.closed
