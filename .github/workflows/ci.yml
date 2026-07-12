@@ -67,6 +67,7 @@ jobs:
             target: tests/test_fetch/quickgo tests/test_analysis/test_ora.py::TestORAGo
           - service: reactome
             target: tests/test_fetch/reactome tests/test_analysis/test_ora.py::TestORAReactome tests/test_analysis/test_ora.py::TestORAReactomeLocal
+            pytest_args: --maxfail=1 --reruns 0
           - service: silva
             target: tests/test_fetch/silva
           - service: pr2
@@ -97,4 +98,4 @@ jobs:
         # Live third-party APIs (notably PubChem) throttle CI IP ranges; rerun
         # only the failed tests, spaced out, so transient throttling doesn't fail
         # the job without adding request load.
-        run: uv run pytest -m integration -v --tb=short --reruns 3 --reruns-delay 15 ${{ matrix.target }}
+        run: uv run pytest -m integration -v --tb=short ${{ matrix.pytest_args || '--reruns 3 --reruns-delay 15' }} ${{ matrix.target }}
