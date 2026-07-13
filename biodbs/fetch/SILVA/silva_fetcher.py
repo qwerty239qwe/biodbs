@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
-import os
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import urljoin, urlparse, urlunparse
+from urllib.parse import urljoin, urlparse
 
-from biodbs.data.SILVA import SILVAFile, SILVARelease, SILVAFileListData, SILVAReleaseListData, SILVATextData
-from biodbs.exceptions import APIError, raise_for_status
+from biodbs.data.SILVA import (
+    SILVAFile,
+    SILVARelease,
+    SILVAFileListData,
+    SILVAReleaseListData,
+    SILVATextData,
+)
+from biodbs.exceptions import raise_for_status
+from biodbs.fetch._download import download_binary
 from biodbs.fetch._rate_limit import get_rate_limiter, request_with_retry
 
 _CURRENT_RELEASE_URL = "https://www.arb-silva.de/current-release/"
@@ -57,18 +63,11 @@ class SILVA_Fetcher:
         self.file_base_url = file_base_url
 
     def list_current_files(self, path: str = "") -> SILVAFileListData:
-        """List the immediate sub-entries of a current-release page.
-
-        SILVA's CMS exposes a browsable tree (``QIIME2`` -> release -> marker ->
-        ...); this returns the child directories linked on the page so you can
-        navigate down. Leaf classifier filenames are injected by the site's
-        JavaScript and are not present in the served HTML, so they are not
-        discoverable here — browse the SILVA website to get the exact filename.
-        """
+        """List immediate directories and downloadable files at *path*."""
         page_url = self._release_url(path)
         files = [
-            SILVAFile(name=name, url=url, is_dir=True)
-            for name, url in self._child_entries(page_url)
+            SILVAFile(name=name, url=url, is_dir=is_dir)
+            for name, url, is_dir in self._list_entries(page_url, self._file_url(path))
         ]
         return SILVAFileListData(files)
 
@@ -76,7 +75,7 @@ class SILVA_Fetcher:
         """List archived SILVA releases."""
         releases = [
             SILVARelease(name=name, url=url)
-            for name, url in self._child_entries(self.archive_url)
+            for name, url, _ in self._list_entries(self.archive_url)
             if name.startswith("release_")
         ]
         return SILVAReleaseListData(releases)
@@ -93,7 +92,14 @@ class SILVA_Fetcher:
         """Fetch current SILVA CITATION.txt."""
         return self._get_text("CITATION.txt")
 
-    def download_file(self, path: str, dest: str | Path, overwrite: bool = False) -> Path:
+    def download_file(
+        self,
+        path: str,
+        dest: str | Path,
+        overwrite: bool = False,
+        *,
+        verify_md5: bool = False,
+    ) -> Path:
         """Download a SILVA release file to *dest*.
 
         *path* is relative to the SILVA file base (``fileadmin/silva_databases/
@@ -106,28 +112,23 @@ class SILVA_Fetcher:
         # path would be mistaken for the output filename.
         if target.is_dir() or str(dest).endswith(("/", "\\")) or target.suffix == "":
             target = target / Path(path).name
-        if target.exists() and not overwrite:
-            return target
         url = self._file_url(path)
-        response = request_with_retry(url, stream=True)
-        raise_for_status(response, "SILVA", url=url)
-        self._reject_html(response, url)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        # Stream to a temp file and atomically move into place, so an interrupted
-        # transfer never leaves a partial file that later calls would reuse.
-        part = target.with_name(target.name + ".part")
-        try:
-            with part.open("wb") as handle:
-                for chunk in response.iter_content(chunk_size=1024 * 1024):
-                    if chunk:
-                        handle.write(chunk)
-            os.replace(part, target)
-        except BaseException:
-            part.unlink(missing_ok=True)
-            raise
-        return target
+        return download_binary(
+            url,
+            target,
+            "SILVA",
+            overwrite=overwrite,
+            md5_url=f"{url}.md5" if verify_md5 else None,
+        )
 
-    def download_classifier(self, kind: str, filename: str, dest: str | Path, overwrite: bool = False) -> Path:
+    def download_classifier(
+        self,
+        kind: str,
+        filename: str,
+        dest: str | Path,
+        overwrite: bool = False,
+        verify: bool = True,
+    ) -> Path:
         """Download a classifier file from a common classifier directory.
 
         *filename* is the path **below** the classifier directory (SILVA nests
@@ -139,8 +140,15 @@ class SILVA_Fetcher:
         directory = self.classifier_dirs.get(kind.lower())
         if directory is None:
             valid = ", ".join(sorted(self.classifier_dirs))
-            raise ValueError(f"Unsupported classifier kind: {kind!r}. Valid kinds: {valid}")
-        return self.download_file(f"{directory}/{filename}", dest=dest, overwrite=overwrite)
+            raise ValueError(
+                f"Unsupported classifier kind: {kind!r}. Valid kinds: {valid}"
+            )
+        return self.download_file(
+            f"{directory}/{filename}",
+            dest,
+            overwrite,
+            verify_md5=verify,
+        )
 
     def _get_text(self, path: str) -> SILVATextData:
         url = self._file_url(path)
@@ -148,49 +156,38 @@ class SILVA_Fetcher:
         raise_for_status(response, "SILVA", url=url)
         return SILVATextData(response.text, url=url)
 
-    def _child_entries(self, page_url: str) -> list[tuple[str, str]]:
-        """Return (name, url) for the immediate children linked under *page_url*.
-
-        Handles SILVA's root-relative CMS links and scopes them to the page's own
-        path so global navigation links are excluded.
-        """
+    def _list_entries(
+        self, page_url: str, file_url: str | None = None
+    ) -> list[tuple[str, str, bool]]:
+        """Return immediate browse directories and direct files linked on a page."""
         response = request_with_retry(page_url)
         raise_for_status(response, "SILVA", url=page_url)
         parser = _ListingParser()
         parser.feed(response.text)
-        parsed = urlparse(page_url)
-        base = parsed.path.rstrip("/") + "/"
-        entries: list[tuple[str, str]] = []
-        seen: set[str] = set()
+        prefixes = [(page_url, True)]
+        if file_url is not None:
+            prefixes.append((file_url, False))
+        entries: list[tuple[str, str, bool]] = []
+        seen: set[tuple[str, bool]] = set()
         for href in parser.hrefs:
-            href_path = urlparse(href).path
-            if not href_path.startswith(base):
-                continue
-            child = href_path[len(base):].strip("/").split("/")[0]
-            if not child or child in seen:
-                continue
-            seen.add(child)
-            child_url = urlunparse((parsed.scheme, parsed.netloc, base + child, "", "", ""))
-            entries.append((child, child_url))
+            absolute_url = urljoin(page_url, href)
+            parsed_href = urlparse(absolute_url)
+            for prefix_url, is_dir in prefixes:
+                parsed_prefix = urlparse(prefix_url)
+                base = parsed_prefix.path.rstrip("/") + "/"
+                child = parsed_href.path.removeprefix(base).strip("/")
+                if (
+                    parsed_href.scheme == parsed_prefix.scheme
+                    and parsed_href.netloc == parsed_prefix.netloc
+                    and parsed_href.path.startswith(base)
+                    and child
+                    and "/" not in child
+                    and (child, is_dir) not in seen
+                ):
+                    seen.add((child, is_dir))
+                    entries.append((child, absolute_url, is_dir))
+                    break
         return entries
-
-    @staticmethod
-    def _reject_html(response, url: str) -> None:
-        """Guard against SILVA's CMS returning an HTML browse page for a file.
-
-        SILVA serves ``current-release/`` and ``archive/`` paths as HTML pages;
-        only ``fileadmin/silva_databases/current/`` paths return real files.
-        Without this check a wrong path silently writes an HTML page to disk.
-        """
-        content_type = response.headers.get("content-type", "")
-        if content_type.startswith("text/html"):
-            raise APIError(
-                f"SILVA returned an HTML page instead of a file for {url!r}. "
-                "This path is a CMS browse page, not a direct download; use a "
-                "path under 'fileadmin/silva_databases/current/'.",
-                service="SILVA",
-                url=url,
-            )
 
     def _release_url(self, path: str = "") -> str:
         return urljoin(self.current_release_url, path)

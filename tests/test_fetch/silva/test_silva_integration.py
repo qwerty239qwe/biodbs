@@ -56,6 +56,13 @@ def test_list_current_files_navigates_into_qiime2_live():
     assert len(data) > 0, "could not navigate into the QIIME2 subtree"
 
 
+def test_list_current_files_exposes_classifier_and_md5():
+    data = SILVA_Fetcher().list_current_files("QIIME2/2025.7/taxonomic-weights")
+
+    assert _CLASSIFIER.rsplit("/", 1)[-1] in data.names()
+    assert f"{_CLASSIFIER.rsplit('/', 1)[-1]}.md5" in data.names()
+
+
 def test_list_archive_releases_live_is_not_empty():
     data = SILVA_Fetcher().list_archive_releases()
     names = data.names()

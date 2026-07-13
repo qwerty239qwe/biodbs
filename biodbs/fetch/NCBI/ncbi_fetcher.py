@@ -3,8 +3,11 @@
 from typing import Dict, Any, List, Optional, Union
 import logging
 import os
+import re
+from pathlib import Path
 
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
+from biodbs.fetch._download import download_binary
 from biodbs.fetch._rate_limit import request_with_retry, get_rate_limiter
 from biodbs.exceptions import raise_for_status
 from biodbs.data.NCBI._data_model import (
@@ -22,6 +25,9 @@ from biodbs.data.NCBI.data import (
 )
 
 logger = logging.getLogger(__name__)
+
+_BLAST_DB_URL = "https://ftp.ncbi.nlm.nih.gov/blast/db/"
+_TAXDUMP_URL = "https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/"
 
 
 class NCBI_APIConfig(BaseAPIConfig):
@@ -446,6 +452,39 @@ class NCBI_Fetcher(BaseDataFetcher):
         """
         genes = self.get_genes_by_symbol(symbols, taxon=taxon)
         return genes.to_id_mapping()
+
+    def download_blast_database(
+        self,
+        name: str,
+        dest: str | Path,
+        overwrite: bool = False,
+    ) -> Path:
+        """Download and verify a named NCBI BLAST database archive."""
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", name):
+            raise ValueError(f"Invalid BLAST database name: {name!r}")
+        filename = f"{name}.tar.gz"
+        target = Path(dest)
+        if target.is_dir() or str(dest).endswith(("/", "\\")) or target.suffix == "":
+            target /= filename
+        url = f"{_BLAST_DB_URL}{filename}"
+        return download_binary(
+            url, target, "NCBI", overwrite=overwrite, md5_url=f"{url}.md5"
+        )
+
+    def download_taxdump(
+        self,
+        dest: str | Path,
+        overwrite: bool = False,
+    ) -> Path:
+        """Download and verify the NCBI ranked-lineage taxonomy archive."""
+        filename = "new_taxdump.tar.gz"
+        target = Path(dest)
+        if target.is_dir() or str(dest).endswith(("/", "\\")) or target.suffix == "":
+            target /= filename
+        url = f"{_TAXDUMP_URL}{filename}"
+        return download_binary(
+            url, target, "NCBI", overwrite=overwrite, md5_url=f"{url}.md5"
+        )
 
     def id_to_symbol(
         self,

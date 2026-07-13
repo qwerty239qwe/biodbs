@@ -1,5 +1,9 @@
 """Offline tests for HOMD fetcher."""
 
+import pytest
+
+from biodbs.data.HOMD import HOMDFile, HOMDFileListData
+from biodbs.exceptions import APIValidationError
 from biodbs.fetch.HOMD.homd_fetcher import HOMD_Fetcher
 
 
@@ -87,31 +91,93 @@ def test_get_table_by_keyword(monkeypatch):
     assert data[0]["name"] == "HMT-001"
 
 
-def test_download_file_streams_and_keeps_existing(tmp_path, monkeypatch):
-    calls = []
+def test_download_file_uses_shared_downloader(tmp_path, monkeypatch):
+    seen = {}
 
-    def fake_request(url, stream=False):
-        calls.append((url, stream))
-        return DummyResponse(content=b"abc")
+    def fake_download(url, target, service, **kwargs):
+        seen.update(url=url, target=target, service=service, kwargs=kwargs)
+        return target
 
-    monkeypatch.setattr("biodbs.fetch.HOMD.homd_fetcher.request_with_retry", fake_request)
+    monkeypatch.setattr("biodbs.fetch.HOMD.homd_fetcher.download_binary", fake_download)
+
+    dest = tmp_path / "refs" / "homd"
+    path = HOMD_Fetcher().download_file("ftp/taxa.tsv", dest)
+
+    assert path == dest / "taxa.tsv"
+    assert seen == {
+        "url": "https://www.homd.org/ftp/taxa.tsv",
+        "target": path,
+        "service": "HOMD",
+        "kwargs": {"overwrite": False},
+    }
+
+
+def test_list_16s_refseq_uses_versioned_source_urls(monkeypatch):
     fetcher = HOMD_Fetcher()
+    seen = []
+    monkeypatch.setattr(
+        fetcher,
+        "_list_ftp_url",
+        lambda url: seen.append(url) or HOMDFileListData([]),
+    )
 
-    path = fetcher.download_file("ftp/taxa.tsv", tmp_path)
+    fetcher.list_16s_refseq("15.22", "homd")
+    fetcher.list_16s_refseq("V5.1", "momd")
 
-    assert path == tmp_path / "taxa.tsv"
-    assert path.read_bytes() == b"abc"
-    assert fetcher.download_file("ftp/taxa.tsv", tmp_path) == path
-    assert calls == [("https://www.homd.org/ftp/taxa.tsv", True)]
+    assert seen == [
+        "https://www.homd.org/ftp/16S_rRNA_refseq/HOMD_16S_rRNA_RefSeq/V15.22",
+        "https://momd.org/ftp/16S_rRNA_refseq/MOMD_16S_rRNA_RefSeq/V5.1",
+    ]
 
 
-def test_download_16s_refseq_uses_first_fasta(monkeypatch, tmp_path):
-    def fake_list(path=""):
-        assert path == "16S_rRNA_refseq"
-        return [type("Item", (), {"name": "homd_refseq.fasta"})()]
+def test_16s_refseq_validates_source_and_version():
+    with pytest.raises(APIValidationError, match="Unsupported 16S source"):
+        HOMD_Fetcher().list_16s_refseq(source="other")
+    with pytest.raises(APIValidationError, match="Invalid 16S version"):
+        HOMD_Fetcher().list_16s_refseq(version="tomorrow")
+    with pytest.raises(APIValidationError, match="Invalid 16S filename"):
+        HOMD_Fetcher().download_16s_refseq("refs", filename="../other.fasta")
 
+
+def test_download_16s_refseq_selects_canonical_files(monkeypatch, tmp_path):
+    files = HOMDFileListData(
+        [
+            HOMDFile("HOMD_16S_rRNA_RefSeq_V15.22.aligned.fasta", "https://x/aligned.fasta"),
+            HOMDFile("HOMD_16S_rRNA_RefSeq_V15.22.fasta", "https://x/ref.fasta"),
+            HOMDFile(
+                "HOMD_16S_rRNA_RefSeq_V15.22.qiime.taxonomy",
+                "https://x/ref.qiime.taxonomy",
+            ),
+        ]
+    )
     fetcher = HOMD_Fetcher()
-    monkeypatch.setattr(fetcher, "list_ftp", fake_list)
-    monkeypatch.setattr(fetcher, "download_file", lambda path, dest, overwrite=False: dest / path.split("/")[-1])
+    monkeypatch.setattr(fetcher, "list_16s_refseq", lambda *args: files)
+    monkeypatch.setattr(
+        fetcher,
+        "download_file",
+        lambda url, dest, overwrite=False: tmp_path / url.rsplit("/", 1)[-1],
+    )
 
-    assert fetcher.download_16s_refseq(tmp_path) == tmp_path / "homd_refseq.fasta"
+    assert fetcher.download_16s_refseq(tmp_path, version="15.22").name == "ref.fasta"
+    assert (
+        fetcher.download_16s_taxonomy(tmp_path, version="15.22").name
+        == "ref.qiime.taxonomy"
+    )
+
+
+def test_download_16s_refseq_preserves_explicit_filename_directory(monkeypatch, tmp_path):
+    fetcher = HOMD_Fetcher()
+    seen = {}
+    monkeypatch.setattr(
+        fetcher,
+        "download_file",
+        lambda url, dest, overwrite=False: seen.setdefault("url", url) or tmp_path,
+    )
+
+    fetcher.download_16s_refseq(
+        tmp_path, filename="custom.fasta", version="5.1", source="momd"
+    )
+
+    assert seen["url"] == (
+        "https://momd.org/ftp/16S_rRNA_refseq/MOMD_16S_rRNA_RefSeq/V5.1/custom.fasta"
+    )

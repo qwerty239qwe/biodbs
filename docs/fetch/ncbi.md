@@ -91,6 +91,20 @@ fetcher = NCBI_Fetcher()
 genes = fetcher.get_genes_by_id([7157, 672])
 ```
 
+## Static 16S Reference Archives
+
+Download the current NCBI 16S BLAST database and ranked-lineage taxonomy used by
+FOMC-style workflows:
+
+```python
+blast_db = fetcher.download_blast_database("16S_ribosomal_RNA", "data/ncbi")
+taxdump = fetcher.download_taxdump("data/ncbi")
+```
+
+Both archives are installed atomically and verified against NCBI's published
+MD5 files. The historical FOMC publication used `16SMicrobial`; use that name
+instead when reproducing the older reference snapshot.
+
 ## Related Resources
 
 - **[Ensembl](ensembl.md)** - Alternative gene resource with genomic coordinates and VEP.

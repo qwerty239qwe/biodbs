@@ -45,7 +45,13 @@ def silva_download_file(path: str, dest: str | Path, overwrite: bool = False) ->
     return _get_fetcher().download_file(path, dest, overwrite)
 
 
-def silva_download_classifier(kind: str, filename: str, dest: str | Path, overwrite: bool = False) -> Path:
-    """Download a file from a common SILVA classifier directory."""
-    return _get_fetcher().download_classifier(kind, filename, dest, overwrite)
+def silva_download_classifier(
+    kind: str,
+    filename: str,
+    dest: str | Path,
+    overwrite: bool = False,
+    verify: bool = True,
+) -> Path:
+    """Download a verified file from a common SILVA classifier directory."""
+    return _get_fetcher().download_classifier(kind, filename, dest, overwrite, verify)
 

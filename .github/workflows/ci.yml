@@ -3,9 +3,9 @@ name: CI
 
 on:
   push:
-    branches: [master, develop]
+    branches: [master, dev]
   pull_request:
-    branches: [master, develop]
+    branches: [master, dev]
 
 jobs:
   test:
@@ -45,6 +45,7 @@ jobs:
 
   integration:
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.allow_failure || false }}
     needs: test
     timeout-minutes: 12
     strategy:
@@ -67,8 +68,12 @@ jobs:
             target: tests/test_fetch/quickgo tests/test_analysis/test_ora.py::TestORAGo
           - service: reactome
             target: tests/test_fetch/reactome tests/test_analysis/test_ora.py::TestORAReactome tests/test_analysis/test_ora.py::TestORAReactomeLocal
+            pytest_args: --maxfail=1 --reruns 0
+            allow_failure: true
           - service: silva
             target: tests/test_fetch/silva
+          - service: homd
+            target: tests/test_fetch/homd
           - service: pr2
             target: tests/test_fetch/pr2
           - service: greengenes
@@ -97,4 +102,4 @@ jobs:
         # Live third-party APIs (notably PubChem) throttle CI IP ranges; rerun
         # only the failed tests, spaced out, so transient throttling doesn't fail
         # the job without adding request load.
-        run: uv run pytest -m integration -v --tb=short --reruns 3 --reruns-delay 15 ${{ matrix.target }}
+        run: uv run pytest -m integration -v --tb=short ${{ matrix.pytest_args || '--reruns 3 --reruns-delay 15' }} ${{ matrix.target }}

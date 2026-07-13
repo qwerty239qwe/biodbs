@@ -20,10 +20,9 @@ qiime2 = fetcher.list_current_files("QIIME2")        # -> ['2025.7']
 ssu = fetcher.list_current_files("QIIME2/2025.7/SSU") # -> marker regions
 ```
 
-Listing walks SILVA's browsable release tree. The exact leaf `.qza` filenames are
-loaded by the site's JavaScript and are not part of the served HTML, so browse the
-[SILVA website](https://www.arb-silva.de/current-release/) to copy the final
-filename, then pass its nested path to `download_classifier`.
+Listing returns immediate child directories and downloadable files. Directories
+have browse URLs under `current-release/` and `is_dir=True`; leaf files have
+direct URLs under `fileadmin/silva_databases/current/` and `is_dir=False`.
 
 ## Version, README, Citation
 
@@ -68,6 +67,9 @@ path = fetcher.download_classifier(
     dest="data/silva",
 )
 ```
+
+Classifier downloads verify SILVA's published `.md5` file by default. Pass
+`verify=False` only when mirroring a resource that has no checksum.
 
 Supported classifier/resource directories:
 
