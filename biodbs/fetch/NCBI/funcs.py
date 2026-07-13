@@ -1,6 +1,7 @@
 """Convenience functions for NCBI Datasets API."""
 
 from typing import List, Dict, Union, Optional
+from pathlib import Path
 import pandas as pd
 
 from biodbs.fetch.NCBI.ncbi_fetcher import NCBI_Fetcher
@@ -122,6 +123,23 @@ def ncbi_get_taxonomy(
     """
     fetcher = NCBI_Fetcher(api_key=api_key)
     return fetcher.get_taxonomy(taxons)
+
+
+def ncbi_download_blast_database(
+    name: str,
+    dest: str | Path,
+    overwrite: bool = False,
+) -> Path:
+    """Download and verify a named NCBI BLAST database archive."""
+    return NCBI_Fetcher().download_blast_database(name, dest, overwrite)
+
+
+def ncbi_download_taxdump(
+    dest: str | Path,
+    overwrite: bool = False,
+) -> Path:
+    """Download and verify the NCBI ranked-lineage taxonomy archive."""
+    return NCBI_Fetcher().download_taxdump(dest, overwrite)
 
 
 def _ensembl_ids_to_ncbi(ensembl_ids: List[str]) -> Dict[str, int]:

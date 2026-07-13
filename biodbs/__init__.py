@@ -139,6 +139,9 @@ __all__ = [
     # ==========================================================================
     # FETCH FUNCTIONS - Low-level API wrappers
     # ==========================================================================
+    # NCBI static archives
+    "ncbi_download_blast_database",
+    "ncbi_download_taxdump",
     # PubChem
     "pubchem_get_compound",
     "pubchem_get_compounds",
@@ -305,6 +308,7 @@ __all__ = [
     "homd_get_crispr_table",
     "homd_list_16s_refseq",
     "homd_download_16s_refseq",
+    "homd_download_16s_taxonomy",
 
     # ==========================================================================
     # GTDB FUNCTIONS - Genome Taxonomy Database release files

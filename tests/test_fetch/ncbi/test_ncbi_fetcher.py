@@ -1,5 +1,7 @@
 """Tests for NCBI fetcher (integration tests)."""
 
+from pathlib import Path
+
 import pytest
 from biodbs.fetch.NCBI import NCBI_Fetcher
 
@@ -19,6 +21,63 @@ class TestNCBIFetcherBasic:
     def test_rate_limit_without_key(self, fetcher):
         """Test rate limit without API key."""
         assert fetcher._api_config.rate_limit == 5
+
+
+def test_download_blast_database_uses_published_md5(tmp_path, monkeypatch):
+    seen = {}
+
+    def fake_download(url, target, service, **kwargs):
+        seen.update(url=url, target=Path(target), service=service, kwargs=kwargs)
+        return Path(target)
+
+    monkeypatch.setattr("biodbs.fetch.NCBI.ncbi_fetcher.download_binary", fake_download)
+
+    result = NCBI_Fetcher().download_blast_database("16S_ribosomal_RNA", tmp_path)
+
+    expected_url = "https://ftp.ncbi.nlm.nih.gov/blast/db/16S_ribosomal_RNA.tar.gz"
+    assert result == tmp_path / "16S_ribosomal_RNA.tar.gz"
+    assert seen == {
+        "url": expected_url,
+        "target": result,
+        "service": "NCBI",
+        "kwargs": {"overwrite": False, "md5_url": f"{expected_url}.md5"},
+    }
+
+
+@pytest.mark.parametrize("name", ["../nt", r"..\\nt", "nt?download=1", "nt#part"])
+def test_download_blast_database_rejects_unsafe_names(name, tmp_path):
+    with pytest.raises(ValueError, match="Invalid BLAST database name"):
+        NCBI_Fetcher().download_blast_database(name, tmp_path)
+
+
+def test_download_taxdump_uses_published_md5(tmp_path, monkeypatch):
+    seen = {}
+
+    def fake_download(url, target, service, **kwargs):
+        seen.update(url=url, target=Path(target), service=service, kwargs=kwargs)
+        return Path(target)
+
+    monkeypatch.setattr("biodbs.fetch.NCBI.ncbi_fetcher.download_binary", fake_download)
+
+    result = NCBI_Fetcher().download_taxdump(tmp_path)
+
+    expected_url = (
+        "https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/new_taxdump.tar.gz"
+    )
+    assert result == tmp_path / "new_taxdump.tar.gz"
+    assert seen["url"] == expected_url
+    assert seen["kwargs"]["md5_url"] == f"{expected_url}.md5"
+
+
+def test_static_download_public_imports():
+    import biodbs
+    from biodbs import ncbi_download_taxdump as top_level_taxdump
+    from biodbs.fetch import ncbi_download_taxdump
+    from biodbs.fetch.NCBI import ncbi_download_taxdump as module_taxdump
+
+    assert top_level_taxdump is ncbi_download_taxdump is module_taxdump
+    assert "ncbi_download_blast_database" in biodbs.__all__
+    assert "ncbi_download_taxdump" in biodbs.__all__
 
 
 class TestNCBIFetcherGeneAPI:

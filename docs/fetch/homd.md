@@ -53,11 +53,25 @@ Existing files are kept by default. Use `overwrite=True` to download again. Larg
 ## 16S RefSeq
 
 ```python
-files = fetcher.list_16s_refseq()
-path = fetcher.download_16s_refseq(dest="data/homd")
+homd_files = fetcher.list_16s_refseq(version="15.22", source="homd")
+homd_fasta = fetcher.download_16s_refseq(
+    "data/homd", version="15.22", source="homd"
+)
+homd_taxonomy = fetcher.download_16s_taxonomy(
+    "data/homd", version="15.22", source="homd"
+)
+
+momd_fasta = fetcher.download_16s_refseq(
+    "data/momd", version="5.1", source="momd"
+)
+momd_taxonomy = fetcher.download_16s_taxonomy(
+    "data/momd", version="5.1", source="momd"
+)
 ```
 
-If `filename` is omitted, the first FASTA-like file in the 16S RefSeq directory is used.
+Use `version="current"` for the newest published release. Without an explicit
+`filename`, biodbs selects the canonical unaligned `.fasta` and
+`.qiime.taxonomy` files and excludes aligned or alternate variants.
 
 ## Convenience Functions
 

@@ -68,6 +68,9 @@ path = fetcher.download_classifier(
 )
 ```
 
+Classifier downloads verify SILVA's published `.md5` file by default. Pass
+`verify=False` only when mirroring a resource that has no checksum.
+
 Supported classifier/resource directories:
 
 - `qiime2`

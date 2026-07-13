@@ -2,18 +2,24 @@
 
 from __future__ import annotations
 
+import re
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin
 
 from biodbs.data.HOMD import HOMDFile, HOMDFileListData, HOMDTableData, HOMDTextData
 from biodbs.exceptions import APIValidationError, raise_for_status
+from biodbs.fetch._download import download_binary
 from biodbs.fetch._rate_limit import get_rate_limiter, request_with_retry
 
 _BASE_URL = "https://www.homd.org/"
 _FTP_URL = "https://www.homd.org/ftp/"
 _DOWNLOADS_URL = "https://www.homd.org/download/download/all"
 _HOST = "www.homd.org"
+_REFSEQ_SOURCES = {
+    "homd": ("HOMD", "https://www.homd.org/ftp/"),
+    "momd": ("MOMD", "https://momd.org/ftp/"),
+}
 
 get_rate_limiter().set_rate(_HOST, 3)
 
@@ -68,8 +74,10 @@ class HOMD_Fetcher:
 
     def list_ftp(self, path: str = "") -> HOMDFileListData:
         """List HOMD FTP files/directories."""
-        url = self._ftp_url(path)
-        if path and not url.endswith("/"):
+        return self._list_ftp_url(self._ftp_url(path))
+
+    def _list_ftp_url(self, url: str) -> HOMDFileListData:
+        if not url.endswith("/"):
             url += "/"
         return HOMDFileListData(
             [
@@ -96,19 +104,10 @@ class HOMD_Fetcher:
     def download_file(self, path_or_url: str, dest: str | Path, overwrite: bool = False) -> Path:
         """Download a HOMD file to *dest*."""
         target = Path(dest)
-        if target.is_dir() or str(dest).endswith(("/", "\\")):
+        if target.is_dir() or target.suffix == "" or str(dest).endswith(("/", "\\")):
             target = target / Path(path_or_url.rstrip("/")).name
-        if target.exists() and not overwrite:
-            return target
-        target.parent.mkdir(parents=True, exist_ok=True)
         url = self._url(path_or_url)
-        response = request_with_retry(url, stream=True)
-        raise_for_status(response, "HOMD", url=url)
-        with target.open("wb") as handle:
-            for chunk in response.iter_content(chunk_size=1024 * 1024):
-                if chunk:
-                    handle.write(chunk)
-        return target
+        return download_binary(url, target, "HOMD", overwrite=overwrite)
 
     def get_table(self, path_or_url: str, delimiter: str = "\t") -> HOMDTableData:
         """Fetch a HOMD tabular file."""
@@ -152,15 +151,80 @@ class HOMD_Fetcher:
         """Fetch HOMD CRISPR table."""
         return self._get_table_by_keywords("crispr")
 
-    def list_16s_refseq(self) -> HOMDFileListData:
-        """List HOMD 16S rRNA RefSeq files."""
-        return self.list_ftp("16S_rRNA_refseq")
+    def list_16s_refseq(
+        self, version: str = "current", source: str = "homd"
+    ) -> HOMDFileListData:
+        """List files for a versioned HOMD or MOMD 16S RefSeq release."""
+        _, host, path = self._refseq_parts(version, source)
+        return self._list_ftp_url(urljoin(host, path))
 
-    def download_16s_refseq(self, dest: str | Path, filename: str = "", overwrite: bool = False) -> Path:
-        """Download a 16S RefSeq file, or the first FASTA-like file when filename is omitted."""
-        # ponytail: HOMD 16S .gz files are compressed sequence files; split type detection if that changes.
-        filename = filename or self._first_ftp_match("16S_rRNA_refseq", (".fasta", ".fa", ".fna", ".gz"))
-        return self.download_file(f"ftp/16S_rRNA_refseq/{filename}", dest, overwrite)
+    def download_16s_refseq(
+        self,
+        dest: str | Path,
+        filename: str = "",
+        overwrite: bool = False,
+        *,
+        version: str = "current",
+        source: str = "homd",
+    ) -> Path:
+        """Download the canonical unaligned 16S RefSeq FASTA."""
+        if filename:
+            if Path(filename).name != filename:
+                raise APIValidationError(
+                    "HOMD", detail=f"Invalid 16S filename: {filename!r}"
+                )
+            _, host, path = self._refseq_parts(version, source)
+            url = urljoin(host, f"{path}/{filename}")
+        else:
+            url = self._select_16s_file(version, source, ".fasta").url
+        return self.download_file(url, dest, overwrite)
+
+    def download_16s_taxonomy(
+        self,
+        dest: str | Path,
+        overwrite: bool = False,
+        *,
+        version: str = "current",
+        source: str = "homd",
+    ) -> Path:
+        """Download the canonical QIIME taxonomy for a 16S RefSeq release."""
+        item = self._select_16s_file(version, source, ".qiime.taxonomy")
+        return self.download_file(item.url, dest, overwrite)
+
+    @staticmethod
+    def _refseq_parts(version: str, source: str) -> tuple[str, str, str]:
+        try:
+            tag, host = _REFSEQ_SOURCES[source.lower()]
+        except KeyError:
+            raise APIValidationError(
+                "HOMD", detail=f"Unsupported 16S source: {source!r}"
+            ) from None
+        version = version.strip()
+        if version.lower() in {"", "current", "latest"}:
+            directory = "current"
+        elif re.fullmatch(r"v?\d+(?:\.\d+)*", version, re.I):
+            directory = f"V{version.removeprefix('v').removeprefix('V')}"
+        else:
+            raise APIValidationError(
+                "HOMD", detail=f"Invalid 16S version: {version!r}"
+            )
+        path = f"16S_rRNA_refseq/{tag}_16S_rRNA_RefSeq/{directory}"
+        return tag, host, path
+
+    def _select_16s_file(self, version: str, source: str, suffix: str) -> HOMDFile:
+        tag, _, path = self._refseq_parts(version, source)
+        directory = path.rsplit("/", 1)[-1]
+        release = r"V\d+(?:\.\d+)*" if directory == "current" else re.escape(directory)
+        pattern = re.compile(
+            rf"^{tag}_16S_rRNA_RefSeq_{release}{re.escape(suffix)}$"
+        )
+        for item in self.list_16s_refseq(version, source):
+            if pattern.fullmatch(item.name):
+                return item
+        raise APIValidationError(
+            "HOMD",
+            detail=f"No {source.upper()} 16S file ending in {suffix!r} for version {version!r}.",
+        )
 
     def _get_table_by_keywords(self, keyword: str) -> HOMDTableData:
         lower_keyword = keyword.lower()
@@ -170,12 +234,6 @@ class HOMD_Fetcher:
                 delimiter = "," if item.url.lower().endswith(".csv") else "\t"
                 return self.get_table(item.url, delimiter=delimiter)
         raise APIValidationError("HOMD", detail=f"No download found for keyword: {keyword}")
-
-    def _first_ftp_match(self, path: str, suffixes: tuple[str, ...]) -> str:
-        for item in self.list_ftp(path):
-            if item.name.lower().endswith(suffixes):
-                return item.name
-        raise APIValidationError("HOMD", detail=f"No matching file found in {path!r}.")
 
     def _list_links(self, url: str) -> list[tuple[str, str, str]]:
         response = request_with_retry(url)

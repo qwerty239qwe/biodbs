@@ -106,6 +106,7 @@ nav:
     - LPSN: fetch/lpsn.md
     - SILVA: fetch/silva.md
     - HOMD: fetch/homd.md
+    - FOMC References: fetch/fomc-references.md
     - GTDB: fetch/gtdb.md
     - PR2: fetch/pr2.md
     - GreenGenes: fetch/greengenes.md

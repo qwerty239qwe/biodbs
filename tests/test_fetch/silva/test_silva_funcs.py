@@ -24,8 +24,8 @@ class DummyFetcher:
     def download_file(self, path, dest, overwrite=False):
         return ("download", path, Path(dest), overwrite)
 
-    def download_classifier(self, kind, filename, dest, overwrite=False):
-        return ("classifier", kind, filename, Path(dest), overwrite)
+    def download_classifier(self, kind, filename, dest, overwrite=False, verify=True):
+        return ("classifier", kind, filename, Path(dest), overwrite, verify)
 
 
 def test_convenience_functions_delegate(tmp_path, monkeypatch):
@@ -48,6 +48,7 @@ def test_convenience_functions_delegate(tmp_path, monkeypatch):
         "taxonomy.qza",
         tmp_path,
         False,
+        True,
     )
 
 

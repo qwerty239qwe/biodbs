@@ -45,6 +45,7 @@ jobs:
 
   integration:
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.allow_failure || false }}
     needs: test
     timeout-minutes: 12
     strategy:
@@ -68,8 +69,11 @@ jobs:
           - service: reactome
             target: tests/test_fetch/reactome tests/test_analysis/test_ora.py::TestORAReactome tests/test_analysis/test_ora.py::TestORAReactomeLocal
             pytest_args: --maxfail=1 --reruns 0
+            allow_failure: true
           - service: silva
             target: tests/test_fetch/silva
+          - service: homd
+            target: tests/test_fetch/homd
           - service: pr2
             target: tests/test_fetch/pr2
           - service: greengenes

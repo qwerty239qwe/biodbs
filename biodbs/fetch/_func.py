@@ -186,6 +186,8 @@ from biodbs.fetch.NCBI.funcs import (
     ncbi_symbol_to_id,
     ncbi_id_to_symbol,
     ncbi_get_taxonomy,
+    ncbi_download_blast_database,
+    ncbi_download_taxdump,
     ncbi_translate_gene_ids,
 )
 
@@ -282,6 +284,7 @@ from biodbs.fetch.SILVA.funcs import (
 # =============================================================================
 from biodbs.fetch.HOMD.funcs import (
     homd_download_16s_refseq,
+    homd_download_16s_taxonomy,
     homd_download_file,
     homd_get_crispr_table,
     homd_get_genome_metadata,
@@ -492,6 +495,8 @@ __all__ = [
     "ncbi_symbol_to_id",
     "ncbi_id_to_symbol",
     "ncbi_get_taxonomy",
+    "ncbi_download_blast_database",
+    "ncbi_download_taxdump",
     "ncbi_translate_gene_ids",
     # Ensembl
     "ensembl_lookup",
@@ -571,6 +576,7 @@ __all__ = [
     "homd_get_crispr_table",
     "homd_list_16s_refseq",
     "homd_download_16s_refseq",
+    "homd_download_16s_taxonomy",
     # GTDB
     "gtdb_list_releases",
     "gtdb_list_release_files",
