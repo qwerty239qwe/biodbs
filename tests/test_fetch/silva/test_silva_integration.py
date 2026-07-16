@@ -61,3 +61,13 @@ def test_list_archive_releases_live_is_not_empty():
     names = data.names()
     assert names, "archive listing returned nothing"
     assert all(name.startswith("release_") for name in names)
+
+
+def test_list_current_files_exposes_classifier_and_md5():
+    data = SILVA_Fetcher().list_current_files("QIIME2/2025.7/taxonomic-weights")
+    names = data.names()
+    classifier = "SILVA_138.2_Ref_NR99_taxonomic-weight_human-oral.qza"
+    assert classifier in names, "classifier leaf not discovered in listing"
+    assert f"{classifier}.md5" in names, "published md5 sidecar not discovered"
+    assert data[classifier].is_dir is False
+    assert "/fileadmin/silva_databases/current/" in data[classifier].url
