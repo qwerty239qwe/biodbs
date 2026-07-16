@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import os
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
 from biodbs.data.SILVA import SILVAFile, SILVARelease, SILVAFileListData, SILVAReleaseListData, SILVATextData
-from biodbs.exceptions import APIError, raise_for_status
+from biodbs.exceptions import raise_for_status
+from biodbs.fetch._download import download_binary
 from biodbs.fetch._rate_limit import get_rate_limiter, request_with_retry
 
 _CURRENT_RELEASE_URL = "https://www.arb-silva.de/current-release/"
@@ -91,12 +91,20 @@ class SILVA_Fetcher:
         """Fetch current SILVA CITATION.txt."""
         return self._get_text("CITATION.txt")
 
-    def download_file(self, path: str, dest: str | Path, overwrite: bool = False) -> Path:
+    def download_file(
+        self,
+        path: str,
+        dest: str | Path,
+        overwrite: bool = False,
+        *,
+        verify_md5: bool = False,
+    ) -> Path:
         """Download a SILVA release file to *dest*.
 
         *path* is relative to the SILVA file base (``fileadmin/silva_databases/
         current/``), e.g. ``"VERSION.txt"`` or
-        ``"QIIME2/2025.7/taxonomic-weights/<file>.qza"``.
+        ``"QIIME2/2025.7/taxonomic-weights/<file>.qza"``. Set *verify_md5* to check
+        the file against SILVA's published ``<file>.md5`` sidecar.
         """
         target = Path(dest)
         # Treat *dest* as a directory when it is one, ends with a separator, or
@@ -104,28 +112,24 @@ class SILVA_Fetcher:
         # path would be mistaken for the output filename.
         if target.is_dir() or str(dest).endswith(("/", "\\")) or target.suffix == "":
             target = target / Path(path).name
-        if target.exists() and not overwrite:
-            return target
         url = self._file_url(path)
-        response = request_with_retry(url, stream=True)
-        raise_for_status(response, "SILVA", url=url)
-        self._reject_html(response, url)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        # Stream to a temp file and atomically move into place, so an interrupted
-        # transfer never leaves a partial file that later calls would reuse.
-        part = target.with_name(target.name + ".part")
-        try:
-            with part.open("wb") as handle:
-                for chunk in response.iter_content(chunk_size=1024 * 1024):
-                    if chunk:
-                        handle.write(chunk)
-            os.replace(part, target)
-        except BaseException:
-            part.unlink(missing_ok=True)
-            raise
-        return target
+        return download_binary(
+            url,
+            target,
+            "SILVA",
+            overwrite=overwrite,
+            md5_url=f"{url}.md5" if verify_md5 else None,
+            reject_html=True,
+        )
 
-    def download_classifier(self, kind: str, filename: str, dest: str | Path, overwrite: bool = False) -> Path:
+    def download_classifier(
+        self,
+        kind: str,
+        filename: str,
+        dest: str | Path,
+        overwrite: bool = False,
+        verify: bool = True,
+    ) -> Path:
         """Download a classifier file from a common classifier directory.
 
         *filename* is the path **below** the classifier directory (SILVA nests
@@ -133,12 +137,15 @@ class SILVA_Fetcher:
 
             "2025.7/taxonomic-weights/SILVA_138.2_Ref_NR99_taxonomic-weight_human-oral.qza"
             "2025.7/SSU/V4V5-515f-926r/weighted/human-oral/SILVA138.2_..._human-oral.qza"
+
+        Downloads are verified against SILVA's published ``.md5`` by default; pass
+        ``verify=False`` to skip.
         """
         directory = self.classifier_dirs.get(kind.lower())
         if directory is None:
             valid = ", ".join(sorted(self.classifier_dirs))
             raise ValueError(f"Unsupported classifier kind: {kind!r}. Valid kinds: {valid}")
-        return self.download_file(f"{directory}/{filename}", dest=dest, overwrite=overwrite)
+        return self.download_file(f"{directory}/{filename}", dest, overwrite, verify_md5=verify)
 
     def _get_text(self, path: str) -> SILVATextData:
         url = self._file_url(path)
@@ -180,24 +187,6 @@ class SILVA_Fetcher:
                 seen.add(key)
                 entries.append((rest, url, is_dir))
         return entries
-
-    @staticmethod
-    def _reject_html(response, url: str) -> None:
-        """Guard against SILVA's CMS returning an HTML browse page for a file.
-
-        SILVA serves ``current-release/`` and ``archive/`` paths as HTML pages;
-        only ``fileadmin/silva_databases/current/`` paths return real files.
-        Without this check a wrong path silently writes an HTML page to disk.
-        """
-        content_type = response.headers.get("content-type", "")
-        if content_type.startswith("text/html"):
-            raise APIError(
-                f"SILVA returned an HTML page instead of a file for {url!r}. "
-                "This path is a CMS browse page, not a direct download; use a "
-                "path under 'fileadmin/silva_databases/current/'.",
-                service="SILVA",
-                url=url,
-            )
 
     def _release_url(self, path: str = "") -> str:
         return urljoin(self.current_release_url, path)

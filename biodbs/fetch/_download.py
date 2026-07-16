@@ -23,12 +23,15 @@ def download_binary(
     *,
     overwrite: bool = False,
     md5_url: str | None = None,
+    reject_html: bool = False,
 ) -> Path:
     """Download *url* to *target*, verifying an optional published MD5.
 
     *target* must be a concrete file path (callers resolve directories first).
     When *md5_url* is given, the download is rejected unless its MD5 matches the
-    first whitespace-delimited token of the fetched checksum file.
+    first whitespace-delimited token of the fetched checksum file. When
+    *reject_html* is set, a ``text/html`` response is refused instead of being
+    saved (guards against CMS browse pages served in place of a real file).
     """
     target = Path(target)
     if target.exists() and not overwrite:
@@ -36,6 +39,16 @@ def download_binary(
     target.parent.mkdir(parents=True, exist_ok=True)
     response = request_with_retry(url, stream=True)
     raise_for_status(response, service, url=url)
+    if reject_html and response.headers.get("content-type", "").startswith("text/html"):
+        close = getattr(response, "close", None)
+        if close:
+            close()
+        raise APIError(
+            f"{service} returned an HTML page instead of a file for {url!r}. "
+            "This looks like a CMS browse page, not a direct download.",
+            service=service,
+            url=url,
+        )
     fd, part_name = tempfile.mkstemp(prefix=f"{target.name}.", suffix=".part", dir=target.parent)
     part = Path(part_name)
     digest = hashlib.md5()

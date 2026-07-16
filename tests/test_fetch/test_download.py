@@ -53,6 +53,28 @@ def test_download_binary_removes_partial_file_on_failure(tmp_path, monkeypatch):
     assert list(tmp_path.glob("*.part")) == []
 
 
+def test_download_binary_rejects_html_when_requested(tmp_path, monkeypatch):
+    class HtmlResponse:
+        status_code = 200
+        headers = {"content-type": "text/html; charset=utf-8"}
+
+        def iter_content(self, chunk_size=1024 * 1024):
+            yield b"<!DOCTYPE html><html>..."
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(
+        "biodbs.fetch._download.request_with_retry",
+        lambda url, stream=False: HtmlResponse(),
+    )
+    target = tmp_path / "foo.qza"
+    with pytest.raises(APIError, match="HTML page"):
+        download_binary("https://example/foo.qza", target, "SILVA", reject_html=True)
+    assert not target.exists()
+    assert list(tmp_path.glob("*.part")) == []
+
+
 def test_download_binary_rejects_bad_md5(tmp_path, monkeypatch):
     responses = iter([Response([b"abc"]), Response([b"deadbeef  db.tar.gz\n"])])
     monkeypatch.setattr(

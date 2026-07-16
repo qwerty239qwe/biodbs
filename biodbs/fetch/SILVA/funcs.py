@@ -40,12 +40,16 @@ def silva_get_citation() -> SILVATextData:
     return _get_fetcher().get_citation()
 
 
-def silva_download_file(path: str, dest: str | Path, overwrite: bool = False) -> Path:
+def silva_download_file(
+    path: str, dest: str | Path, overwrite: bool = False, *, verify_md5: bool = False
+) -> Path:
     """Download a SILVA release file."""
-    return _get_fetcher().download_file(path, dest, overwrite)
+    return _get_fetcher().download_file(path, dest, overwrite, verify_md5=verify_md5)
 
 
-def silva_download_classifier(kind: str, filename: str, dest: str | Path, overwrite: bool = False) -> Path:
-    """Download a file from a common SILVA classifier directory."""
-    return _get_fetcher().download_classifier(kind, filename, dest, overwrite)
+def silva_download_classifier(
+    kind: str, filename: str, dest: str | Path, overwrite: bool = False, verify: bool = True
+) -> Path:
+    """Download a file from a common SILVA classifier directory (MD5-verified by default)."""
+    return _get_fetcher().download_classifier(kind, filename, dest, overwrite, verify)
 

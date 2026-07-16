@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 
-from biodbs.exceptions import APIError
 from biodbs.fetch.SILVA.silva_fetcher import SILVA_Fetcher
 
 
@@ -108,30 +107,44 @@ def test_get_text_files(monkeypatch):
     assert data.url.endswith("VERSION.txt")
 
 
+def _capture_download_binary(monkeypatch):
+    """Patch the shared downloader and record the arguments SILVA passes it."""
+    seen = {}
+
+    def fake(url, target, service, *, overwrite=False, md5_url=None, reject_html=False):
+        seen.update(
+            url=url,
+            target=Path(target),
+            service=service,
+            overwrite=overwrite,
+            md5_url=md5_url,
+            reject_html=reject_html,
+        )
+        return Path(target)
+
+    monkeypatch.setattr("biodbs.fetch.SILVA.silva_fetcher.download_binary", fake)
+    return seen
+
+
 def test_download_file(tmp_path, monkeypatch):
-    calls = []
+    seen = _capture_download_binary(monkeypatch)
 
-    def fake_request(url, stream=False):
-        calls.append((url, stream))
-        return DummyResponse(content=b"abc")
-
-    monkeypatch.setattr("biodbs.fetch.SILVA.silva_fetcher.request_with_retry", fake_request)
-    fetcher = SILVA_Fetcher()
-
-    path = fetcher.download_file("README.txt", tmp_path)
+    path = SILVA_Fetcher().download_file("README.txt", tmp_path)
 
     assert path == tmp_path / "README.txt"
-    assert path.read_bytes() == b"abc"
-    assert fetcher.download_file("README.txt", tmp_path) == path
-    assert len(calls) == 1
-    assert calls[0][1] is True
+    assert seen["target"] == tmp_path / "README.txt"
+    assert seen["url"].endswith("/fileadmin/silva_databases/current/README.txt")
+    assert seen["service"] == "SILVA"
+    assert seen["reject_html"] is True
+    assert seen["md5_url"] is None  # verify_md5 defaults off for plain files
 
 
 def test_download_classifier_maps_directory(tmp_path, monkeypatch):
     seen = {}
 
-    def fake_download(path, dest, overwrite=False):
+    def fake_download(path, dest, overwrite=False, *, verify_md5=False):
         seen["path"] = path
+        seen["verify_md5"] = verify_md5
         return Path(dest) / Path(path).name
 
     fetcher = SILVA_Fetcher()
@@ -140,6 +153,7 @@ def test_download_classifier_maps_directory(tmp_path, monkeypatch):
     result = fetcher.download_classifier("qiime2", "taxonomy.qza", tmp_path)
 
     assert seen["path"] == "QIIME2/taxonomy.qza"
+    assert seen["verify_md5"] is True  # classifiers are MD5-verified by default
     assert result == tmp_path / "taxonomy.qza"
 
 
@@ -151,13 +165,7 @@ def test_download_classifier_unknown_kind_raises_value_error(tmp_path):
 
 
 def test_download_file_uses_fileadmin_base(tmp_path, monkeypatch):
-    seen = {}
-
-    def fake_request(url, stream=False):
-        seen["url"] = url
-        return DummyResponse(content=b"data", content_type="application/octet-stream")
-
-    monkeypatch.setattr("biodbs.fetch.SILVA.silva_fetcher.request_with_retry", fake_request)
+    seen = _capture_download_binary(monkeypatch)
 
     SILVA_Fetcher().download_file("QIIME2/2025.7/taxonomic-weights/w.qza", tmp_path)
 
@@ -165,77 +173,40 @@ def test_download_file_uses_fileadmin_base(tmp_path, monkeypatch):
         "https://www.arb-silva.de/fileadmin/silva_databases/current/"
         "QIIME2/2025.7/taxonomic-weights/w.qza"
     )
-
-
-def test_download_file_rejects_html_page(tmp_path, monkeypatch):
-    monkeypatch.setattr(
-        "biodbs.fetch.SILVA.silva_fetcher.request_with_retry",
-        lambda url, stream=False: DummyResponse(
-            content=b"<!DOCTYPE html><html>...", content_type="text/html; charset=utf-8"
-        ),
-    )
-
-    with pytest.raises(APIError, match="HTML page"):
-        SILVA_Fetcher().download_file("QIIME2/whatever.qza", tmp_path)
-
-    # nothing should have been written
-    assert list(tmp_path.iterdir()) == []
+    assert seen["target"] == tmp_path / "w.qza"
 
 
 def test_download_classifier_builds_fileadmin_classifier_url(tmp_path, monkeypatch):
-    seen = {}
-
-    def fake_request(url, stream=False):
-        seen["url"] = url
-        return DummyResponse(content=b"data", content_type="application/octet-stream")
-
-    monkeypatch.setattr("biodbs.fetch.SILVA.silva_fetcher.request_with_retry", fake_request)
+    seen = _capture_download_binary(monkeypatch)
 
     SILVA_Fetcher().download_classifier(
         "qiime2", "2025.7/taxonomic-weights/SILVA_138.2_Ref_NR99_taxonomic-weight_human-oral.qza", tmp_path
     )
 
-    assert seen["url"] == (
+    base = (
         "https://www.arb-silva.de/fileadmin/silva_databases/current/"
         "QIIME2/2025.7/taxonomic-weights/SILVA_138.2_Ref_NR99_taxonomic-weight_human-oral.qza"
     )
+    assert seen["url"] == base
+    assert seen["md5_url"] == base + ".md5"  # verified by default
+
+
+def test_download_classifier_can_skip_verification(tmp_path, monkeypatch):
+    seen = _capture_download_binary(monkeypatch)
+
+    SILVA_Fetcher().download_classifier("qiime2", "2025.7/x.qza", tmp_path, verify=False)
+
+    assert seen["md5_url"] is None
 
 
 def test_download_file_writes_into_fresh_directory(tmp_path, monkeypatch):
-    monkeypatch.setattr(
-        "biodbs.fetch.SILVA.silva_fetcher.request_with_retry",
-        lambda url, stream=False: DummyResponse(content=b"data", content_type="application/octet-stream"),
-    )
+    seen = _capture_download_binary(monkeypatch)
     dest = tmp_path / "data" / "silva"  # does not exist yet, no suffix -> a directory
 
     path = SILVA_Fetcher().download_file("QIIME2/x.qza", dest)
 
     assert path == dest / "x.qza"
-    assert path.read_bytes() == b"data"
-    assert dest.is_dir()
-
-
-def test_download_file_partial_transfer_not_cached(tmp_path, monkeypatch):
-    class FailingResponse:
-        status_code = 200
-        headers = {"content-type": "application/octet-stream"}
-
-        def iter_content(self, chunk_size=8192):
-            yield b"partial"
-            raise OSError("connection dropped")
-
-    monkeypatch.setattr(
-        "biodbs.fetch.SILVA.silva_fetcher.request_with_retry",
-        lambda url, stream=False: FailingResponse(),
-    )
-    fetcher = SILVA_Fetcher()
-
-    with pytest.raises(OSError):
-        fetcher.download_file("QIIME2/x.qza", tmp_path)
-
-    # no valid target and no leftover partial that a later call could reuse
-    assert not (tmp_path / "x.qza").exists()
-    assert list(tmp_path.glob("*.part")) == []
+    assert seen["target"] == dest / "x.qza"
 
 
 def test_get_version_uses_fileadmin_base(monkeypatch):
