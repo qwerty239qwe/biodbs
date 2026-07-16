@@ -50,14 +50,27 @@ path = fetcher.download_file("ftp/16S_rRNA_refseq/example.fasta", dest="data/hom
 
 Existing files are kept by default. Use `overwrite=True` to download again. Large files are streamed to disk.
 
-## 16S RefSeq
+## 16S RefSeq (HOMD and MOMD)
+
+16S rRNA RefSeq releases are versioned per source. `version` accepts a release like
+`"15.22"` (or `"current"` for the latest); `source` is `"homd"` (default) or `"momd"`
+(the mouse database, served from `momd.org`).
 
 ```python
-files = fetcher.list_16s_refseq()
-path = fetcher.download_16s_refseq(dest="data/homd")
+files = fetcher.list_16s_refseq(version="15.22")
+
+# unaligned FASTA + QIIME taxonomy for a pinned HOMD release
+homd_fasta = fetcher.download_16s_refseq("data/homd", version="15.22")
+homd_taxonomy = fetcher.download_16s_taxonomy("data/homd", version="15.22")
+
+# the same for a MOMD release
+momd_fasta = fetcher.download_16s_refseq("data/momd", version="5.1", source="momd")
+momd_taxonomy = fetcher.download_16s_taxonomy("data/momd", version="5.1", source="momd")
 ```
 
-If `filename` is omitted, the first FASTA-like file in the 16S RefSeq directory is used.
+Without `filename`, `download_16s_refseq` selects the unaligned `.fasta` reference
+(not the `.aligned.fasta`/`.p9.fasta` variants); `download_16s_taxonomy` selects the
+`.qiime.taxonomy` sidecar. Pin an explicit `version` for reproducible pipelines.
 
 ## Convenience Functions
 

@@ -282,6 +282,7 @@ from biodbs.fetch.SILVA.funcs import (
 # =============================================================================
 from biodbs.fetch.HOMD.funcs import (
     homd_download_16s_refseq,
+    homd_download_16s_taxonomy,
     homd_download_file,
     homd_get_crispr_table,
     homd_get_genome_metadata,
@@ -571,6 +572,7 @@ __all__ = [
     "homd_get_crispr_table",
     "homd_list_16s_refseq",
     "homd_download_16s_refseq",
+    "homd_download_16s_taxonomy",
     # GTDB
     "gtdb_list_releases",
     "gtdb_list_release_files",

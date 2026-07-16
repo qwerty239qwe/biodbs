@@ -75,15 +75,33 @@ def homd_get_crispr_table() -> HOMDTableData:
     return _get_fetcher().get_crispr_table()
 
 
-def homd_list_16s_refseq() -> HOMDFileListData:
-    """List HOMD 16S RefSeq files."""
-    return _get_fetcher().list_16s_refseq()
+def homd_list_16s_refseq(version: str = "current", source: str = "homd") -> HOMDFileListData:
+    """List 16S RefSeq files for a HOMD/MOMD release."""
+    return _get_fetcher().list_16s_refseq(version, source)
 
 
 def homd_download_16s_refseq(
     dest: str | Path,
     filename: str = "",
     overwrite: bool = False,
+    *,
+    version: str = "current",
+    source: str = "homd",
 ) -> Path:
-    """Download a HOMD 16S RefSeq file."""
-    return _get_fetcher().download_16s_refseq(dest, filename, overwrite)
+    """Download a 16S RefSeq FASTA for a HOMD/MOMD release."""
+    return _get_fetcher().download_16s_refseq(
+        dest, filename, overwrite, version=version, source=source
+    )
+
+
+def homd_download_16s_taxonomy(
+    dest: str | Path,
+    overwrite: bool = False,
+    *,
+    version: str = "current",
+    source: str = "homd",
+) -> Path:
+    """Download the QIIME-formatted 16S taxonomy for a HOMD/MOMD release."""
+    return _get_fetcher().download_16s_taxonomy(
+        dest, overwrite, version=version, source=source
+    )

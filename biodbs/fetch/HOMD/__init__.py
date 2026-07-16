@@ -2,6 +2,7 @@
 
 from biodbs.fetch.HOMD.funcs import (
     homd_download_16s_refseq,
+    homd_download_16s_taxonomy,
     homd_download_file,
     homd_get_crispr_table,
     homd_get_genome_metadata,
@@ -21,6 +22,7 @@ from biodbs.fetch.HOMD.homd_fetcher import HOMD_Fetcher
 __all__ = [
     "HOMD_Fetcher",
     "homd_download_16s_refseq",
+    "homd_download_16s_taxonomy",
     "homd_download_file",
     "homd_get_crispr_table",
     "homd_get_genome_metadata",

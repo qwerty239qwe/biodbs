@@ -305,6 +305,7 @@ __all__ = [
     "homd_get_crispr_table",
     "homd_list_16s_refseq",
     "homd_download_16s_refseq",
+    "homd_download_16s_taxonomy",
 
     # ==========================================================================
     # GTDB FUNCTIONS - Genome Taxonomy Database release files
