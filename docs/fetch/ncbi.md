@@ -91,6 +91,22 @@ fetcher = NCBI_Fetcher()
 genes = fetcher.get_genes_by_id([7157, 672])
 ```
 
+## Static Reference Downloads
+
+Download preformatted BLAST databases and the NCBI taxonomy dump directly from
+NCBI's FTP. Both are verified against NCBI's published `.md5` sidecars and streamed
+atomically (an interrupted download is never left in place).
+
+```python
+from biodbs.fetch import ncbi_download_blast_database, ncbi_download_taxdump
+
+blast_db = ncbi_download_blast_database("16S_ribosomal_RNA", "data/ncbi")
+taxdump = ncbi_download_taxdump("data/ncbi")
+```
+
+`dest` may be a directory (the archive filename is appended) or an explicit file
+path. These are large archives — extraction and indexing are left to your pipeline.
+
 ## Related Resources
 
 - **[Ensembl](ensembl.md)** - Alternative gene resource with genomic coordinates and VEP.

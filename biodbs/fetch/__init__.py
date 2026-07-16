@@ -143,6 +143,8 @@ __all__ = [
     "ncbi_id_to_symbol",
     "ncbi_get_taxonomy",
     "ncbi_translate_gene_ids",
+    "ncbi_download_blast_database",
+    "ncbi_download_taxdump",
     # Ensembl
     "ensembl_lookup",
     "ensembl_lookup_batch",

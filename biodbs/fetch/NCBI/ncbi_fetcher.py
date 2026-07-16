@@ -1,10 +1,12 @@
 """NCBI Datasets API fetcher following the standardized pattern."""
 
 from typing import Dict, Any, List, Optional, Union
+from pathlib import Path
 import logging
 import os
 
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
+from biodbs.fetch._download import download_binary
 from biodbs.fetch._rate_limit import request_with_retry, get_rate_limiter
 from biodbs.exceptions import raise_for_status
 from biodbs.data.NCBI._data_model import (
@@ -22,6 +24,10 @@ from biodbs.data.NCBI.data import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Static NCBI FTP archives (separate from the Datasets REST API host).
+_BLAST_DB_URL = "https://ftp.ncbi.nlm.nih.gov/blast/db/"
+_TAXDUMP_URL = "https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/"
 
 
 class NCBI_APIConfig(BaseAPIConfig):
@@ -511,6 +517,50 @@ class NCBI_Fetcher(BaseDataFetcher):
             result += symbol_data
 
         return result
+
+    # ----- Static Reference Downloads -----
+
+    def download_blast_database(
+        self,
+        name: str,
+        dest: Union[str, Path],
+        overwrite: bool = False,
+    ) -> Path:
+        """Download a preformatted NCBI BLAST database archive (MD5-verified).
+
+        Args:
+            name: BLAST database name, e.g. ``"16S_ribosomal_RNA"``.
+            dest: Output directory or file path.
+            overwrite: Re-download even if the target already exists.
+
+        Returns:
+            Path to the downloaded ``<name>.tar.gz`` archive.
+        """
+        filename = f"{name}.tar.gz"
+        dest_path = Path(dest)
+        target = dest_path / filename if dest_path.is_dir() or dest_path.suffix == "" else dest_path
+        url = f"{_BLAST_DB_URL}{filename}"
+        return download_binary(url, target, "NCBI", overwrite=overwrite, md5_url=f"{url}.md5")
+
+    def download_taxdump(
+        self,
+        dest: Union[str, Path],
+        overwrite: bool = False,
+    ) -> Path:
+        """Download NCBI's ``new_taxdump`` taxonomy archive (MD5-verified).
+
+        Args:
+            dest: Output directory or file path.
+            overwrite: Re-download even if the target already exists.
+
+        Returns:
+            Path to the downloaded ``new_taxdump.tar.gz`` archive.
+        """
+        filename = "new_taxdump.tar.gz"
+        dest_path = Path(dest)
+        target = dest_path / filename if dest_path.is_dir() or dest_path.suffix == "" else dest_path
+        url = f"{_TAXDUMP_URL}{filename}"
+        return download_binary(url, target, "NCBI", overwrite=overwrite, md5_url=f"{url}.md5")
 
 
 if __name__ == "__main__":

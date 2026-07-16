@@ -1,10 +1,32 @@
 """Convenience functions for NCBI Datasets API."""
 
+from pathlib import Path
 from typing import List, Dict, Union, Optional
 import pandas as pd
 
 from biodbs.fetch.NCBI.ncbi_fetcher import NCBI_Fetcher
 from biodbs.data.NCBI.data import NCBIGeneFetchedData, NCBITaxonomyFetchedData
+
+
+def ncbi_download_blast_database(
+    name: str,
+    dest: Union[str, Path],
+    overwrite: bool = False,
+) -> Path:
+    """Download a preformatted NCBI BLAST database archive (MD5-verified).
+
+    Example:
+        >>> ncbi_download_blast_database("16S_ribosomal_RNA", "data/ncbi")
+    """
+    return NCBI_Fetcher().download_blast_database(name, dest, overwrite)
+
+
+def ncbi_download_taxdump(
+    dest: Union[str, Path],
+    overwrite: bool = False,
+) -> Path:
+    """Download NCBI's ``new_taxdump`` taxonomy archive (MD5-verified)."""
+    return NCBI_Fetcher().download_taxdump(dest, overwrite)
 
 
 def ncbi_get_gene(
