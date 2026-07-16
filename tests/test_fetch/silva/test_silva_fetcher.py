@@ -19,7 +19,8 @@ class DummyResponse:
         yield self.content
 
 
-# SILVA's CMS links subpages with root-relative hrefs, mixed with global nav.
+# SILVA's CMS lists sub-directories as /current-release/ links and downloadable
+# files as direct /fileadmin/silva_databases/current/ links, mixed with global nav.
 CURRENT_RELEASE_PAGE = """
 <html><body>
 <a href="/">Home</a>
@@ -28,8 +29,15 @@ CURRENT_RELEASE_PAGE = """
 <a href="/current-release/QIIME2">QIIME2</a>
 <a href="/current-release/DADA2">DADA2</a>
 <a href="/current-release/QIIME2/2025.7">deep link, root should only show QIIME2</a>
-<a href="/fileadmin/silva_databases/current/VERSION.txt">VERSION</a>
 <a href="https://x.com/ARB_SILVA">external</a>
+</body></html>
+"""
+
+CLASSIFIER_PAGE = """
+<html><body>
+<a href="/current-release/QIIME2/2025.7">..</a>
+<a href="/fileadmin/silva_databases/current/QIIME2/2025.7/taxonomic-weights/human-oral.qza">human-oral.qza</a>
+<a href="/fileadmin/silva_databases/current/QIIME2/2025.7/taxonomic-weights/human-oral.qza.md5">human-oral.qza.md5</a>
 </body></html>
 """
 
@@ -42,9 +50,22 @@ def test_list_current_files(monkeypatch):
 
     data = SILVA_Fetcher().list_current_files()
 
-    # only immediate children under /current-release/, nav/external excluded
+    # only immediate child dirs under /current-release/, nav/deep-link/external excluded
     assert data.names() == ["QIIME2", "DADA2"]
     assert data["QIIME2"].is_dir is True
+
+
+def test_list_current_files_returns_fileadmin_leaves(monkeypatch):
+    monkeypatch.setattr(
+        "biodbs.fetch.SILVA.silva_fetcher.request_with_retry",
+        lambda url: DummyResponse(text=CLASSIFIER_PAGE),
+    )
+
+    data = SILVA_Fetcher().list_current_files("QIIME2/2025.7/taxonomic-weights")
+
+    assert data.names() == ["human-oral.qza", "human-oral.qza.md5"]
+    assert data["human-oral.qza"].is_dir is False
+    assert "/fileadmin/silva_databases/current/" in data["human-oral.qza"].url
 
 
 def test_list_current_files_preserves_subdirectory_in_child_urls(monkeypatch):

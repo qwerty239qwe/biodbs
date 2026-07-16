@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import urljoin, urlparse, urlunparse
+from urllib.parse import urljoin, urlparse
 
 from biodbs.data.SILVA import SILVAFile, SILVARelease, SILVAFileListData, SILVAReleaseListData, SILVATextData
 from biodbs.exceptions import APIError, raise_for_status
@@ -60,26 +60,24 @@ class SILVA_Fetcher:
         """List the immediate sub-entries of a current-release page.
 
         SILVA's CMS exposes a browsable tree (``QIIME2`` -> release -> marker ->
-        ...); this returns the child directories linked on the page so you can
-        navigate down. Leaf classifier filenames are injected by the site's
-        JavaScript and are not present in the served HTML, so they are not
-        discoverable here — browse the SILVA website to get the exact filename.
+        ...). Directory entries link to ``/current-release/`` browse pages and have
+        ``is_dir=True``; downloadable files link to their direct
+        ``/fileadmin/silva_databases/current/`` URLs and have ``is_dir=False``.
         """
-        page_url = self._release_url(path)
-        files = [
-            SILVAFile(name=name, url=url, is_dir=True)
-            for name, url in self._child_entries(page_url)
-        ]
-        return SILVAFileListData(files)
+        entries = self._list_entries(self._release_url(path), self._file_url(path))
+        return SILVAFileListData(
+            [SILVAFile(name=name, url=url, is_dir=is_dir) for name, url, is_dir in entries]
+        )
 
     def list_archive_releases(self) -> SILVAReleaseListData:
         """List archived SILVA releases."""
-        releases = [
-            SILVARelease(name=name, url=url)
-            for name, url in self._child_entries(self.archive_url)
-            if name.startswith("release_")
-        ]
-        return SILVAReleaseListData(releases)
+        return SILVAReleaseListData(
+            [
+                SILVARelease(name=name, url=url)
+                for name, url, is_dir in self._list_entries(self.archive_url)
+                if is_dir and name.startswith("release_")
+            ]
+        )
 
     def get_version(self) -> SILVATextData:
         """Fetch current SILVA VERSION.txt."""
@@ -148,30 +146,39 @@ class SILVA_Fetcher:
         raise_for_status(response, "SILVA", url=url)
         return SILVATextData(response.text, url=url)
 
-    def _child_entries(self, page_url: str) -> list[tuple[str, str]]:
-        """Return (name, url) for the immediate children linked under *page_url*.
+    def _list_entries(
+        self, page_url: str, file_url: str | None = None
+    ) -> list[tuple[str, str, bool]]:
+        """Return ``(name, url, is_dir)`` for the immediate children linked under *page_url*.
 
-        Handles SILVA's root-relative CMS links and scopes them to the page's own
-        path so global navigation links are excluded.
+        SILVA's CMS lists sub-directories as ``/current-release/`` links and files
+        as direct ``/fileadmin/silva_databases/current/`` links. Directory links are
+        scoped to the page's own path; file links are scoped to the matching file
+        base, so global navigation and unrelated links are excluded.
         """
         response = request_with_retry(page_url)
         raise_for_status(response, "SILVA", url=page_url)
         parser = _ListingParser()
         parser.feed(response.text)
-        parsed = urlparse(page_url)
-        base = parsed.path.rstrip("/") + "/"
-        entries: list[tuple[str, str]] = []
-        seen: set[str] = set()
+        browse_prefix = urlparse(page_url).path.rstrip("/") + "/"
+        file_prefix = urlparse(file_url).path.rstrip("/") + "/" if file_url else None
+        entries: list[tuple[str, str, bool]] = []
+        seen: set[tuple[str, bool]] = set()
         for href in parser.hrefs:
-            href_path = urlparse(href).path
-            if not href_path.startswith(base):
+            url = urljoin(page_url, href)
+            href_path = urlparse(url).path
+            if href_path.startswith(browse_prefix):
+                rest, is_dir = href_path[len(browse_prefix):].strip("/"), True
+            elif file_prefix and href_path.startswith(file_prefix):
+                rest, is_dir = href_path[len(file_prefix):].strip("/"), False
+            else:
                 continue
-            child = href_path[len(base):].strip("/").split("/")[0]
-            if not child or child in seen:
+            if not rest or "/" in rest:
                 continue
-            seen.add(child)
-            child_url = urlunparse((parsed.scheme, parsed.netloc, base + child, "", "", ""))
-            entries.append((child, child_url))
+            key = (rest, is_dir)
+            if key not in seen:
+                seen.add(key)
+                entries.append((rest, url, is_dir))
         return entries
 
     @staticmethod

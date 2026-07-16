@@ -20,10 +20,17 @@ qiime2 = fetcher.list_current_files("QIIME2")        # -> ['2025.7']
 ssu = fetcher.list_current_files("QIIME2/2025.7/SSU") # -> marker regions
 ```
 
-Listing walks SILVA's browsable release tree. The exact leaf `.qza` filenames are
-loaded by the site's JavaScript and are not part of the served HTML, so browse the
-[SILVA website](https://www.arb-silva.de/current-release/) to copy the final
-filename, then pass its nested path to `download_classifier`.
+`list_current_files()` returns immediate directories and downloadable files.
+Directory entries use SILVA's `/current-release/` browse URLs and have
+`is_dir=True`; file entries use their direct `/fileadmin/silva_databases/current/`
+URLs and have `is_dir=False`. Walk down to a leaf directory to discover the exact
+classifier filenames, then pass the nested path to `download_classifier`:
+
+```python
+leaves = fetcher.list_current_files("QIIME2/2025.7/taxonomic-weights")
+for f in leaves:
+    print(f.name, f.is_dir)  # SILVA_138.2_..._human-oral.qza  False
+```
 
 ## Version, README, Citation
 
