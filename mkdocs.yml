@@ -112,6 +112,7 @@ nav:
     - EUKARYOME: fetch/eukaryome.md
     - MIDORI2: fetch/midori2.md
     - UNITE: fetch/unite.md
+    - FOMC Reference Sources: fetch/fomc-references.md
   - ID Translation:
     - Overview: translate/index.md
     - Gene IDs: translate/genes.md
