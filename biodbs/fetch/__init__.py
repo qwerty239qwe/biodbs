@@ -143,6 +143,8 @@ __all__ = [
     "ncbi_id_to_symbol",
     "ncbi_get_taxonomy",
     "ncbi_translate_gene_ids",
+    "ncbi_download_blast_database",
+    "ncbi_download_taxdump",
     # Ensembl
     "ensembl_lookup",
     "ensembl_lookup_batch",
@@ -221,6 +223,7 @@ __all__ = [
     "homd_get_crispr_table",
     "homd_list_16s_refseq",
     "homd_download_16s_refseq",
+    "homd_download_16s_taxonomy",
     # GTDB
     "gtdb_list_releases",
     "gtdb_list_release_files",

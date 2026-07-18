@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin
@@ -16,6 +17,12 @@ _DOWNLOADS_URL = "https://www.homd.org/download/download/all"
 _HOST = "www.homd.org"
 
 get_rate_limiter().set_rate(_HOST, 3)
+
+# 16S rRNA RefSeq releases are published per source on separate hosts.
+_REFSEQ_SOURCES = {
+    "homd": ("HOMD", "https://www.homd.org/ftp/"),
+    "momd": ("MOMD", "https://www.momd.org/ftp/"),
+}
 
 
 class _LinkParser(HTMLParser):
@@ -152,15 +159,47 @@ class HOMD_Fetcher:
         """Fetch HOMD CRISPR table."""
         return self._get_table_by_keywords("crispr")
 
-    def list_16s_refseq(self) -> HOMDFileListData:
-        """List HOMD 16S rRNA RefSeq files."""
-        return self.list_ftp("16S_rRNA_refseq")
+    def list_16s_refseq(self, version: str = "current", source: str = "homd") -> HOMDFileListData:
+        """List 16S rRNA RefSeq files for a HOMD/MOMD release.
 
-    def download_16s_refseq(self, dest: str | Path, filename: str = "", overwrite: bool = False) -> Path:
-        """Download a 16S RefSeq file, or the first FASTA-like file when filename is omitted."""
-        # ponytail: HOMD 16S .gz files are compressed sequence files; split type detection if that changes.
-        filename = filename or self._first_ftp_match("16S_rRNA_refseq", (".fasta", ".fa", ".fna", ".gz"))
-        return self.download_file(f"ftp/16S_rRNA_refseq/{filename}", dest, overwrite)
+        *version* is a release like ``"15.22"`` (``"current"`` for the latest);
+        *source* is ``"homd"`` or ``"momd"``.
+        """
+        _, url = self._refseq_dir_url(version, source)
+        return self.list_ftp(url)
+
+    def download_16s_refseq(
+        self,
+        dest: str | Path,
+        filename: str = "",
+        overwrite: bool = False,
+        *,
+        version: str = "current",
+        source: str = "homd",
+    ) -> Path:
+        """Download a 16S RefSeq FASTA for a HOMD/MOMD release.
+
+        Without *filename*, the unaligned ``.fasta`` reference is selected; pass an
+        explicit *filename* to fetch a specific file from the release directory.
+        """
+        if filename:
+            _, dir_url = self._refseq_dir_url(version, source)
+            url = f"{dir_url}/{filename}"
+        else:
+            url = self._select_16s_file(version, source, ".fasta").url
+        return self.download_file(url, dest, overwrite)
+
+    def download_16s_taxonomy(
+        self,
+        dest: str | Path,
+        overwrite: bool = False,
+        *,
+        version: str = "current",
+        source: str = "homd",
+    ) -> Path:
+        """Download the QIIME-formatted 16S taxonomy for a HOMD/MOMD release."""
+        url = self._select_16s_file(version, source, ".qiime.taxonomy").url
+        return self.download_file(url, dest, overwrite)
 
     def _get_table_by_keywords(self, keyword: str) -> HOMDTableData:
         lower_keyword = keyword.lower()
@@ -171,11 +210,26 @@ class HOMD_Fetcher:
                 return self.get_table(item.url, delimiter=delimiter)
         raise APIValidationError("HOMD", detail=f"No download found for keyword: {keyword}")
 
-    def _first_ftp_match(self, path: str, suffixes: tuple[str, ...]) -> str:
-        for item in self.list_ftp(path):
-            if item.name.lower().endswith(suffixes):
-                return item.name
-        raise APIValidationError("HOMD", detail=f"No matching file found in {path!r}.")
+    @staticmethod
+    def _refseq_dir_url(version: str, source: str) -> tuple[str, str]:
+        """Return ``(tag, directory_url)`` for a 16S RefSeq release."""
+        try:
+            tag, host = _REFSEQ_SOURCES[source.lower()]
+        except KeyError:
+            raise APIValidationError("HOMD", detail=f"Unsupported 16S source: {source!r}") from None
+        directory = "current" if version.lower() in {"", "current", "latest"} else f"V{version.removeprefix('V')}"
+        return tag, f"{host}16S_rRNA_refseq/{tag}_16S_rRNA_RefSeq/{directory}"
+
+    def _select_16s_file(self, version: str, source: str, suffix: str) -> HOMDFile:
+        tag, _ = self._refseq_dir_url(version, source)
+        pattern = re.compile(rf"^{tag}_16S_rRNA_RefSeq_V[0-9.]+{re.escape(suffix)}$")
+        for item in self.list_16s_refseq(version=version, source=source):
+            if pattern.fullmatch(item.name):
+                return item
+        raise APIValidationError(
+            "HOMD",
+            detail=f"No {source.upper()} 16S file ending in {suffix!r} for version {version!r}.",
+        )
 
     def _list_links(self, url: str) -> list[tuple[str, str, str]]:
         response = request_with_retry(url)

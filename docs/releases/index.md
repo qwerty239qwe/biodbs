@@ -4,6 +4,7 @@ Release notes for biodbs.
 
 ## Versions
 
+- [0.4.1](0.4.1.md) - SILVA download-integrity fixes plus fetch-only HOMD/MOMD 16S and NCBI archive downloads for FOMC pipelines.
 - [0.4.0](0.4.0.md) - RESCRIPt-parity database fetchers (PR2, GreenGenes, EUKARYOME, MIDORI2, UNITE, GTDB, HOMD) and live-API hardening.
 - [0.3.1](0.3.1.md) - Test-suite stabilization, live API reliability, and 85% coverage.
 - [0.3.0](0.3.0.md) - ClinVar, HGNC integration, GMT support, and broader documentation.

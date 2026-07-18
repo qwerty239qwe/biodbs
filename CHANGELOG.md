@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.4.1
+
+Fixes SILVA discovery/download integrity after SILVA's site migration and adds
+fetch-only access to the exact HOMD, MOMD, and NCBI artifacts used by FOMC-inspired
+oral-microbiome pipelines.
+
+### SILVA fixes
+
+- Fixed SILVA file and classifier downloads after SILVA's site migration: files
+  are now fetched from `fileadmin/silva_databases/current/` (the `current-release/`
+  paths became CMS browse pages that were being saved as HTML). A download that
+  receives an HTML page now raises a clear error instead of silently saving it.
+- Fixed SILVA listings (`list_current_files`, `list_archive_releases`), which
+  returned nothing because SILVA's CMS uses root-relative links; listings now
+  return both sub-directories and downloadable file leaves (with `is_dir`), so
+  classifier filenames and their `.md5` sidecars are discoverable.
+- `download_classifier` now takes the nested path below the classifier directory
+  and verifies the download against SILVA's published `.md5` by default
+  (`verify=False` to skip); `download_file` gained an opt-in `verify_md5`.
+- `download_file` now treats a suffix-less destination (e.g. `"data/silva"`) as a
+  directory instead of a filename.
+
+### New fetch capabilities
+
+- Added a shared atomic downloader: every large download streams to a temporary
+  file and is moved into place only after the transfer (and any published MD5)
+  succeeds, so an interrupted download is never cached as a valid file.
+- **HOMD/MOMD** — `list_16s_refseq`, `download_16s_refseq`, and the new
+  `download_16s_taxonomy` are now version- and source-aware (`version="15.22"`,
+  `source="homd"|"momd"`), selecting the unaligned `.fasta` and `.qiime.taxonomy`
+  for a pinned release. MOMD is served from its own `momd.org` host.
+- **NCBI** — added `download_blast_database` (e.g. `16S_ribosomal_RNA`) and
+  `download_taxdump` (`new_taxdump`), both MD5-verified against NCBI's sidecars.
+- Added the [FOMC Reference Sources](docs/fetch/fomc-references.md) fetch-only recipe and
+  live contract tests (SILVA leaf/MD5 discovery, HOMD/MOMD listings, NCBI archive
+  reachability) with `homd` and `ncbi` added to the CI integration matrix.
+
 ## 0.4.0
 
 - Added reference-database fetchers matching the databases supported by RESCRIPt:

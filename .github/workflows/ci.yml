@@ -67,6 +67,8 @@ jobs:
             target: tests/test_fetch/quickgo tests/test_analysis/test_ora.py::TestORAGo
           - service: reactome
             target: tests/test_fetch/reactome tests/test_analysis/test_ora.py::TestORAReactome tests/test_analysis/test_ora.py::TestORAReactomeLocal
+          - service: silva
+            target: tests/test_fetch/silva
           - service: pr2
             target: tests/test_fetch/pr2
           - service: greengenes
@@ -77,6 +79,10 @@ jobs:
             target: tests/test_fetch/midori2
           - service: unite
             target: tests/test_fetch/unite
+          - service: homd
+            target: tests/test_fetch/homd
+          - service: ncbi
+            target: tests/test_fetch/ncbi/test_ncbi_integration.py
     steps:
       - uses: actions/checkout@v4
 

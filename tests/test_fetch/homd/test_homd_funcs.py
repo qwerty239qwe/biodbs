@@ -42,11 +42,14 @@ class DummyFetcher:
     def get_crispr_table(self):
         return "crispr"
 
-    def list_16s_refseq(self):
-        return "16s"
+    def list_16s_refseq(self, version="current", source="homd"):
+        return ("16s", version, source)
 
-    def download_16s_refseq(self, dest, filename="", overwrite=False):
-        return ("16s-download", Path(dest), filename, overwrite)
+    def download_16s_refseq(self, dest, filename="", overwrite=False, *, version="current", source="homd"):
+        return ("16s-download", Path(dest), filename, overwrite, version, source)
+
+    def download_16s_taxonomy(self, dest, overwrite=False, *, version="current", source="homd"):
+        return ("16s-taxonomy", Path(dest), overwrite, version, source)
 
 
 def test_convenience_functions_delegate(tmp_path, monkeypatch):
@@ -69,8 +72,22 @@ def test_convenience_functions_delegate(tmp_path, monkeypatch):
     assert funcs.homd_get_gtdb_taxonomy() == "gtdb"
     assert funcs.homd_get_phage_table() == "phage"
     assert funcs.homd_get_crispr_table() == "crispr"
-    assert funcs.homd_list_16s_refseq() == "16s"
-    assert funcs.homd_download_16s_refseq(tmp_path) == ("16s-download", tmp_path, "", False)
+    assert funcs.homd_list_16s_refseq() == ("16s", "current", "homd")
+    assert funcs.homd_download_16s_refseq(tmp_path) == (
+        "16s-download",
+        tmp_path,
+        "",
+        False,
+        "current",
+        "homd",
+    )
+    assert funcs.homd_download_16s_taxonomy(tmp_path, version="15.22", source="momd") == (
+        "16s-taxonomy",
+        tmp_path,
+        False,
+        "15.22",
+        "momd",
+    )
 
 
 def test_public_imports():
