@@ -1,6 +1,8 @@
+import dataclasses
+
 import pandas as pd
 
-from biodbs.taxonomy import TaxonomyMapper, merge_on_hub, MAPPING_COLUMNS
+from biodbs.taxonomy import TaxonomyMapper, TaxonRecord, merge_on_hub, MAPPING_COLUMNS
 
 
 class FakeTaxdump:
@@ -102,6 +104,60 @@ def test_map_lineage_extracts_species_and_uses_gtdb_crosswalk():
     assert row["hub_taxid"] == 562
     assert row["match_type"] == "gtdb-crosswalk"
     assert row["source"] == "gtdb"
+
+
+def test_mapping_columns_match_taxonrecord_field_order():
+    assert MAPPING_COLUMNS == [f.name for f in dataclasses.fields(TaxonRecord)]
+
+
+def test_resolve_precedence_across_sources():
+    taxdump = FakeTaxdump({"escherichia coli": 111}, ranks={111: "species"})
+
+    class FakeNCBI:
+        def taxonomy_name_to_id(self, names):
+            return {n: 222 for n in names}
+
+    mapper = TaxonomyMapper(
+        taxdump=taxdump,
+        ncbi_fetcher=FakeNCBI(),
+        gtdb_crosswalk={"Escherichia coli": 333},
+        use_gbif=False,
+    )
+
+    # source="gtdb": crosswalk (333) beats taxdump and ncbi
+    g = mapper.resolve("Escherichia coli", source="gtdb")
+    assert g.hub_taxid == 333 and g.match_type == "gtdb-crosswalk"
+
+    # source="name": taxdump (111) beats ncbi (222); crosswalk not consulted for non-gtdb source
+    n = mapper.resolve("Escherichia coli", source="name")
+    assert n.hub_taxid == 111 and n.match_type == "taxdump"
+
+
+def test_resolve_taxdump_only_marks_accepted_with_taxdump_canonical():
+    taxdump = FakeTaxdump({"escherichia coli": 562}, ranks={562: "species"})
+    mapper = TaxonomyMapper(taxdump=taxdump, use_gbif=False)
+
+    r = mapper.resolve("Escherichia coli")
+
+    assert r.match_type == "taxdump"
+    assert r.name_status == "accepted"
+    assert r.canonical_name == taxdump.name(562)
+
+
+def test_map_lineage_sets_query_and_source_id_to_full_lineage():
+    lineage = "d__Bacteria;p__Pseudomonadota;g__Escherichia;s__Escherichia coli"
+    mapper = TaxonomyMapper(
+        taxdump=FakeTaxdump({}),
+        gtdb_crosswalk={"Escherichia coli": 562},
+        use_gbif=False,
+    )
+
+    df = mapper.map_lineage([lineage], source="gtdb")
+
+    row = df.iloc[0]
+    assert row["query"] == lineage
+    assert row["source_id"] == lineage
+    assert row["hub_taxid"] == 562
 
 
 def test_merge_on_hub_joins_two_mapping_tables():
