@@ -575,14 +575,22 @@ class NCBI_Fetcher(BaseDataFetcher):
         """
         resolved: Dict[str, int] = {}
         for name in names:
+            params = {
+                "db": "taxonomy",
+                "term": f"{name}[Scientific Name]",
+                "retmode": "json",
+                "retmax": "1",
+            }
+            if self._api_config.has_api_key:
+                params["api_key"] = self._api_config._api_key
             response = request_with_retry(
                 url=self._ESEARCH_URL,
                 method="GET",
-                params={"db": "taxonomy", "term": f"{name}[Scientific Name]", "retmode": "json", "retmax": "1"},
+                params=params,
                 rate_limit=True,
             )
             if response.status_code != 200:
-                continue
+                raise_for_status(response, "NCBI", url=self._ESEARCH_URL)
             idlist = response.json().get("esearchresult", {}).get("idlist", [])
             if idlist:
                 resolved[name] = int(idlist[0])
