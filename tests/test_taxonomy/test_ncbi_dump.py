@@ -1,3 +1,4 @@
+import tarfile
 from pathlib import Path
 
 from biodbs._funcs.taxonomy.ncbi_dump import load_taxdump
@@ -34,3 +35,19 @@ def test_lineage_root_to_leaf():
     assert lineage[-1] == ("species", "Escherichia coli")
     names = [name for _, name in lineage]
     assert "Bacteria" in names and "Escherichia" in names
+
+
+def test_load_taxdump_from_tar_archive(tmp_path):
+    """Test loading taxdump from a tar.gz archive instead of a directory."""
+    # Create a temporary tar.gz archive with the fixture files
+    tar_path = tmp_path / "taxdump.tar.gz"
+    with tarfile.open(tar_path, "w:gz") as archive:
+        for fixture_file in FIXTURES.glob("*.dmp"):
+            archive.add(fixture_file, arcname=fixture_file.name)
+
+    # Load from tar.gz and verify same results as directory load
+    tax = load_taxdump(tar_path)
+    assert tax.name(562) == "Escherichia coli"
+    assert tax.rank(562) == "species"
+    assert tax.taxid_for_name("bacillus coli") == 562  # synonym, case-insensitive
+    assert tax.resolve(999999) == 562  # merged id
