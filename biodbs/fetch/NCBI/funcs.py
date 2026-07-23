@@ -146,6 +146,19 @@ def ncbi_get_taxonomy(
     return fetcher.get_taxonomy(taxons)
 
 
+def ncbi_taxonomy_name_to_id(
+    names: List[str],
+    api_key: Optional[str] = None,
+) -> Dict[str, int]:
+    """Resolve scientific names to NCBI taxonomy IDs.
+
+    Example:
+        >>> ncbi_taxonomy_name_to_id(["Escherichia coli"])
+        {'Escherichia coli': 562}
+    """
+    return NCBI_Fetcher(api_key=api_key).taxonomy_name_to_id(names)
+
+
 def _ensembl_ids_to_ncbi(ensembl_ids: List[str]) -> Dict[str, int]:
     """Convert Ensembl Gene IDs to NCBI Gene IDs via NCBI E-utilities esearch.
 

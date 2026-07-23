@@ -142,6 +142,7 @@ __all__ = [
     "ncbi_symbol_to_id",
     "ncbi_id_to_symbol",
     "ncbi_get_taxonomy",
+    "ncbi_taxonomy_name_to_id",
     "ncbi_translate_gene_ids",
     "ncbi_download_blast_database",
     "ncbi_download_taxdump",

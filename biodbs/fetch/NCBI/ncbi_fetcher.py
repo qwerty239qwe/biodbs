@@ -562,6 +562,32 @@ class NCBI_Fetcher(BaseDataFetcher):
         url = f"{_TAXDUMP_URL}{filename}"
         return download_binary(url, target, "NCBI", overwrite=overwrite, md5_url=f"{url}.md5")
 
+    _ESEARCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+
+    def taxonomy_name_to_id(self, names: List[str]) -> Dict[str, int]:
+        """Resolve scientific names to NCBI taxonomy IDs via E-utilities esearch.
+
+        Args:
+            names: Scientific names, e.g. ``["Escherichia coli"]``.
+
+        Returns:
+            Mapping of each resolved name to its taxid. Names with no hit are omitted.
+        """
+        resolved: Dict[str, int] = {}
+        for name in names:
+            response = request_with_retry(
+                url=self._ESEARCH_URL,
+                method="GET",
+                params={"db": "taxonomy", "term": f"{name}[Scientific Name]", "retmode": "json", "retmax": "1"},
+                rate_limit=True,
+            )
+            if response.status_code != 200:
+                continue
+            idlist = response.json().get("esearchresult", {}).get("idlist", [])
+            if idlist:
+                resolved[name] = int(idlist[0])
+        return resolved
+
 
 if __name__ == "__main__":
     fetcher = NCBI_Fetcher()
