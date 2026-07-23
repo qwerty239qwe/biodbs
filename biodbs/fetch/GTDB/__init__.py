@@ -14,6 +14,7 @@ from biodbs.fetch.GTDB.funcs import (
     gtdb_get_version,
     gtdb_list_release_files,
     gtdb_list_releases,
+    gtdb_ncbi_crosswalk,
 )
 from biodbs.fetch.GTDB.gtdb_fetcher import GTDB_Fetcher
 
@@ -32,4 +33,5 @@ __all__ = [
     "gtdb_get_version",
     "gtdb_list_release_files",
     "gtdb_list_releases",
+    "gtdb_ncbi_crosswalk",
 ]

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter, defaultdict
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin
@@ -78,6 +79,24 @@ class GTDB_Fetcher:
     def get_metadata(self, domain: str = "bac120", release: str = "latest") -> GTDBTableData:
         """Fetch GTDB metadata table for bac120 or ar53."""
         return self.get_table(self._find_release_file(release, domain, "metadata", ".tsv"))
+
+    def ncbi_crosswalk(self, domain: str = "bac120", release: str = "latest") -> dict[str, int]:
+        """Map GTDB species names to their majority-vote NCBI taxid.
+
+        Derived from the GTDB metadata table (columns ``gtdb_taxonomy`` and
+        ``ncbi_taxid``). The metadata file is large; call this once and reuse the
+        returned mapping.
+        """
+        # ponytail: majority vote per species; good enough for a name->taxid hub join.
+        votes: dict[str, Counter] = defaultdict(Counter)
+        for row in self.get_metadata(domain, release):
+            lineage = str(row.get("gtdb_taxonomy", ""))
+            species = lineage.rsplit("s__", 1)[-1].strip() if "s__" in lineage else ""
+            taxid_raw = str(row.get("ncbi_taxid", "")).strip()
+            if not species or not taxid_raw.isdigit():
+                continue
+            votes[species][int(taxid_raw)] += 1
+        return {species: counter.most_common(1)[0][0] for species, counter in votes.items()}
 
     def get_tree(self, domain: str = "bac120", release: str = "latest") -> GTDBTextData:
         """Fetch GTDB tree text for bac120 or ar53."""

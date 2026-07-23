@@ -239,6 +239,7 @@ __all__ = [
     "gtdb_download_taxonomy",
     "gtdb_download_metadata",
     "gtdb_download_tree",
+    "gtdb_ncbi_crosswalk",
     # PR2
     "pr2_list_releases",
     "pr2_list_assets",

@@ -126,3 +126,29 @@ def test_download_file_keeps_existing(tmp_path, monkeypatch):
     assert path.read_bytes() == b"abc"
     assert fetcher.download_file("latest/VERSION.txt", tmp_path) == path
     assert calls == [("https://data.gtdb.ecogenomic.org/releases/latest/VERSION.txt", True)]
+
+
+class _FakeTable:
+    def __init__(self, rows):
+        self._rows = rows
+
+    def __iter__(self):
+        return iter(self._rows)
+
+
+def test_ncbi_crosswalk_maps_species_to_majority_taxid(monkeypatch):
+    rows = [
+        {"gtdb_taxonomy": "d__Bacteria;...;s__Escherichia coli", "ncbi_taxid": "562"},
+        {"gtdb_taxonomy": "d__Bacteria;...;s__Escherichia coli", "ncbi_taxid": "562"},
+        {"gtdb_taxonomy": "d__Bacteria;...;s__Escherichia coli", "ncbi_taxid": "9999"},
+        {"gtdb_taxonomy": "d__Bacteria;...;s__Bacteroides fragilis", "ncbi_taxid": "817"},
+        {"gtdb_taxonomy": "d__Bacteria;...;s__", "ncbi_taxid": "1"},  # unnamed species: skip
+    ]
+    fetcher = GTDB_Fetcher()
+    monkeypatch.setattr(fetcher, "get_metadata", lambda domain="bac120", release="latest": _FakeTable(rows))
+
+    crosswalk = fetcher.ncbi_crosswalk()
+
+    assert crosswalk["Escherichia coli"] == 562  # majority vote over 562,562,9999
+    assert crosswalk["Bacteroides fragilis"] == 817
+    assert "" not in crosswalk

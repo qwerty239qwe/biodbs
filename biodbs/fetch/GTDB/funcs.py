@@ -55,6 +55,11 @@ def gtdb_get_metadata(domain: str = "bac120", release: str = "latest") -> GTDBTa
     return _get_fetcher().get_metadata(domain, release)
 
 
+def gtdb_ncbi_crosswalk(domain: str = "bac120", release: str = "latest") -> dict[str, int]:
+    """Map GTDB species names to NCBI taxids (majority vote from GTDB metadata)."""
+    return _get_fetcher().ncbi_crosswalk(domain, release)
+
+
 def gtdb_get_tree(domain: str = "bac120", release: str = "latest") -> GTDBTextData:
     """Fetch GTDB tree text."""
     return _get_fetcher().get_tree(domain, release)
