@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.5.0
+
+Adds a taxonomic ID **canonical / mapping table**: resolve organism names and
+per-database lineage strings to one hub identifier (NCBI Taxonomy `taxid`) and join
+any two reference databases on it.
+
+- New `biodbs.taxonomy` API: `TaxonomyMapper` (`map_names`, `map_lineage`, `resolve`),
+  `load_taxdump` (parse `new_taxdump.tar.gz` into an in-memory hub table), and
+  `merge_on_hub` (cross-database join). Output is a pandas DataFrame keyed on
+  `hub_taxid`.
+- Added the **GBIF** backbone fetcher (`gbif_match_name`/`gbif_match_names`) as the
+  all-life canonical-name and synonym authority.
+- Added `ncbi_taxonomy_name_to_id` (name → taxid via E-utilities esearch).
+- Added `gtdb_ncbi_crosswalk` (GTDB species → NCBI taxid, majority vote from GTDB
+  metadata) so GTDB lineage strings join the hub directly.
+
 ## 0.4.1
 
 Fixes SILVA discovery/download integrity after SILVA's site migration and adds

@@ -24,7 +24,7 @@ All functions are also available at the top level for convenience:
 
 # Keep in sync with pyproject.toml [project].version — guarded by
 # tests/test_version_matches_pyproject.py so drift fails CI.
-__version__ = "0.4.1"
+__version__ = "0.5.0"
 
 # =============================================================================
 # Exceptions (custom error hierarchy for API errors)
