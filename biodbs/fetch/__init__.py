@@ -267,4 +267,7 @@ __all__ = [
     "uniprot_to_gene",
     "uniprot_get_sequences",
     "uniprot_map_ids",
+    # GBIF
+    "gbif_match_name",
+    "gbif_match_names",
 ]

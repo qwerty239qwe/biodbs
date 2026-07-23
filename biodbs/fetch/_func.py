@@ -392,6 +392,14 @@ from biodbs.fetch.uniprot.funcs import (
     uniprot_map_ids,
 )
 
+# =============================================================================
+# GBIF functions
+# =============================================================================
+from biodbs.fetch.GBIF.funcs import (
+    gbif_match_name,
+    gbif_match_names,
+)
+
 __all__ = [
     # PubChem
     "pubchem_get_compound",
@@ -630,4 +638,7 @@ __all__ = [
     "uniprot_to_gene",
     "uniprot_get_sequences",
     "uniprot_map_ids",
+    # GBIF
+    "gbif_match_name",
+    "gbif_match_names",
 ]

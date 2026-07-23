@@ -370,6 +370,12 @@ __all__ = [
     "clinvar_link_pubmed",
 
     # ==========================================================================
+    # GBIF FUNCTIONS - Backbone taxonomy name matching (canonical names + synonyms)
+    # ==========================================================================
+    "gbif_match_name",
+    "gbif_match_names",
+
+    # ==========================================================================
     # TRANSLATE FUNCTIONS - ID mapping between databases
     # ==========================================================================
     "translate_gene_ids",
