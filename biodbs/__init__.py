@@ -1,7 +1,7 @@
 """biodbs - Biological Database Access Library.
 
 This library provides easy access to various biological databases through
-four main namespaces:
+five main namespaces:
 
 1. biodbs.fetch - Data fetching functions (low-level API wrappers)
    from biodbs.fetch import pubchem_get_compound, kegg_get, ensembl_lookup
@@ -14,6 +14,9 @@ four main namespaces:
 
 4. biodbs.graph - Knowledge graph construction and analysis
    from biodbs.graph import KnowledgeGraph, build_disease_graph, to_networkx
+
+5. biodbs.taxonomy - Canonical / cross-database taxon mapping (NCBI taxid hub)
+   from biodbs.taxonomy import TaxonomyMapper, merge_on_hub
 
 All functions are also available at the top level for convenience:
    from biodbs import pubchem_get_compound, translate_gene_ids, ora_kegg
@@ -49,6 +52,7 @@ from biodbs import fetch
 from biodbs import translate
 from biodbs import analysis
 from biodbs import graph
+from biodbs import taxonomy
 
 # =============================================================================
 # Translate functions (ID mapping between databases)
@@ -116,6 +120,18 @@ from biodbs._funcs.graph import (
     get_graph_statistics,
 )
 
+# =============================================================================
+# Taxonomy functions (canonical / cross-database taxon mapping)
+# =============================================================================
+from biodbs._funcs.taxonomy import (
+    MAPPING_COLUMNS,
+    TaxonRecord,
+    TaxonomyMapper,
+    merge_on_hub,
+    NCBITaxonomy,
+    load_taxdump,
+)
+
 
 __all__ = [
     # Submodules
@@ -123,6 +139,7 @@ __all__ = [
     "translate",
     "analysis",
     "graph",
+    "taxonomy",
 
     # ==========================================================================
     # EXCEPTIONS - Custom error hierarchy
@@ -430,4 +447,14 @@ __all__ = [
     "get_connected_component",
     "find_hub_nodes",
     "get_graph_statistics",
+
+    # ==========================================================================
+    # TAXONOMY FUNCTIONS - Canonical / cross-database taxon mapping
+    # ==========================================================================
+    "MAPPING_COLUMNS",
+    "TaxonRecord",
+    "TaxonomyMapper",
+    "merge_on_hub",
+    "NCBITaxonomy",
+    "load_taxdump",
 ]
