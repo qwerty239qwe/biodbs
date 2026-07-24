@@ -64,5 +64,8 @@ def test_taxonomy_name_to_id_includes_api_key_param(monkeypatch):
     assert captured_params[-1]["api_key"] == "KEY"
 
     captured_params.clear()
+    # NCBI_APIConfig falls back to os.environ["NCBI_API_KEY"]; clear it so the
+    # no-key assertion is hermetic regardless of the developer/CI environment.
+    monkeypatch.delenv("NCBI_API_KEY", raising=False)
     NCBI_Fetcher().taxonomy_name_to_id(["Escherichia coli"])
     assert "api_key" not in captured_params[-1]
