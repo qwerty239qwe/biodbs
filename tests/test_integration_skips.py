@@ -69,5 +69,13 @@ def test_external_service_errors_are_skippable(exc):
     assert _external_service_skip_reason(exc)
 
 
+def test_ci_runs_for_dev_pushes_and_pull_requests():
+    root = Path(__file__).resolve().parents[1]
+    workflow = yaml.load((root / ".github/workflows/ci.yml").read_text(encoding="utf-8"),
+                         Loader=yaml.BaseLoader)
+    for event in ("push", "pull_request"):
+        assert "dev" in workflow["on"][event]["branches"]
+
+
 def test_validation_errors_still_fail():
     assert _external_service_skip_reason(APIValidationError("KEGG")) is None
