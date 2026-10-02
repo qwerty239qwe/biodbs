@@ -1,8 +1,10 @@
 import dataclasses
+from pathlib import Path
 
 import pandas as pd
+import pytest
 
-from biodbs.taxonomy import TaxonomyMapper, TaxonRecord, merge_on_hub, MAPPING_COLUMNS
+from biodbs.taxonomy import TaxonomyMapper, TaxonRecord, merge_on_hub, MAPPING_COLUMNS, load_taxdump
 
 
 class FakeTaxdump:
@@ -170,3 +172,71 @@ def test_merge_on_hub_joins_two_mapping_tables():
     assert merged.iloc[0]["hub_taxid"] == 562
     assert merged.iloc[0]["query_silva"] == "a"
     assert merged.iloc[0]["query_gtdb"] == "b"
+
+
+@pytest.mark.parametrize("dtype", ["object", "float64", "Int64"])
+@pytest.mark.parametrize("how", ["inner", "left", "right", "outer"])
+def test_merge_on_hub_never_matches_missing_ids(dtype, how):
+    missing = float("nan") if dtype == "float64" else pd.NA
+    left = pd.DataFrame({
+        "query": ["l562", "l817", "lu1", "lu2"],
+        "hub_taxid": pd.Series([562, 817, missing, missing], dtype=dtype),
+    })
+    right = pd.DataFrame({
+        "query": ["r562", "r9606", "ru1", "ru2"],
+        "hub_taxid": pd.Series([562, 9606, missing, missing], dtype=dtype),
+    })
+    original_left, original_right = left.copy(), right.copy()
+
+    result = merge_on_hub(left, right, how=how, suffixes=("_left", "_right"))
+
+    pairs = {
+        (None if pd.isna(a) else a, None if pd.isna(b) else b)
+        for a, b in zip(result.query_left, result.query_right)
+    }
+    expected = {("l562", "r562")}
+    if how in ("left", "outer"):
+        expected |= {("l817", None), ("lu1", None), ("lu2", None)}
+    if how in ("right", "outer"):
+        expected |= {(None, "r9606"), (None, "ru1"), (None, "ru2")}
+    assert pairs == expected
+    assert len(result) == len(expected)
+    assert str(result.hub_taxid.dtype) == dtype
+    pd.testing.assert_frame_equal(left, original_left)
+    pd.testing.assert_frame_equal(right, original_right)
+
+
+@pytest.mark.parametrize("how", ["inner", "left", "right", "outer"])
+@pytest.mark.parametrize("left_names,right_names", [
+    ([], []), ([], ["unknown-r"]), (["unknown-l"], []),
+    (["unknown-l"], ["unknown-r"]),
+])
+def test_merge_on_hub_empty_and_unresolved_tables(how, left_names, right_names):
+    mapper = TaxonomyMapper(use_gbif=False)
+    result = merge_on_hub(mapper.map_names(left_names), mapper.map_names(right_names), how=how)
+    expected = (len(left_names) if how in ("left", "outer") else 0)
+    expected += len(right_names) if how in ("right", "outer") else 0
+    assert len(result) == expected
+    assert result.hub_taxid.isna().all()
+
+
+@pytest.mark.parametrize("name,status", [
+    ("Escherichia coli", "accepted"),
+    ("  ESCHERICHIA COLI  ", "accepted"),
+    ("Bacillus coli", "synonym"),
+    ("  BACILLUS COLI  ", "synonym"),
+])
+def test_offline_name_status_uses_scientific_name(name, status):
+    taxdump = load_taxdump(Path(__file__).parent / "fixtures")
+    record = TaxonomyMapper(taxdump=taxdump, use_gbif=False).resolve(name)
+    assert record.hub_taxid == 562
+    assert record.canonical_name == "Escherichia coli"
+    assert record.name_status == status
+
+
+def test_gbif_status_takes_precedence_over_offline_status():
+    taxdump = load_taxdump(Path(__file__).parent / "fixtures")
+    gbif = FakeGBIF({"Bacillus coli": ("GBIF accepted name", "ACCEPTED")})
+    record = TaxonomyMapper(taxdump=taxdump, gbif_fetcher=gbif).resolve("Bacillus coli")
+    assert record.canonical_name == "GBIF accepted name"
+    assert record.name_status == "accepted"

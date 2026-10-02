@@ -37,7 +37,7 @@ from biodbs.taxonomy import TaxonomyMapper, merge_on_hub
 crosswalk = gtdb_ncbi_crosswalk()                # {gtdb species: ncbi taxid}
 mapper = TaxonomyMapper(taxdump=taxdump, gtdb_crosswalk=crosswalk)
 
-gtdb_lineages = [row.lineage for row in gtdb_get_taxonomy()]   # illustrative
+gtdb_lineages = [row["classification"] for row in gtdb_get_taxonomy()]
 gtdb_df = mapper.map_lineage(gtdb_lineages, source="gtdb")
 ```
 
@@ -48,11 +48,20 @@ silva_df = mapper.map_names(silva_names, source="silva")
 combined = merge_on_hub(silva_df, gtdb_df, suffixes=("_silva", "_gtdb"))
 ```
 
+Unresolved rows never match one another. The default outer join keeps them as
+separate rows; an inner join includes only matching, non-missing taxids.
+
 ## What each field means
 
 - `hub_taxid` — the canonical NCBI taxonomy id; the join key across databases.
-- `canonical_name` / `name_status` — GBIF's accepted name and whether the input was
-  `accepted`, a `synonym`, or `unmatched`.
+- `canonical_name` / `name_status` — the name supplied by GBIF, or the taxdump's
+  scientific name for offline matches; status is `accepted`, `synonym`, or
+  `unmatched`. A resolved taxid can still have `unmatched` status when neither
+  source establishes its name status.
 - `match_type` — how the taxid was found: `taxdump`, `ncbi` (esearch), or
   `gtdb-crosswalk`.
 - `rank`, `lineage` — from the NCBI taxdump when a taxdump is loaded.
+
+For offline taxdump matches, the scientific name is canonical. A query matching
+that name (ignoring case and surrounding whitespace) is `accepted`; an alternate
+name is a `synonym`. A GBIF accepted/synonym result takes precedence when supplied.

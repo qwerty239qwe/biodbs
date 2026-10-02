@@ -214,8 +214,7 @@ class NCBI_Fetcher(BaseDataFetcher):
         if types:
             params["types"] = types
 
-        data = self._make_request(endpoint, params=params)
-        return NCBIGeneFetchedData(data, query_ids=gene_ids)
+        return self._get_gene_reports(endpoint, params, gene_ids)
 
     def get_genes_by_symbol(
         self,
@@ -253,8 +252,7 @@ class NCBI_Fetcher(BaseDataFetcher):
         if returned_content:
             params["returned_content"] = returned_content
 
-        data = self._make_request(endpoint, params=params)
-        return NCBIGeneFetchedData(data, query_ids=symbols)
+        return self._get_gene_reports(endpoint, params, symbols)
 
     def get_genes_by_accession(
         self,
@@ -282,8 +280,25 @@ class NCBI_Fetcher(BaseDataFetcher):
         if returned_content:
             params["returned_content"] = returned_content
 
+        return self._get_gene_reports(endpoint, params, accessions)
+
+    def _get_gene_reports(self, endpoint, params, query_ids):
+        """Read every page for explicit-ID queries without losing total counts."""
         data = self._make_request(endpoint, params=params)
-        return NCBIGeneFetchedData(data, query_ids=accessions)
+        reports = list(data.get("reports", []))
+        warnings = list(data.get("warnings", []))
+        token = data.get("next_page_token")
+        seen = set()
+        while token:
+            if token in seen:
+                raise ConnectionError("NCBI returned a repeated gene-report page token")
+            seen.add(token)
+            page = self._make_request(endpoint, params={**params, "page_token": token})
+            reports.extend(page.get("reports", []))
+            warnings.extend(page.get("warnings", []))
+            token = page.get("next_page_token")
+        return NCBIGeneFetchedData({**data, "reports": reports, "warnings": warnings,
+                                   "next_page_token": None}, query_ids=query_ids)
 
     def get_genes_by_taxon(
         self,

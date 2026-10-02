@@ -82,9 +82,15 @@ jobs:
           - service: homd
             target: tests/test_fetch/homd
           - service: ncbi
-            target: tests/test_fetch/ncbi/test_ncbi_integration.py
+            target: tests/test_fetch/ncbi
           - service: gbif
             target: tests/test_fetch/gbif
+          - service: disease-ontology
+            target: tests/test_fetch/disease_ontology
+          - service: uniprot
+            target: tests/test_fetch/uniprot
+          - service: translator-quality
+            target: tests/test_translate/test_quality.py
     steps:
       - uses: actions/checkout@v4
 

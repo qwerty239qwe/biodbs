@@ -207,12 +207,12 @@ def _translate_protein_multiple_targets(
 ) -> Union[Dict[str, Dict[str, str]], "pd.DataFrame"]:
     """Translate protein IDs to multiple target types."""
     # Collect results for each target type
-    all_results: Dict[str, Dict[str, str]] = {id_val: {} for id_val in ids}
+    all_results = {id_val: dict.fromkeys(to_types) for id_val in ids}
 
     for target_type in to_types:
         try:
             result = translate_protein_ids(
-                ids, from_type, target_type, organism, return_dict=True
+                list(all_results), from_type, target_type, organism, return_dict=True
             )
             for from_id, to_id in result.items():
                 if from_id in all_results:
@@ -229,12 +229,13 @@ def _translate_protein_multiple_targets(
 
     # Convert to DataFrame
     records = []
-    for from_id, targets in all_results.items():
+    for from_id in ids:
+        targets = all_results[from_id]
         record = {"from": from_id}
         record.update(targets)
         records.append(record)
 
-    return pd.DataFrame(records)
+    return pd.DataFrame(records, columns=list(dict.fromkeys(["from", *to_types])))
 
 
 def translate_gene_to_uniprot(

@@ -93,10 +93,14 @@ class TaxonomyMapper:
                 elif match.is_synonym or match.status == "SYNONYM":
                     record.name_status = "synonym"
 
-        # taxdump-only accepted hit still counts as resolved
+        # Classify offline matches against the taxdump's scientific name.
         if record.name_status == "unmatched" and record.match_type == "taxdump":
-            record.name_status = "accepted"
-            record.canonical_name = record.canonical_name or self.taxdump.name(record.hub_taxid)
+            scientific_name = self.taxdump.name(record.hub_taxid)
+            if scientific_name:
+                record.name_status = (
+                    "accepted" if name.strip().lower() == scientific_name.lower() else "synonym"
+                )
+            record.canonical_name = record.canonical_name or scientific_name
 
         return record
 
@@ -131,5 +135,10 @@ def merge_on_hub(
     how: str = "outer",
     suffixes: tuple[str, str] = ("_a", "_b"),
 ) -> pd.DataFrame:
-    """Join two mapping tables on ``hub_taxid`` — the cross-database mapping table."""
-    return left.merge(right, on="hub_taxid", how=how, suffixes=suffixes)
+    """Join on ``hub_taxid``; unresolved IDs never match each other."""
+    # pandas matches null keys; unresolved taxa must remain separate rows.
+    null_key = object()  # A unique column label cannot overwrite caller data.
+    left, right = left.copy(), right.copy()
+    left[null_key] = left["hub_taxid"].isna()
+    right[null_key] = False
+    return left.merge(right, on=["hub_taxid", null_key], how=how, suffixes=suffixes).drop(columns=[null_key])

@@ -86,6 +86,12 @@ result = translate_protein_ids(
 
 Get multiple ID types in one call:
 
+Each target uses its own conversion, potentially including a mapping job,
+polling, and result-page requests; one function call is not one HTTP request.
+All result pages are read. Multi-target DataFrames retain duplicate input rows
+and leave missing target values empty. Scalar/nested dictionaries select the
+first returned mapping; use `uniprot_map_ids` for all one-to-many matches.
+
 ```python
 result = translate_protein_ids(
     ["P04637", "P00533"],

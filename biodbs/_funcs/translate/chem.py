@@ -180,10 +180,10 @@ def translate_chemical_ids(
             logger.debug("Failed to translate chemical ID %s", id_val, exc_info=exc)
             results.append({from_type: id_val, to_type: None})
 
-    df = pd.DataFrame(results)
+    df = pd.DataFrame(results, columns=list(dict.fromkeys([from_type, to_type, "cid"])))
 
     if return_dict:
-        return dict(zip(df[from_type], df[to_type]))
+        return {id_val: record.get(to_type) for id_val, record in zip(ids, results)}
 
     return df
 
@@ -284,14 +284,11 @@ def _translate_chemical_multiple_targets(
 
         results.append(record)
 
-    df = pd.DataFrame(results)
+    df = pd.DataFrame(results, columns=list(dict.fromkeys([from_type, "cid", *to_types])))
 
     if return_dict:
-        result_dict = {}
-        for _, row in df.iterrows():
-            from_id = row[from_type]
-            result_dict[from_id] = {tt: row.get(tt) for tt in to_types}
-        return result_dict
+        return {id_val: {tt: record.get(tt) for tt in to_types}
+                for id_val, record in zip(ids, results)}
 
     return df
 
@@ -308,7 +305,7 @@ def translate_chemical_ids_kegg(
     Supported databases:
         - compound: KEGG Compound
         - drug: KEGG Drug
-        - pubchem: PubChem CID
+        - pubchem: PubChem Substance ID (SID), not Compound ID (CID)
         - chebi: ChEBI ID
 
     Args:
@@ -373,28 +370,15 @@ def translate_chembl_to_pubchem(
             data = chembl_get_molecule(chembl_id)
             if data.results:
                 mol = data.results[0]
-                # ChEMBL stores cross-references
-                xrefs = mol.get("cross_references", [])
+                # A generic PubChem cross-reference may be a SID, not a CID.
+                # Resolve the molecule's structure instead of relabelling that ID.
                 pubchem_cid = None
-                for xref in xrefs:
-                    if xref.get("xref_src") == "PubChem":
-                        pubchem_cid = xref.get("xref_id")
-                        break
-                # Also try molecule_structures for InChIKey lookup
-                if not pubchem_cid:
-                    structs = mol.get("molecule_structures", {})
-                    inchikey = structs.get("standard_inchi_key") if structs else None
-                    if inchikey:
-                        try:
-                            search_data = pubchem_search_by_inchikey(inchikey)
-                            cids = search_data.get_cids()
-                            pubchem_cid = cids[0] if cids else None
-                        except _EXPECTED_TRANSLATION_ERRORS as exc:
-                            logger.debug(
-                                "Failed PubChem InChIKey lookup for %s",
-                                chembl_id,
-                                exc_info=exc,
-                            )
+                structs = mol.get("molecule_structures") or {}
+                inchikey = structs.get("standard_inchi_key")
+                if inchikey:
+                    search_data = pubchem_search_by_inchikey(inchikey)
+                    cids = search_data.get_cids()
+                    pubchem_cid = cids[0] if cids else None
 
                 results.append({"chembl_id": chembl_id, "pubchem_cid": pubchem_cid})
             else:
@@ -403,10 +387,10 @@ def translate_chembl_to_pubchem(
             logger.debug("Failed to translate ChEMBL ID %s", chembl_id, exc_info=exc)
             results.append({"chembl_id": chembl_id, "pubchem_cid": None})
 
-    df = pd.DataFrame(results)
+    df = pd.DataFrame(results, columns=["chembl_id", "pubchem_cid"])
 
     if return_dict:
-        return dict(zip(df["chembl_id"], df["pubchem_cid"]))
+        return {record["chembl_id"]: record["pubchem_cid"] for record in results}
 
     return df
 
@@ -445,7 +429,9 @@ def translate_pubchem_to_chembl(
                     # Search ChEMBL by InChIKey (structure search)
                     search_data = chembl_search_molecules(inchikey, limit=1)
                     if search_data.results:
-                        chembl_id = search_data.results[0].get("molecule_chembl_id")
+                        mol = search_data.results[0]
+                        matched_key = (mol.get("molecule_structures") or {}).get("standard_inchi_key")
+                        chembl_id = mol.get("molecule_chembl_id") if matched_key == inchikey else None
                         results.append({"pubchem_cid": cid, "chembl_id": chembl_id})
                     else:
                         results.append({"pubchem_cid": cid, "chembl_id": None})
@@ -457,9 +443,9 @@ def translate_pubchem_to_chembl(
             logger.debug("Failed to translate PubChem CID %s", cid, exc_info=exc)
             results.append({"pubchem_cid": cid, "chembl_id": None})
 
-    df = pd.DataFrame(results)
+    df = pd.DataFrame(results, columns=["pubchem_cid", "chembl_id"])
 
     if return_dict:
-        return dict(zip(df["pubchem_cid"], df["chembl_id"]))
+        return {record["pubchem_cid"]: record["chembl_id"] for record in results}
 
     return df

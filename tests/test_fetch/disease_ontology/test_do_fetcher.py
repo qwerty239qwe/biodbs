@@ -29,6 +29,7 @@ class TestDOFetcherBasic:
         assert iri == "http://purl.obolibrary.org/obo/DOID_162"
 
 
+@pytest.mark.integration
 class TestDOFetcherTermAPI:
     """API integration tests for Disease Ontology term fetcher."""
 
@@ -78,6 +79,7 @@ class TestDOFetcherTermAPI:
         assert len(terms) > 0
 
 
+@pytest.mark.integration
 class TestDOFetcherSearchAPI:
     """API integration tests for Disease Ontology search."""
 
@@ -116,6 +118,7 @@ class TestDOFetcherSearchAPI:
         assert doids1.isdisjoint(doids2)
 
 
+@pytest.mark.integration
 class TestDOFetcherHierarchyAPI:
     """API integration tests for Disease Ontology hierarchy."""
 
@@ -152,6 +155,7 @@ class TestDOFetcherHierarchyAPI:
         assert len(descendants) > 0
 
 
+@pytest.mark.integration
 class TestDOFetcherXrefAPI:
     """API integration tests for Disease Ontology cross-references."""
 
@@ -189,6 +193,7 @@ class TestDOFetcherXrefAPI:
         assert "DOID:162" in mapping
 
 
+@pytest.mark.integration
 class TestDOFetcherOntologyInfo:
     """API integration tests for ontology information."""
 
@@ -206,6 +211,7 @@ class TestDOFetcherOntologyInfo:
         assert config.get("id") == "doid" or config.get("namespace") == "doid"
 
 
+@pytest.mark.integration
 class TestDOConvenienceFunctions:
     """Tests for Disease Ontology convenience functions."""
 

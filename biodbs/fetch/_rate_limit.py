@@ -187,7 +187,7 @@ def retry_with_backoff(
                 try:
                     return func(*args, **kwargs)
                 except requests.exceptions.HTTPError as e:
-                    status_code = e.response.status_code if e.response else None
+                    status_code = e.response.status_code if e.response is not None else None
                     if status_code not in retry_on or attempt == max_retries:
                         raise
 

@@ -61,7 +61,7 @@ def test_download_file(tmp_path, monkeypatch):
         return DummyResponse(content=b"seq")
 
     monkeypatch.setattr(
-        "biodbs.fetch.GreenGenes.greengenes_fetcher.request_with_retry", fake_request
+        "biodbs.fetch._download.request_with_retry", fake_request
     )
     fetcher = GreenGenes_Fetcher()
 

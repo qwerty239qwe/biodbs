@@ -13,6 +13,7 @@ from biodbs.data.GreenGenes import (
     GreenGenesReleaseListData,
 )
 from biodbs.exceptions import raise_for_status
+from biodbs.fetch._download import download_binary
 from biodbs.fetch._rate_limit import get_rate_limiter, request_with_retry
 
 _BASE_URL = "http://ftp.microbio.me/greengenes_release/"
@@ -69,17 +70,7 @@ class GreenGenes_Fetcher:
         target = Path(dest)
         if target.is_dir() or str(dest).endswith(("/", "\\")):
             target = target / Path(path).name
-        if target.exists() and not overwrite:
-            return target
-        target.parent.mkdir(parents=True, exist_ok=True)
-        url = self._url(path)
-        response = request_with_retry(url, stream=True)
-        raise_for_status(response, "GreenGenes", url=url)
-        with target.open("wb") as handle:
-            for chunk in response.iter_content(chunk_size=1024 * 1024):
-                if chunk:
-                    handle.write(chunk)
-        return target
+        return download_binary(self._url(path), target, "GreenGenes", overwrite=overwrite)
 
     def _list_links(self, url: str) -> list[str]:
         response = request_with_retry(url)

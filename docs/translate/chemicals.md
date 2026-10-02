@@ -49,6 +49,12 @@ result = translate_chemical_ids(
 
 Get multiple ID types in one call (more efficient than separate calls):
 
+Target properties are fetched together **per compound**, not in one request for
+the whole input list. Name/SMILES/InChIKey inputs first require a CID lookup.
+Dictionaries retain the original input keys, including string CIDs, and use
+`None` for unresolved mappings. Name searches select the first returned CID;
+use structure identifiers when names are ambiguous.
+
 ```python
 result = translate_chemical_ids(
     ["aspirin", "caffeine"],
@@ -131,8 +137,17 @@ result = translate_chemical_ids_kegg(
 |------|-------------|
 | `compound` | KEGG Compound |
 | `drug` | KEGG Drug |
-| `pubchem` | PubChem CID |
+| `pubchem` | PubChem Substance ID (SID), **not** Compound ID (CID) |
 | `chebi` | ChEBI ID |
+
+KEGG's `pubchem:` identifiers are SIDs, as specified in the
+[KEGG API manual](https://www.kegg.jp/kegg/rest/keggapi.html). Do not pass them to
+`translate_chemical_ids(..., from_type="cid")` without resolving the SID to a CID.
+
+ChEMBL-to-PubChem mapping resolves the molecule's standard InChIKey, rather than
+assuming a generic PubChem cross-reference is a CID. The reverse mapping verifies
+the returned molecule's standard InChIKey before accepting its ChEMBL ID. Missing
+or mismatched structures remain unresolved.
 
 ## Cross-Database Translation
 
@@ -145,7 +160,7 @@ result = translate_chembl_to_pubchem(
     chembl_ids=["CHEMBL25", "CHEMBL521"],  # Aspirin, Caffeine
     return_dict=True
 )
-# {'CHEMBL25': 2244, 'CHEMBL521': 2519}
+# {'CHEMBL25': 2244, 'CHEMBL521': 3672}
 ```
 
 ### PubChem to ChEMBL
@@ -154,17 +169,21 @@ result = translate_chembl_to_pubchem(
 from biodbs.translate import translate_pubchem_to_chembl
 
 result = translate_pubchem_to_chembl(
-    cids=[2244, 2519],
+    cids=[2244, 3672],
     return_dict=True
 )
-# {2244: 'CHEMBL25', 2519: 'CHEMBL521'}
+# {2244: 'CHEMBL25', 3672: 'CHEMBL521'}
 ```
+
+Expected lookup failures, including upstream server errors, currently also produce
+`None` and are logged at DEBUG level. Do not interpret every `None` as proof that
+no mapping exists; use the fetch helpers directly when service failures must raise.
 
 ## Examples
 
 ### Build Compound Table
 
-Using multiple target types (recommended - single request):
+Using multiple target types (shares the property lookup for each compound):
 
 ```python
 from biodbs.translate import translate_chemical_ids

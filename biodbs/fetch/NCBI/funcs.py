@@ -206,6 +206,12 @@ def _extract_to_val(gene, to_type: str):
         return gene.ensembl_gene_ids[0] if gene.ensembl_gene_ids else None
     if to_type in ("uniprot", "swiss_prot", "uniprot_id"):
         return gene.swiss_prot_accessions[0] if gene.swiss_prot_accessions else None
+    if to_type == "refseq_protein":
+        proteins = [(t.protein or {}).get("accession_version") or
+                    (t.protein or {}).get("accessionVersion") for t in gene.transcripts or []]
+        proteins = [accession for accession in proteins if accession]
+        return next((accession for accession in proteins if accession.startswith("NP_")),
+                    proteins[0] if proteins else None)
     if to_type in ("refseq_accession", "refseq_mrna", "refseq"):
         if gene.transcripts:
             # Prefer NM_ mRNA transcripts
@@ -290,8 +296,27 @@ def ncbi_translate_gene_ids(
     elif from_type in ("entrez_id", "gene_id", "ncbi_gene_id"):
         int_ids = [int(i) for i in ids]
         genes = fetcher.get_genes_by_id(int_ids)
-    elif from_type in ("refseq_accession", "refseq_mrna", "refseq"):
-        genes = fetcher.get_genes_by_accession(ids)
+    elif from_type in ("refseq_accession", "refseq_mrna", "refseq", "refseq_protein"):
+        # Datasets reports do not identify which accession matched each gene.
+        # Query each unique accession separately rather than guessing a batch association.
+        results = []
+        for qid in dict.fromkeys(ids):
+            genes = fetcher.get_genes_by_accession([qid])
+            for gene in genes.genes:
+                if gene.transcripts:
+                    accessions = set()
+                    for transcript in gene.transcripts:
+                        protein = transcript.protein or {}
+                        for accession in (transcript.accession_version,
+                                          protein.get("accession_version") or protein.get("accessionVersion")):
+                            if accession:
+                                accessions.add(accession.split(".")[0])
+                    if qid.split(".")[0] not in accessions:
+                        continue
+                results.append({from_type: qid, to_type: _extract_to_val(gene, to_type)})
+        if return_dict:
+            return {r[from_type]: r[to_type] for r in results if r[to_type]}
+        return pd.DataFrame(results, columns=list(dict.fromkeys([from_type, to_type])))
     else:
         raise ValueError(
             f"Unsupported from_type: {from_type!r}. "
@@ -306,18 +331,6 @@ def ncbi_translate_gene_ids(
             from_val = gene.symbol
         elif from_type in ("entrez_id", "gene_id", "ncbi_gene_id"):
             from_val = str(gene.gene_id)
-        else:
-            # refseq: match the query accession that led to this gene
-            from_val = next(
-                (
-                    qid for qid in ids
-                    if gene.transcripts and any(
-                        t.accession_version and t.accession_version.startswith(qid.split(".")[0])
-                        for t in gene.transcripts
-                    )
-                ),
-                ids[0] if ids else None,  # fallback: first query id
-            )
 
         try:
             to_val = _extract_to_val(gene, to_type)

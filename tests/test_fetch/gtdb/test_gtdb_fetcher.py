@@ -98,6 +98,7 @@ def test_download_taxonomy_prefers_compressed(monkeypatch, tmp_path):
         return DummyResponse(content=b"abc")
 
     monkeypatch.setattr("biodbs.fetch.GTDB.gtdb_fetcher.request_with_retry", fake_request)
+    monkeypatch.setattr("biodbs.fetch._download.request_with_retry", fake_request)
 
     path = GTDB_Fetcher().download_taxonomy("bac120", tmp_path)
 
@@ -118,7 +119,7 @@ def test_download_file_keeps_existing(tmp_path, monkeypatch):
         calls.append((url, stream))
         return DummyResponse(content=b"abc")
 
-    monkeypatch.setattr("biodbs.fetch.GTDB.gtdb_fetcher.request_with_retry", fake_request)
+    monkeypatch.setattr("biodbs.fetch._download.request_with_retry", fake_request)
     fetcher = GTDB_Fetcher()
 
     path = fetcher.download_file("latest/VERSION.txt", tmp_path)

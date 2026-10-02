@@ -21,6 +21,7 @@ class TestNCBIFetcherBasic:
         assert fetcher._api_config.rate_limit == 5
 
 
+@pytest.mark.integration
 class TestNCBIFetcherGeneAPI:
     """API integration tests for NCBI gene fetcher."""
 
@@ -105,6 +106,7 @@ class TestNCBIFetcherGeneAPI:
         assert len(genes) == 0
 
 
+@pytest.mark.integration
 class TestNCBIFetcherTaxonomyAPI:
     """API integration tests for NCBI taxonomy fetcher."""
 
@@ -134,6 +136,7 @@ class TestNCBIFetcherTaxonomyAPI:
         assert len(tax) > 0
 
 
+@pytest.mark.integration
 class TestNCBIFetcherGenomeAPI:
     """API integration tests for NCBI genome fetcher."""
 
@@ -154,6 +157,7 @@ class TestNCBIFetcherGenomeAPI:
         assert len(genomes) > 0
 
 
+@pytest.mark.integration
 class TestNCBIConvenienceFunctions:
     """Tests for NCBI convenience functions."""
 

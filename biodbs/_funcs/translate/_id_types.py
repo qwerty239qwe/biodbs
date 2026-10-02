@@ -95,7 +95,7 @@ NCBI_ID_MAP: dict[str, str] = {
     GeneIDType.ENTREZ_ID:       "gene_id",
     GeneIDType.UNIPROT_ID:      "uniprot",
     GeneIDType.REFSEQ_MRNA:     "refseq_accession",
-    GeneIDType.REFSEQ_PROTEIN:  "refseq_accession",
+    GeneIDType.REFSEQ_PROTEIN:  "refseq_protein",
 }
 
 UNIPROT_ID_MAP: dict[str, str] = {
@@ -125,7 +125,6 @@ HGNC_ID_MAP: dict[str, str] = {
     GeneIDType.ENSEMBL_GENE_ID: "ensembl_gene_id",
     GeneIDType.UNIPROT_ID:      "uniprot_ids",
     GeneIDType.REFSEQ_MRNA:     "refseq_accession",
-    GeneIDType.REFSEQ_PROTEIN:  "refseq_accession",
 }
 
 _DB_MAPS: dict[str, dict[str, str]] = {
@@ -172,6 +171,8 @@ def resolve_id_type(id_type: str, database: str) -> str:
     # str(GeneIDType.GENE_SYMBOL) == "GeneIDType.GENE_SYMBOL" in Python 3.10
     # doesn't fool the lookup.
     key = id_type.value if hasattr(id_type, "value") else str(id_type)
+    if database == "hgnc" and key == GeneIDType.REFSEQ_PROTEIN:
+        raise ValueError("HGNC does not provide refseq_protein IDs; use ncbi or uniprot.")
     return db_map.get(key, key)
 
 

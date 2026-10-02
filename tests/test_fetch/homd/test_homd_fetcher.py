@@ -100,7 +100,7 @@ def test_download_file_streams_and_keeps_existing(tmp_path, monkeypatch):
         calls.append((url, stream))
         return DummyResponse(content=b"abc")
 
-    monkeypatch.setattr("biodbs.fetch.HOMD.homd_fetcher.request_with_retry", fake_request)
+    monkeypatch.setattr("biodbs.fetch._download.request_with_retry", fake_request)
     fetcher = HOMD_Fetcher()
 
     path = fetcher.download_file("ftp/taxa.tsv", tmp_path)

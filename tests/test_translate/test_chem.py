@@ -192,7 +192,7 @@ class TestTranslateChemicalIdsMultipleTargetsUnit:
 # =============================================================================
 
 class TestTranslateChemblToPubchemUnit:
-    def test_via_cross_references(self):
+    def test_untyped_pubchem_cross_reference_is_not_a_cid(self):
         mol_data = MagicMock()
         mol_data.results = [{
             "cross_references": [{"xref_src": "PubChem", "xref_id": "2244"}],
@@ -200,7 +200,7 @@ class TestTranslateChemblToPubchemUnit:
         }]
         with patch("biodbs._funcs.translate.chem.chembl_get_molecule", return_value=mol_data):
             result = translate_chembl_to_pubchem(["CHEMBL25"])
-        assert result["pubchem_cid"].iloc[0] == "2244"
+        assert pd.isna(result["pubchem_cid"].iloc[0])
 
     def test_via_inchikey_fallback(self):
         mol_data = MagicMock()
@@ -253,7 +253,9 @@ class TestTranslatePubchemToChemblUnit:
         prop_data = MagicMock()
         prop_data.results = [{"InChIKey": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"}]
         search_data = MagicMock()
-        search_data.results = [{"molecule_chembl_id": "CHEMBL25"}]
+        search_data.results = [{"molecule_chembl_id": "CHEMBL25", "molecule_structures": {
+            "standard_inchi_key": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"
+        }}]
         with patch("biodbs._funcs.translate.chem.pubchem_get_properties", return_value=prop_data), \
              patch("biodbs._funcs.translate.chem.chembl_search_molecules", return_value=search_data):
             result = translate_pubchem_to_chembl([2244])
@@ -297,7 +299,9 @@ class TestTranslatePubchemToChemblUnit:
         prop_data = MagicMock()
         prop_data.results = [{"InChIKey": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"}]
         search_data = MagicMock()
-        search_data.results = [{"molecule_chembl_id": "CHEMBL25"}]
+        search_data.results = [{"molecule_chembl_id": "CHEMBL25", "molecule_structures": {
+            "standard_inchi_key": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"
+        }}]
         with patch("biodbs._funcs.translate.chem.pubchem_get_properties", return_value=prop_data), \
              patch("biodbs._funcs.translate.chem.chembl_search_molecules", return_value=search_data):
             result = translate_pubchem_to_chembl([2244], return_dict=True)

@@ -16,6 +16,28 @@ any two reference databases on it.
 - Added `gtdb_ncbi_crosswalk` (GTDB species → NCBI taxid, majority vote from GTDB
   metadata) so GTDB lineage strings join the hub directly.
 
+### Reliability fixes
+
+- Correct Ensembl symbol translation namespaces and stable-ID identity mappings.
+- Read all UniProt mapping and explicit-ID NCBI gene-report pages.
+- Preserve duplicate multi-target rows and chemical dictionary input keys; omit
+  missing BioMart IDs instead of returning NaN mappings.
+- Fetch each unique HGNC input once for all targets. Keep RefSeq protein and mRNA
+  namespaces distinct; reject unsupported HGNC protein aliases and avoid guessing
+  NCBI accession-to-gene associations.
+- Verify ChEMBL–PubChem mappings by structure, and document KEGG PubChem SIDs.
+- Add exact-ID and request-count translator regression checks, with live reference
+  tests in integration CI and documented backend limitations.
+- Prevent unresolved taxonomy IDs from joining to each other, while preserving
+  unmatched rows in left, right, and outer joins.
+- Classify offline taxdump matches as accepted scientific names or synonyms.
+- Use atomic downloads for GTDB, HOMD, and GreenGenes, preserving existing files
+  when replacement downloads fail.
+- Fix retries for real HTTP error responses and enforce batch request rates
+  using a shared monotonic start schedule; reject non-positive rates.
+- Isolate live Disease Ontology, NCBI, and UniProt tests from the unit suite and
+  include them in integration CI. Add 74 regression cases for these fixes.
+
 ## 0.4.1
 
 Fixes SILVA discovery/download integrity after SILVA's site migration and adds

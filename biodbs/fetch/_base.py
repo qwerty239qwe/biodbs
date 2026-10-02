@@ -117,8 +117,10 @@ class BaseDataFetcher:
             List of results from all function calls
             
         Raises:
-            ValueError: If args_list and kwargs_list have different lengths
+            ValueError: If the rate is not positive or argument lists have different lengths
         """
+        if rate_limit_per_second <= 0:
+            raise ValueError("rate_limit_per_second must be positive")
         args_list = args_list or []
         kwargs_list = kwargs_list or []
         
@@ -144,20 +146,19 @@ class BaseDataFetcher:
             # Semaphore for concurrent request limiting
             semaphore = asyncio.Semaphore(rate_limit_per_second)
             
-            # Track time for rate limiting
-            last_batch_time = time.time()
+            start_lock = asyncio.Lock()
+            next_start = 0.0
             completed_count = 0
             
-            async def rate_limited_call(index: int, args: tuple, kwargs: dict):
-                nonlocal completed_count, last_batch_time
+            async def rate_limited_call(args: tuple, kwargs: dict):
+                nonlocal completed_count, next_start
                 
                 async with semaphore:
-                    # Rate limiting: ensure we don't exceed requests per second
-                    if index > 0 and index % rate_limit_per_second == 0:
-                        elapsed = time.time() - last_batch_time
-                        if elapsed < 1.0:
-                            await asyncio.sleep(1.0 - elapsed)
-                        last_batch_time = time.time()
+                    async with start_lock:
+                        delay = next_start - time.monotonic()
+                        if delay > 0:
+                            await asyncio.sleep(delay)
+                        next_start = time.monotonic() + 1.0 / rate_limit_per_second
                     
                     # Execute function (handle both sync and async)
                     if is_async:
@@ -174,7 +175,7 @@ class BaseDataFetcher:
             
             # Create all tasks
             tasks = [
-                rate_limited_call(i, args_list[i], kwargs_list[i])
+                rate_limited_call(args_list[i], kwargs_list[i])
                 for i in range(total_tasks)
             ]
             

@@ -45,12 +45,16 @@ uv run pytest -m integration
 # Run one live API service group
 uv run pytest -m integration tests/test_fetch/biomart
 
-# Run specific test file
-uv run pytest tests/test_fetch/uniprot/
+# Run one service's offline tests
+uv run pytest -m "not integration" tests/test_fetch/uniprot/
 
 # Run offline tests with coverage
 uv run pytest -m "not integration" --cov=biodbs
 ```
+
+Tests that call live APIs must use `@pytest.mark.integration` on the test or its
+class. Keep initialization and mocked HTTP tests in the offline suite. CI runs
+live Disease Ontology, NCBI, and UniProt tests in their service integration jobs.
 
 ### Code Style
 
@@ -154,6 +158,7 @@ Create tests in `tests/test_fetch/newdb/`:
 import pytest
 from biodbs.fetch.newdb import NewDB_Fetcher
 
+@pytest.mark.integration
 class TestNewDBFetcher:
     def test_get_entry(self):
         fetcher = NewDB_Fetcher()

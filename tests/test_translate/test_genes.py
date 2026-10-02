@@ -414,18 +414,18 @@ class TestTranslateViaEnsemblUnit:
             )
         assert result["ensembl_gene_id"].iloc[0] == "ENSG00000141510"
 
-    def test_external_to_non_ensembl_warns(self):
+    def test_external_to_non_ensembl_uses_gene_xrefs(self):
         xref_data = _mock_ensembl_data([{"id": "ENSG00000141510"}])
         with patch("biodbs.fetch.ensembl.funcs.ensembl_get_xrefs_symbol", return_value=xref_data), \
-             patch("biodbs.fetch.ensembl.funcs.ensembl_get_xrefs"), \
+             patch("biodbs.fetch.ensembl.funcs.ensembl_get_xrefs", return_value=_mock_ensembl_data([
+                 {"dbname": "EntrezGene", "primary_id": "7157"}
+             ])), \
              patch("biodbs.fetch.ensembl.funcs.ensembl_lookup"):
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter("always")
-                translate_gene_ids(
-                    ["TP53"], from_type="HGNC", to_type="EntrezGene",
-                    database="ensembl",
-                )
-            assert any("always returns Ensembl gene IDs" in str(x.message) for x in w)
+            result = translate_gene_ids(
+                ["TP53"], from_type="HGNC", to_type="EntrezGene",
+                database="ensembl", return_dict=True,
+            )
+        assert result == {"TP53": "7157"}
 
     def test_gene_to_transcript_ensembl(self):
         lookup_data = _mock_ensembl_data([{

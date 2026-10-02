@@ -45,10 +45,14 @@ Supported domains are `bac120` and `ar53`.
 ## Download Files
 
 ```python
-path = fetcher.download_taxonomy("bac120", dest="data/gtdb")
+path = fetcher.download_taxonomy("bac120", dest="data/gtdb/")
 ```
 
-Existing files are kept by default. Use `overwrite=True` to download again. Large files are streamed to disk.
+Existing files are kept by default. Use `overwrite=True` to download again.
+Files stream to a temporary `.part` file and replace the destination only after
+success. Failed transfers remove the temporary file and preserve any existing
+destination. A trailing separator makes `dest` a directory even if it does not
+exist yet.
 
 ## Convenience Functions
 
