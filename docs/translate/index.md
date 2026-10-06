@@ -180,6 +180,12 @@ result = translate_gene_ids(
 
 Missing or unmappable IDs return `None` or `NaN`:
 
+Ensembl and ChEMBL/PubChem translators also return missing mappings for expected
+API/network failures. Use the fetcher APIs directly when you need to distinguish
+an unavailable service from an unmappable ID. Live accuracy tests guard these
+fetchers so confirmed outages are reported as skips; successful responses with
+missing or incorrect reference IDs still fail their exact-ID assertions.
+
 ```python
 mapping = translate_gene_to_uniprot(
     ["TP53", "NOT_A_GENE", "BRCA1"]

@@ -16,6 +16,8 @@ from biodbs.fetch.uniprot import UniProt_Fetcher
 from biodbs.fetch.NCBI import NCBI_Fetcher
 from biodbs._funcs.translate.genes import _translate_via_biomart
 
+pytestmark = pytest.mark.usefixtures("require_translation_services")
+
 
 @pytest.mark.parametrize("id_type,id_value", [
     ("ensembl_gene_id", "ENSG00000141510"),

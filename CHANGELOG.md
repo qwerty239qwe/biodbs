@@ -18,6 +18,9 @@ any two reference databases on it.
 
 ### Reliability fixes
 
+- Surface Ensembl and ChEMBL/PubChem outages in live translator-quality checks
+  before translators convert them to missing mappings. Keep exact-ID assertions
+  strict for successful responses and add offline guard regression cases.
 - Isolate PubChem PUG REST/View and QuickGO request parameters during concurrent
   fetching. Reuse per-thread HTTP connections in the retry helper, QuickGO, and
   Ensembl; close failed retry responses and bound QuickGO/Ensembl request timeouts.

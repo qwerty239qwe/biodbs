@@ -5,6 +5,7 @@ hitting API rate limits during CI runs.
 """
 
 import os
+from functools import wraps
 
 import pytest
 
@@ -104,6 +105,32 @@ def _external_service_skip_reason(exc: BaseException) -> str | None:
     if isinstance(exc, _EXTERNAL_SERVICE_ERROR_TYPES):
         return f"External service unavailable ({type(exc).__name__}): {exc}"
     return None
+
+
+def _require_live_service(fetch):
+    """Surface outages before a translator can turn them into missing mappings."""
+    @wraps(fetch)
+    def checked(*args, **kwargs):
+        try:
+            return fetch(*args, **kwargs)
+        except Exception as exc:
+            if reason := _external_service_skip_reason(exc):
+                pytest.skip(reason)
+            raise
+    return checked
+
+
+@pytest.fixture
+def require_translation_services(request, monkeypatch):
+    """Keep live accuracy assertions strict while reporting genuine API outages."""
+    if not request.node.get_closest_marker("integration"):
+        return
+    from biodbs.fetch.ensembl import Ensembl_Fetcher
+    from biodbs.fetch.ChEMBL import ChEMBL_Fetcher
+    from biodbs.fetch.pubchem import PubChem_Fetcher
+
+    for fetcher in (Ensembl_Fetcher, ChEMBL_Fetcher, PubChem_Fetcher):
+        monkeypatch.setattr(fetcher, "get", _require_live_service(fetcher.get))
 
 
 @pytest.hookimpl(hookwrapper=True)
