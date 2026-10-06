@@ -168,6 +168,7 @@ class FDA_Fetcher(BaseDataFetcher):
         batch_size: int = 1000,
         max_records: Optional[int] = None,
         rate_limit_per_second: int = 4,
+        max_concurrency: int = 10,
         **kwargs: Any,
     ) -> Union[FDAFetchedData, Path]:
         """Fetch multiple pages of results concurrently.
@@ -185,14 +186,19 @@ class FDA_Fetcher(BaseDataFetcher):
             batch_size: Records per request (max 1000).
             max_records: Total records to fetch.  ``None`` means fetch all
                 available records.
-            rate_limit_per_second: Max concurrent requests per second
+            rate_limit_per_second: Maximum request starts per second
                 (FDA default: 240/min ≈ 4/sec).
+            max_concurrency: Maximum requests in flight (default 10).
             **kwargs: Forwarded to the API (``search``, ``sort``, etc.).
 
         Note — openFDA rate limits:
             Without an API key: 240 req/min, 1 000 req/day per IP.
             With an API key: 240 req/min, 120 000 req/day per key.
         """
+        if rate_limit_per_second <= 0:
+            raise ValueError("rate_limit_per_second must be positive")
+        if not isinstance(max_concurrency, int) or max_concurrency <= 0:
+            raise ValueError("max_concurrency must be a positive integer")
         if batch_size > 1000:
             raise ValueError("Upper limit = 1000 per request")
         if method not in ("concat", "stream_to_storage"):
@@ -254,6 +260,7 @@ class FDA_Fetcher(BaseDataFetcher):
             args_list=[(kw,) for kw in page_kwargs_list],
             rate_limit_per_second=rate_limit_per_second,
             return_exceptions=True,
+            max_concurrency=max_concurrency,
         )
 
         # -- collect results in order --------------------------------------

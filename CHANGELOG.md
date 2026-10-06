@@ -18,6 +18,17 @@ any two reference databases on it.
 
 ### Reliability fixes
 
+- Isolate PubChem PUG REST/View and QuickGO request parameters during concurrent
+  fetching. Reuse per-thread HTTP connections in the retry helper, QuickGO, and
+  Ensembl; close failed retry responses and bound QuickGO/Ensembl request timeouts.
+- Separate batch request start rates from maximum in-flight concurrency (default
+  10). Fetch QuickGO annotations in 200-record pages and validate the service limit.
+- Batch chemical properties for up to 100 unique CIDs, deduplicate input lookups,
+  match responses by CID, and isolate failed compounds with individual fallbacks.
+- Isolate GO JSON caches by species, aspect, and evidence filters. Cache full
+  fetched gene sets before term-size filtering and ignore old ambiguous cache keys.
+- Add 71 offline fetching/chemical/cache regression cases, including actual
+  loopback HTTP connection reuse and request-count comparisons on mock data.
 - Discover current SILVA classifiers in live checks and documentation rather than
   relying on a retired release folder. Keep binary-header and MD5-listing checks.
 - Give whole-organism QuickGO ORA checks a separate, longer CI job, and use GO IDs

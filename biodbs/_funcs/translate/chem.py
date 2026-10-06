@@ -14,7 +14,7 @@ from biodbs.fetch.pubchem.funcs import (
 
 from biodbs.fetch.KEGG.funcs import kegg_conv
 from biodbs.fetch.ChEMBL.funcs import chembl_get_molecule, chembl_search_molecules
-from biodbs.exceptions import APIError
+from biodbs.exceptions import APIError, APIRateLimitError, APIServerError, APITimeoutError
 
 logger = logging.getLogger(__name__)
 _EXPECTED_TRANSLATION_ERRORS = (
@@ -35,6 +35,9 @@ def translate_chemical_ids(
     """Translate chemical/compound IDs between different identifier types.
 
     Uses PubChem for ID conversion.
+
+    Resolves duplicate inputs once, then fetches properties in batches of up to
+    100 unique CIDs. Matches response records by CID and preserves input rows.
 
     Supported ID types:
         - cid: PubChem Compound ID
@@ -101,196 +104,100 @@ def translate_chemical_ids(
         # 0  aspirin  2244  CC(=O)OC1=CC=CC=C1C(=O)O  BSYNRYMUTXBXSQ-UHFFFAOYSA-N
         ```
     """
-    # Supported from_types
-    valid_from_types = {"cid", "name", "smiles", "inchikey"}
-    if from_type not in valid_from_types:
-        raise ValueError(f"Unsupported from_type: {from_type}. Valid types: {valid_from_types}")
+    if from_type not in {"cid", "name", "smiles", "inchikey"}:
+        raise ValueError(f"Unsupported from_type: {from_type}")
+    multiple = isinstance(to_type, list)
+    to_types = to_type if multiple else [to_type]
+    for target in to_types:
+        if target not in _CHEMICAL_PROPERTIES:
+            raise ValueError(f"Unsupported to_type: {target}")
 
-    # Handle multiple target types
-    if isinstance(to_type, list):
-        return _translate_chemical_multiple_targets(ids, from_type, to_type, return_dict)
-
-    # Map to_type to PubChem property names (for request)
-    property_map = {
-        "cid": "CID",
-        "smiles": "CanonicalSMILES",
-        "inchikey": "InChIKey",
-        "inchi": "InChI",
-        "formula": "MolecularFormula",
-        "name": "IUPACName",
-    }
-
-    # PubChem API returns different keys than requested - map response keys
-    response_key_map = {
-        "CanonicalSMILES": ["CanonicalSMILES", "ConnectivitySMILES", "SMILES"],
-        "IsomericSMILES": ["IsomericSMILES", "SMILES"],
-        "InChIKey": ["InChIKey"],
-        "InChI": ["InChI"],
-        "MolecularFormula": ["MolecularFormula"],
-        "IUPACName": ["IUPACName", "Title"],
-        "CID": ["CID"],
-    }
-
-    if to_type not in property_map:
-        raise ValueError(f"Unsupported to_type: {to_type}. Valid types: {set(property_map.keys())}")
-
-    results = []
-
-    for id_val in ids:
-        try:
-            # First, get the CID based on from_type
-            if from_type == "cid":
-                cid = int(id_val)
-            elif from_type == "name":
-                data = pubchem_search_by_name(id_val)
-                cids = data.get_cids()
-                cid = cids[0] if cids else None
-            elif from_type == "smiles":
-                data = pubchem_search_by_smiles(id_val)
-                cids = data.get_cids()
-                cid = cids[0] if cids else None
-            elif from_type == "inchikey":
-                data = pubchem_search_by_inchikey(id_val)
-                cids = data.get_cids()
-                cid = cids[0] if cids else None
-
-            if cid is None:
-                results.append({from_type: id_val, to_type: None})
-                continue
-
-            # Now get the target property
-            if to_type == "cid":
-                to_val = cid
-            else:
-                prop_name = property_map[to_type]
-                prop_data = pubchem_get_properties(cid, properties=[prop_name])
-                prop_results = prop_data.results
-                to_val = None
-                if prop_results:
-                    result_dict = prop_results[0]
-                    # Try each possible response key
-                    for key in response_key_map.get(prop_name, [prop_name]):
-                        if key in result_dict:
-                            to_val = result_dict[key]
-                            break
-
-            results.append({from_type: id_val, to_type: to_val, "cid": cid})
-
-        except _EXPECTED_TRANSLATION_ERRORS as exc:
-            logger.debug("Failed to translate chemical ID %s", id_val, exc_info=exc)
-            results.append({from_type: id_val, to_type: None})
-
-    df = pd.DataFrame(results, columns=list(dict.fromkeys([from_type, to_type, "cid"])))
-
+    records = _chemical_records(ids, from_type, to_types)
     if return_dict:
-        return {id_val: record.get(to_type) for id_val, record in zip(ids, results)}
+        return {
+            source: ({target: record.get(target) for target in to_types}
+                     if multiple else record.get(to_type))
+            for source, record in zip(ids, records)
+        }
+    columns = ([from_type, "cid", *to_types] if multiple
+               else [from_type, to_type, "cid"])
+    return pd.DataFrame(records, columns=list(dict.fromkeys(columns)))
 
-    return df
+
+_CHEMICAL_PROPERTIES = {
+    "cid": "CID", "smiles": "CanonicalSMILES", "inchikey": "InChIKey",
+    "inchi": "InChI", "formula": "MolecularFormula", "name": "IUPACName",
+}
+_CHEMICAL_RESPONSE_KEYS = {
+    "smiles": ("CanonicalSMILES", "ConnectivitySMILES", "SMILES"),
+    "name": ("IUPACName", "Title"),
+}
 
 
-def _translate_chemical_multiple_targets(
-    ids: List[str],
-    from_type: str,
-    to_types: List[str],
-    return_dict: bool,
-) -> Union[Dict[str, Dict[str, str]], "pd.DataFrame"]:
-    """Translate chemical IDs to multiple target types."""
-    # Map to_type to PubChem property names
-    property_map = {
-        "cid": "CID",
-        "smiles": "CanonicalSMILES",
-        "inchikey": "InChIKey",
-        "inchi": "InChI",
-        "formula": "MolecularFormula",
-        "name": "IUPACName",
+def _chemical_records(ids, from_type, to_types):
+    """Resolve each source once and fetch properties for up to 100 unique CIDs."""
+    searches = {
+        "name": pubchem_search_by_name, "smiles": pubchem_search_by_smiles,
+        "inchikey": pubchem_search_by_inchikey,
     }
-
-    response_key_map = {
-        "CanonicalSMILES": ["CanonicalSMILES", "ConnectivitySMILES", "SMILES"],
-        "IsomericSMILES": ["IsomericSMILES", "SMILES"],
-        "InChIKey": ["InChIKey"],
-        "InChI": ["InChI"],
-        "MolecularFormula": ["MolecularFormula"],
-        "IUPACName": ["IUPACName", "Title"],
-        "CID": ["CID"],
-    }
-
-    valid_to_types = set(property_map.keys())
-    for tt in to_types:
-        if tt not in valid_to_types:
-            raise ValueError(f"Unsupported to_type: {tt}. Valid types: {valid_to_types}")
-
-    results = []
-
-    for id_val in ids:
-        record = {from_type: id_val}
-        cid = None
+    resolved = {}
+    for source in dict.fromkeys(ids):
         try:
-            # First, get the CID based on from_type
             if from_type == "cid":
-                cid = int(id_val)
-            elif from_type == "name":
-                data = pubchem_search_by_name(id_val)
-                cids = data.get_cids()
-                cid = cids[0] if cids else None
-            elif from_type == "smiles":
-                data = pubchem_search_by_smiles(id_val)
-                cids = data.get_cids()
-                cid = cids[0] if cids else None
-            elif from_type == "inchikey":
-                data = pubchem_search_by_inchikey(id_val)
-                cids = data.get_cids()
-                cid = cids[0] if cids else None
-
-            if cid is None:
-                for tt in to_types:
-                    record[tt] = None
-                results.append(record)
-                continue
-
-            record["cid"] = cid
-
-            # Get all target properties in one request if possible
-            props_to_fetch = [
-                property_map[tt] for tt in to_types
-                if tt != "cid" and tt in property_map
-            ]
-
-            if props_to_fetch:
-                prop_data = pubchem_get_properties(cid, properties=props_to_fetch)
-                prop_results = prop_data.results
-                result_dict = prop_results[0] if prop_results else {}
-
-                for tt in to_types:
-                    if tt == "cid":
-                        record[tt] = cid
-                    else:
-                        prop_name = property_map[tt]
-                        to_val = None
-                        for key in response_key_map.get(prop_name, [prop_name]):
-                            if key in result_dict:
-                                to_val = result_dict[key]
-                                break
-                        record[tt] = to_val
+                cid = int(source)
             else:
-                # Only cid was requested
-                for tt in to_types:
-                    record[tt] = cid if tt == "cid" else None
-
+                cids = searches[from_type](source).get_cids()
+                cid = cids[0] if cids else None
+            resolved[source] = cid
         except _EXPECTED_TRANSLATION_ERRORS as exc:
-            logger.debug("Failed to translate chemical ID %s", id_val, exc_info=exc)
-            for tt in to_types:
-                record[tt] = cid if (tt == "cid" and cid is not None) else record.get(tt)
+            logger.debug("Failed to resolve chemical ID %s", source, exc_info=exc)
+            resolved[source] = None
 
-        results.append(record)
+    cids = list(dict.fromkeys(cid for cid in resolved.values() if cid is not None))
+    properties = list(dict.fromkeys(
+        _CHEMICAL_PROPERTIES[target] for target in to_types if target != "cid"
+    ))
+    fetched = {}
 
-    df = pd.DataFrame(results, columns=list(dict.fromkeys([from_type, "cid", *to_types])))
+    def fetch_batch(batch):
+        try:
+            rows = pubchem_get_properties(
+                batch[0] if len(batch) == 1 else batch, properties=properties,
+            ).results
+            for row in rows:
+                # PubChem includes CID. Legacy single-record responses are unambiguous.
+                cid = row.get("CID", batch[0] if len(batch) == 1 and len(rows) == 1 else None)
+                if cid in batch:
+                    fetched[cid] = row
+        except (APIRateLimitError, APIServerError, APITimeoutError, RequestException) as exc:
+            # A service outage is not compound-specific: don't fan out retries.
+            logger.debug("Chemical property service unavailable for %s", batch, exc_info=exc)
+            return
+        except _EXPECTED_TRANSLATION_ERRORS as exc:
+            logger.debug("Failed to fetch chemical properties for %s", batch, exc_info=exc)
+            if isinstance(exc.__cause__, RequestException):
+                return
+        if len(batch) > 1:
+            # A missing/invalid CID must not discard other compounds in the batch.
+            for cid in batch:
+                if cid not in fetched:
+                    fetch_batch([cid])
 
-    if return_dict:
-        return {id_val: {tt: record.get(tt) for tt in to_types}
-                for id_val, record in zip(ids, results)}
+    if properties:
+        for offset in range(0, len(cids), 100):
+            fetch_batch(cids[offset:offset + 100])
 
-    return df
+    records = []
+    for source in ids:
+        cid = resolved[source]
+        row = fetched.get(cid, {})
+        record = {from_type: source, "cid": cid}
+        for target in to_types:
+            keys = _CHEMICAL_RESPONSE_KEYS.get(target, (_CHEMICAL_PROPERTIES[target],))
+            record[target] = (cid if target == "cid" else
+                              next((row[key] for key in keys if key in row), None))
+        records.append(record)
+    return records
 
 
 def translate_chemical_ids_kegg(

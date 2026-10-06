@@ -29,6 +29,7 @@ Example:
 
 from __future__ import annotations
 
+import hashlib
 import math
 import warnings
 from dataclasses import dataclass, field
@@ -651,7 +652,7 @@ def _get_go_terms(
     Args:
         species: Species enum.
         aspect: GO aspect to use.
-        evidence_codes: Evidence codes to include (None = all except IEA).
+        evidence_codes: Evidence codes to include (None uses IDA, IPI, IMP, IGI, IEP, TAS, IC).
         use_cache: Whether to use cached data.
         cache_dir: Directory for cache files.
         min_term_size: Minimum genes per term.
@@ -664,13 +665,20 @@ def _get_go_terms(
         aspect = aspect.value
 
     taxon_id = species.taxon_id
-    cache_key = f"go_{taxon_id}_{aspect}"
+    evidence = sorted(set(evidence_codes or ["IDA", "IPI", "IMP", "IGI", "IEP", "TAS", "IC"]))
+    evidence_key = hashlib.sha256(",".join(evidence).encode()).hexdigest()
+    # Versioned, per-query JSON files avoid overlapping GO IDs in the SQL schema.
+    cache_key = f"go_v2_{taxon_id}_{aspect}_{evidence_key}"
 
     if use_cache:
-        cached = get_cached_pathways(cache_key, cache_dir)
+        cached = get_cached_pathways(cache_key, cache_dir, backend="json")
         if cached is not None:
             return {
-                k: Pathway.from_tuple(k, (v[0], set(v[1])), f"GO:{aspect}")
+                k: Pathway(
+                    id=k, name=v[0], genes=frozenset(v[1]), database=f"GO:{aspect}",
+                    species=species.scientific_name,
+                    url=f"https://www.ebi.ac.uk/QuickGO/term/{k}",
+                )
                 for k, v in cached.items()
                 if min_term_size <= len(v[1]) <= max_term_size
             }
@@ -681,10 +689,7 @@ def _get_go_terms(
     if aspect != "all":
         kwargs["aspect"] = aspect
 
-    if evidence_codes:
-        kwargs["goEvidence"] = evidence_codes
-    else:
-        kwargs["goEvidence"] = ["IDA", "IPI", "IMP", "IGI", "IEP", "TAS", "IC"]
+    kwargs["goEvidence"] = evidence
 
     try:
         data = quickgo_search_annotations_all(max_records=100000, **kwargs)
@@ -720,9 +725,9 @@ def _get_go_terms(
                 url=f"https://www.ebi.ac.uk/QuickGO/term/{go_id}",
             )
 
-    if use_cache and pathways:
-        cache_data = {k: (v.name, v.genes) for k, v in pathways.items()}
-        cache_pathways(cache_key, cache_data, cache_dir)
+    if use_cache:
+        # Cache the full gene sets so later size filters can widen safely.
+        cache_pathways(cache_key, go_terms, cache_dir, backend="json")
 
     return pathways
 
@@ -1067,7 +1072,7 @@ def ora_go(
         from_id_type: Input gene ID type. Automatically translates to UniProt IDs.
             Supported: "uniprot", "symbol", "ensembl", "entrez"
         aspect: GO aspect to analyze.
-        evidence_codes: Evidence codes to include. Default excludes IEA.
+        evidence_codes: Evidence codes to include. Defaults to IDA, IPI, IMP, IGI, IEP, TAS, IC.
         background: Background gene set. If None, uses all genes in GO.
         min_overlap: Minimum overlap required.
         min_term_size: Minimum genes per GO term.

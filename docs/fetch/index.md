@@ -142,7 +142,7 @@ except ValueError as e:
 
 ## Rate Limiting
 
-All fetchers automatically handle rate limiting:
+Fetchers using the shared retry helper automatically handle rate limiting:
 
 - Requests are throttled to respect API limits
 - Automatic retry with exponential backoff on 429 errors
@@ -154,6 +154,17 @@ from biodbs.fetch._rate_limit import get_rate_limiter
 limiter = get_rate_limiter()
 # Rate limits are set per-host automatically
 ```
+
+Batch scheduling spaces request starts according to `rate_limit_per_second`.
+This is separate from `max_concurrency`, the number of requests allowed in flight
+(default 10). QuickGO, PubChem, ChEMBL, FDA, and KEGG `get_all()` and HPA
+`get_genes()` accept both options. More concurrency can overlap slow responses
+without increasing the configured start rate; it does not override service quotas.
+
+The shared retry helper, QuickGO, and Ensembl reuse HTTP connections through
+thread-local sessions. Worker threads do not share mutable session state.
+QuickGO and Ensembl requests have a 30-second timeout; shared-helper requests
+retain their configurable timeout. Close streamed responses when finished.
 
 ## Using Fetcher Classes
 

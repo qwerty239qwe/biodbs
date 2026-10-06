@@ -464,6 +464,28 @@ gene_sets = fetch_gmt("hsa", database="kegg")
 save_gmt(gene_sets, "my_kegg.gmt")
 ```
 
+## GO Cache Behavior
+
+GO gene sets are cached separately by species, aspect, and normalized evidence
+codes. Evidence order and duplicates do not trigger another download. With no
+explicit evidence filter, the defaults are IDA, IPI, IMP, IGI, IEP, TAS, and IC.
+The cache stores gene sets before term-size filtering, so later size limits can
+reuse the same annotations without losing previously excluded terms.
+
+GO uses the existing JSON cache backend to isolate overlapping term IDs; other
+pathway caches retain SQLite. Old GO cache keys are ignored and fetched again
+once. To clear GO JSON caches in a chosen directory:
+
+```python
+from biodbs._funcs.analysis._cache import clear_cache
+
+clear_cache(cache_dir="./cache", backend="json")
+```
+
+This removes all JSON pathway caches in that directory. GO ORA still limits its
+annotation fetch to 100,000 records; caching and faster pagination do not turn
+that subset into a complete whole-organism annotation set.
+
 ## Related Resources
 
 ### Data Fetching

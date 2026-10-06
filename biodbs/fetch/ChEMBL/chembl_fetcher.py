@@ -181,6 +181,7 @@ class ChEMBL_Fetcher(BaseDataFetcher):
         rate_limit_per_second: int = 5,
         search_query: Optional[str] = None,
         filters: Optional[Dict[str, Any]] = None,
+        max_concurrency: int = 10,
         **kwargs: Any,
     ) -> Union[ChEMBLFetchedData, Path]:
         """Fetch multiple pages of results concurrently.
@@ -192,7 +193,8 @@ class ChEMBL_Fetcher(BaseDataFetcher):
                 returns the output file Path.
             limit_per_page: Records per request (default 1000, max 1000).
             max_records: Total records to fetch. None means fetch all.
-            rate_limit_per_second: Max concurrent requests per second.
+            rate_limit_per_second: Maximum request starts per second.
+            max_concurrency: Maximum requests in flight (default 10).
             search_query: Optional full-text search query.
             filters: Optional field filters.
             **kwargs: Additional parameters.
@@ -200,6 +202,10 @@ class ChEMBL_Fetcher(BaseDataFetcher):
         Returns:
             Combined ChEMBLFetchedData or Path to output file.
         """
+        if rate_limit_per_second <= 0:
+            raise ValueError("rate_limit_per_second must be positive")
+        if not isinstance(max_concurrency, int) or max_concurrency <= 0:
+            raise ValueError("max_concurrency must be a positive integer")
         if method == "stream_to_storage" and self._data_manager is None:
             raise ValueError(
                 "stream_to_storage requires storage_path in ChEMBL_Fetcher constructor"
@@ -262,6 +268,7 @@ class ChEMBL_Fetcher(BaseDataFetcher):
             args_list=[(o,) for o in offsets],
             rate_limit_per_second=rate_limit_per_second,
             return_exceptions=True,
+            max_concurrency=max_concurrency,
         )
 
         # Collect results

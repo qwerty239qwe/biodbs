@@ -49,8 +49,13 @@ result = translate_chemical_ids(
 
 Get multiple ID types in one call (more efficient than separate calls):
 
-Target properties are fetched together **per compound**, not in one request for
-the whole input list. Name/SMILES/InChIKey inputs first require a CID lookup.
+Target properties are fetched together in batches of up to **100 unique CIDs**.
+Repeated inputs are resolved once, and aliases sharing a CID reuse its properties.
+Name/SMILES/InChIKey inputs first require a CID lookup. Responses are matched by
+CID, not row position; missing or failed batch members fall back to individual
+requests so invalid compounds do not discard valid mappings. Rate limits, server
+outages, and timeouts do not trigger a per-compound retry storm. DataFrames preserve
+input order and duplicate rows.
 Dictionaries retain the original input keys, including string CIDs, and use
 `None` for unresolved mappings. Name searches select the first returned CID;
 use structure identifiers when names are ambiguous.
