@@ -56,6 +56,11 @@ Tests that call live APIs must use `@pytest.mark.integration` on the test or its
 class. Keep initialization and mocked HTTP tests in the offline suite. CI runs
 live Disease Ontology, NCBI, and UniProt tests in their service integration jobs.
 
+QuickGO fetcher checks and whole-organism GO ORA checks run in separate CI jobs.
+The ORA job has a 25-minute limit; other service jobs retain the 12-minute limit.
+SILVA live checks discover a currently published classifier and check its headers
+and checksum listing without downloading the classifier body.
+
 ### Code Style
 
 We use:

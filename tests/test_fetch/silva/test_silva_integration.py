@@ -12,8 +12,16 @@ from biodbs.fetch.SILVA import SILVA_Fetcher
 
 pytestmark = pytest.mark.integration
 
-# A real classifier file confirmed to be served as a binary download.
-_CLASSIFIER = "QIIME2/2025.7/taxonomic-weights/SILVA_138.2_Ref_NR99_taxonomic-weight_human-oral.qza"
+@pytest.fixture(scope="module")
+def classifier_listing():
+    fetcher = SILVA_Fetcher()
+    releases = [entry for entry in fetcher.list_current_files("QIIME2") if entry.is_dir]
+    assert releases, "no current QIIME2 release discovered"
+    directory = f"QIIME2/{releases[0].name}/taxonomic-weights"
+    listing = fetcher.list_current_files(directory)
+    classifiers = listing.filter("*.qza")
+    assert len(classifiers), "no classifier discovered in the current release"
+    return listing, classifiers[0]
 
 
 def _content_type(url: str):
@@ -24,16 +32,18 @@ def _content_type(url: str):
     return status, ct
 
 
-def test_fileadmin_classifier_url_serves_real_file():
-    url = SILVA_Fetcher().file_base_url + _CLASSIFIER
-    status, ct = _content_type(url)
+def test_fileadmin_classifier_url_serves_real_file(classifier_listing):
+    _, classifier = classifier_listing
+    status, ct = _content_type(classifier.url)
     assert status == 200
     assert "html" not in ct.lower(), f"expected a binary file, got {ct!r}"
 
 
-def test_current_release_path_is_a_cms_html_page():
+def test_current_release_path_is_a_cms_html_page(classifier_listing):
     # Documents the trap the fetcher must avoid: the browse path returns HTML.
-    url = "https://www.arb-silva.de/current-release/" + _CLASSIFIER
+    _, classifier = classifier_listing
+    fetcher = SILVA_Fetcher()
+    url = classifier.url.replace(fetcher.file_base_url, fetcher.current_release_url, 1)
     _, ct = _content_type(url)
     assert "html" in ct.lower()
 
@@ -63,11 +73,9 @@ def test_list_archive_releases_live_is_not_empty():
     assert all(name.startswith("release_") for name in names)
 
 
-def test_list_current_files_exposes_classifier_and_md5():
-    data = SILVA_Fetcher().list_current_files("QIIME2/2025.7/taxonomic-weights")
+def test_list_current_files_exposes_classifier_and_md5(classifier_listing):
+    data, classifier = classifier_listing
     names = data.names()
-    classifier = "SILVA_138.2_Ref_NR99_taxonomic-weight_human-oral.qza"
-    assert classifier in names, "classifier leaf not discovered in listing"
-    assert f"{classifier}.md5" in names, "published md5 sidecar not discovered"
-    assert data[classifier].is_dir is False
-    assert "/fileadmin/silva_databases/current/" in data[classifier].url
+    assert f"{classifier.name}.md5" in names, "published md5 sidecar not discovered"
+    assert classifier.is_dir is False
+    assert "/fileadmin/silva_databases/current/" in classifier.url

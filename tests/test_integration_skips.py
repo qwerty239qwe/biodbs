@@ -77,5 +77,16 @@ def test_ci_runs_for_dev_pushes_and_pull_requests():
         assert "dev" in workflow["on"][event]["branches"]
 
 
+def test_quickgo_ora_runs_separately_with_a_longer_timeout():
+    root = Path(__file__).resolve().parents[1]
+    workflow = yaml.safe_load((root / ".github/workflows/ci.yml").read_text(encoding="utf-8"))
+    integration = workflow["jobs"]["integration"]
+    services = {job["service"]: job for job in integration["strategy"]["matrix"]["include"]}
+    assert services["quickgo"]["target"] == "tests/test_fetch/quickgo"
+    assert services["quickgo-ora"]["target"] == "tests/test_analysis/test_ora.py::TestORAGo"
+    assert services["quickgo-ora"]["timeout_minutes"] == 25
+    assert integration["timeout-minutes"] == "${{ matrix.timeout_minutes || 12 }}"
+
+
 def test_validation_errors_still_fail():
     assert _external_service_skip_reason(APIValidationError("KEGG")) is None

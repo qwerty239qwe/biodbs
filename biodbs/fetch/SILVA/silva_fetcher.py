@@ -103,7 +103,7 @@ class SILVA_Fetcher:
 
         *path* is relative to the SILVA file base (``fileadmin/silva_databases/
         current/``), e.g. ``"VERSION.txt"`` or
-        ``"QIIME2/2025.7/taxonomic-weights/<file>.qza"``. Set *verify_md5* to check
+        ``"QIIME2/<release>/taxonomic-weights/<file>.qza"``. Set *verify_md5* to check
         the file against SILVA's published ``<file>.md5`` sidecar.
         """
         target = Path(dest)
@@ -135,8 +135,10 @@ class SILVA_Fetcher:
         *filename* is the path **below** the classifier directory (SILVA nests
         classifiers by release/marker), e.g. for ``kind="qiime2"``::
 
-            "2025.7/taxonomic-weights/SILVA_138.2_Ref_NR99_taxonomic-weight_human-oral.qza"
-            "2025.7/SSU/V4V5-515f-926r/weighted/human-oral/SILVA138.2_..._human-oral.qza"
+            "<release>/taxonomic-weights/<classifier>.qza"
+
+        Discover the current release and exact filename with
+        :meth:`list_current_files`; release folders and filenames change.
 
         Downloads are verified against SILVA's published ``.md5`` by default; pass
         ``verify=False`` to skip.

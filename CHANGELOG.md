@@ -18,6 +18,10 @@ any two reference databases on it.
 
 ### Reliability fixes
 
+- Discover current SILVA classifiers in live checks and documentation rather than
+  relying on a retired release folder. Keep binary-header and MD5-listing checks.
+- Give whole-organism QuickGO ORA checks a separate, longer CI job, and use GO IDs
+  when annotation names are missing so pathway caches can be written and reused.
 - Correct Ensembl symbol translation namespaces and stable-ID identity mappings.
 - Read all UniProt mapping and explicit-ID NCBI gene-report pages.
 - Preserve duplicate multi-target rows and chemical dictionary input keys; omit

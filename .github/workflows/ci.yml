@@ -46,7 +46,7 @@ jobs:
   integration:
     runs-on: ubuntu-latest
     needs: test
-    timeout-minutes: 12
+    timeout-minutes: ${{ matrix.timeout_minutes || 12 }}
     strategy:
       fail-fast: false
       matrix:
@@ -64,7 +64,10 @@ jobs:
           - service: pubchem
             target: tests/test_fetch/pubchem tests/test_translate/test_chem.py::TestTranslateChemicalIds tests/test_translate/test_chem.py::TestTranslateChemicalIdsMultipleTargets tests/test_translate/test_chem.py::TestTranslatePubchemToChembl
           - service: quickgo
-            target: tests/test_fetch/quickgo tests/test_analysis/test_ora.py::TestORAGo
+            target: tests/test_fetch/quickgo
+          - service: quickgo-ora
+            target: tests/test_analysis/test_ora.py::TestORAGo
+            timeout_minutes: 25
           - service: reactome
             target: tests/test_fetch/reactome tests/test_analysis/test_ora.py::TestORAReactome tests/test_analysis/test_ora.py::TestORAReactomeLocal
           - service: silva

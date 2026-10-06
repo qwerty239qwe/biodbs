@@ -696,7 +696,7 @@ def _get_go_terms(
 
     for annot in data.results:
         go_id = annot.get("goId", "")
-        go_name = annot.get("goName", go_id)
+        go_name = annot.get("goName") or go_id
         gene_id = annot.get("geneProductId", "")
 
         if go_id and gene_id:
