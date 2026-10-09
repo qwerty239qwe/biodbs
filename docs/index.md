@@ -5,9 +5,10 @@
 ## Features
 
 - **Unified API** - Consistent interface across all supported databases
-- **Four Namespaces** - Clear separation of concerns:
+- **Five Namespaces** - Clear separation of concerns:
     - `biodbs.fetch` - Data retrieval from external databases
     - `biodbs.translate` - ID mapping between databases
+    - `biodbs.taxonomy` - Offline taxonomy references and cross-database taxon mapping
     - `biodbs.analysis` - Statistical analysis (ORA, enrichment)
     - `biodbs.graph` - Knowledge graph building and export
 - **Multiple Output Formats** - pandas/Polars DataFrames, CSV, JSON, SQLite
@@ -44,6 +45,9 @@
 | **UNITE** | Fungal/eukaryote ITS reference archives (via PlutoF) | `biodbs.fetch.UNITE` |
 
 ## Quick Example
+
+For full reusable offline references, see
+[Build Mapping Databases](getting-started/mapping-databases.md).
 
 ```python
 from biodbs.fetch import uniprot_get_entry, pubchem_get_compound

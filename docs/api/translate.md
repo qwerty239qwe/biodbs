@@ -85,6 +85,7 @@ result = translate_gene_ids(
 | Function | Description |
 |----------|-------------|
 | [`translate_chemical_ids`](#translate_chemical_ids) | Translate chemical IDs via PubChem, ChEMBL, or KEGG |
+| [`build_chemical_mapping_db`](#build_chemical_mapping_db) | Build an indexed offline ChEMBL/PubChem CID crosswalk from UniChem |
 | [`translate_chemical_ids_kegg`](#translate_chemical_ids_kegg) | Translate chemical IDs using KEGG API |
 | [`translate_chembl_to_pubchem`](#translate_chembl_to_pubchem) | Map ChEMBL IDs to PubChem CIDs |
 | [`translate_pubchem_to_chembl`](#translate_pubchem_to_chembl) | Map PubChem CIDs to ChEMBL IDs |
@@ -127,6 +128,13 @@ result = translate_gene_ids(
 ---
 
 ## Chemical Translation
+
+### build_chemical_mapping_db
+
+::: biodbs._funcs.translate.chemical_db.build_chemical_mapping_db
+    options:
+      show_root_heading: true
+      show_source: false
 
 ### translate_chemical_ids
 

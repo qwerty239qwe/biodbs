@@ -11,9 +11,10 @@
 ## Features
 
 - **Unified API**: Consistent interface across all supported databases
-- **Four Namespaces**: Clear separation of concerns
+- **Five Namespaces**: Clear separation of concerns
   - `biodbs.fetch` - Data retrieval from external databases
   - `biodbs.translate` - ID mapping between databases
+  - `biodbs.taxonomy` - Offline taxonomy references and cross-database taxon mapping
   - `biodbs.analysis` - Statistical analysis (ORA, enrichment)
   - `biodbs.graph` - Knowledge graph building and export
 - **Multiple Output Formats**: pandas/Polars DataFrames, CSV, JSON, SQLite
@@ -62,6 +63,10 @@ uv add biodbs
 ```
 
 ## Quick Start
+
+Want a reusable **offline reference database**, rather than translating a list
+of IDs online? See [Build Mapping Databases](docs/getting-started/mapping-databases.md)
+for the shortest gene, chemical, and taxonomy recipes and their coverage limits.
 
 ### Namespace Overview
 
@@ -157,10 +162,10 @@ from biodbs.translate import (
 # Gene symbols to Ensembl IDs
 result = translate_gene_ids(
     ["TP53", "BRCA1", "EGFR"],
-    from_type="external_gene_name",
+    from_type="gene_symbol",
     to_type="ensembl_gene_id"
 )
-# FetchedData with columns: external_gene_name, ensembl_gene_id
+# pandas DataFrame (NCBI default backend)
 
 # Compound names to PubChem CIDs
 result = translate_chemical_ids(
@@ -168,7 +173,7 @@ result = translate_chemical_ids(
     from_type="name",
     to_type="cid"
 )
-# FetchedData with columns: name, cid
+# pandas DataFrame with columns: name, cid
 
 # Gene symbols to UniProt accessions
 mapping = translate_gene_to_uniprot(["TP53", "BRCA1", "EGFR"])
@@ -186,7 +191,7 @@ mapping = translate_protein_ids(
 # Get as dictionary
 mapping = translate_gene_ids(
     ["TP53", "BRCA1"],
-    from_type="external_gene_name",
+    from_type="gene_symbol",
     to_type="ensembl_gene_id",
     return_dict=True
 )
@@ -198,6 +203,33 @@ chembl_to_pubchem = translate_chembl_to_pubchem(["CHEMBL25", "CHEMBL521"])
 pubchem_to_chembl = translate_pubchem_to_chembl([2244, 2519])
 # {2244: 'CHEMBL25', 2519: 'CHEMBL521'}
 ```
+
+### Build an Offline Chemical Mapping Database
+
+Build the full published UniChem ChEMBL/PubChem **CID** crosswalk once, then
+query it without a network connection:
+
+```python
+import sqlite3
+from biodbs.translate import build_chemical_mapping_db
+
+# Run once while online; returns the database Path.
+path = build_chemical_mapping_db("mapping.db", source="unichem")
+
+# On later runs, skip the build and query the saved database directly.
+with sqlite3.connect("file:mapping.db?mode=ro", uri=True) as db:
+    cids = db.execute(
+        "SELECT pubchem_cid FROM chemical_mapping WHERE chembl_id=?", ("CHEMBL25",),
+    ).fetchall()
+```
+
+Both directions are indexed, and `fetchall()` preserves multiple matches.
+Unrelated tables in the file are preserved; existing builder tables raise
+`ValueError` rather than being overwritten. Refresh into a new file. This is
+UniChem's published coverage, not every PubChem compound, and online translators
+do not automatically use the file. See
+[Build Mapping Databases](docs/getting-started/mapping-databases.md#full-chemblpubchem-cid-reference)
+for reverse queries, provenance, disk-space considerations, and gene/taxon recipes.
 
 ### Over-Representation Analysis (ORA)
 

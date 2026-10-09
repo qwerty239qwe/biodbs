@@ -2,9 +2,13 @@
 
 This guide will help you get started with biodbs in just a few minutes.
 
-## The Four Namespaces
+To build a full reusable gene, chemical, or taxonomy reference for **offline**
+mapping, start with [Build Mapping Databases](mapping-databases.md). The online
+translation examples below map only the supplied identifiers.
 
-biodbs is organized into four main namespaces:
+## The Five Namespaces
+
+biodbs is organized into five main namespaces:
 
 ```python
 # Data fetching - retrieve data from databases
@@ -12,6 +16,9 @@ from biodbs.fetch import uniprot_get_entry, pubchem_get_compound
 
 # ID translation - map between identifier systems
 from biodbs.translate import translate_gene_ids, translate_protein_ids
+
+# Taxonomy - load offline references and join taxonomic mappings
+from biodbs.taxonomy import TaxonomyMapper, load_taxdump
 
 # Analysis - enrichment and statistics
 from biodbs.analysis import ora_kegg, ora_go
@@ -112,7 +119,7 @@ For more control, use the [`Ensembl_Fetcher`](../api/fetch.md#ensembl_fetcher) o
 
 Translate between different identifier systems using functions from the [`translate`](../api/translate.md) module:
 
-- [`translate_gene_ids`](../api/translate.md#translate_gene_ids) - Gene ID conversion via BioMart
+- [`translate_gene_ids`](../api/translate.md#translate_gene_ids) - Gene ID conversion (NCBI by default; other backends are optional)
 - [`translate_protein_ids`](../api/translate.md#translate_protein_ids) - Protein ID mapping via UniProt
 - [`translate_chemical_ids`](../api/translate.md#translate_chemical_ids) - Chemical ID translation via PubChem
 - [`translate_gene_to_uniprot`](../api/translate.md#translate_gene_to_uniprot) - Gene symbols to UniProt accessions
@@ -128,7 +135,7 @@ from biodbs.translate import (
 # Gene symbols to Ensembl IDs
 result = translate_gene_ids(
     ["TP53", "BRCA1"],
-    from_type="external_gene_name",
+    from_type="gene_symbol",
     to_type="ensembl_gene_id",
     return_dict=True
 )
@@ -154,6 +161,36 @@ result = translate_chemical_ids(
     to_type="cid"
 )
 ```
+
+## Build an Offline Chemical Mapping Database
+
+Use the path-based builder to save the full published UniChem ChEMBL/PubChem CID
+crosswalk, then query the indexed SQLite file locally:
+
+```python
+import sqlite3
+from biodbs.translate import build_chemical_mapping_db
+
+# Build once with a network connection.
+path = build_chemical_mapping_db("mapping.db", source="unichem")
+
+# Later, omit the build step: this query is offline.
+with sqlite3.connect("file:mapping.db?mode=ro", uri=True) as db:
+    chembl_ids = db.execute(
+        "SELECT chembl_id FROM chemical_mapping WHERE pubchem_cid=?", (2244,),
+    ).fetchall()
+```
+
+The builder returns a `Path` and creates `chemical_mapping(chembl_id, pubchem_cid)`
+plus provenance metadata. Both IDs are indexed. Keep all returned rows because
+matches can be one-to-many. Existing builder tables raise `ValueError`; refresh
+into a new file instead. Other tables are preserved. Online translators remain
+unchanged and do not automatically read this database.
+
+Only `source="unichem"` is supported. Its published crosswalk does not guarantee
+a match for every compound. See [Build Mapping Databases](mapping-databases.md#full-chemblpubchem-cid-reference)
+for forward queries, validation, temporary-download disk usage, and gene/taxon
+references.
 
 ## Enrichment Analysis
 

@@ -48,6 +48,7 @@ from biodbs._funcs.translate import (
     translate_gene_ids,
     translate_gene_ids_kegg,
     # Chemical translation
+    build_chemical_mapping_db,
     translate_chemical_ids,
     translate_chemical_ids_kegg,
     translate_chembl_to_pubchem,
@@ -77,6 +78,7 @@ __all__ = [
     "translate_gene_ids",
     "translate_gene_ids_kegg",
     # Chemical translation
+    "build_chemical_mapping_db",
     "translate_chemical_ids",
     "translate_chemical_ids_kegg",
     "translate_chembl_to_pubchem",

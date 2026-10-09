@@ -2,6 +2,10 @@
 
 Translate between chemical identifiers using PubChem, KEGG, and ChEMBL.
 
+For a full offline ChEMBL/PubChem CID reference, use the path-based
+[`build_chemical_mapping_db`](../getting-started/mapping-databases.md#full-chemblpubchem-cid-reference)
+builder. Online translation functions below still query their existing backends.
+
 ## Quick Start
 
 ```python
@@ -16,6 +20,25 @@ result = translate_chemical_ids(
     to_type="cid"
 )
 ```
+
+## Build an Offline Chemical Reference
+
+```python
+from biodbs.translate import build_chemical_mapping_db
+
+path = build_chemical_mapping_db("mapping.db", source="unichem")
+```
+
+This builds the full published UniChem ChEMBL/PubChem **CID** crosswalk in
+`chemical_mapping(chembl_id, pubchem_cid)`, with indexes for both query directions,
+distinct one-to-many pairs, and provenance metadata. It returns a `Path` and
+preserves unrelated tables. Existing builder tables raise `ValueError`, so use a
+new file for updates. Only the `"unichem"` source is supported; not every compound
+has a published match.
+
+After building, query the saved file using SQLite; no network is needed. See the
+[offline query examples](../getting-started/mapping-databases.md#full-chemblpubchem-cid-reference).
+The online translation functions below do not automatically use this database.
 
 ## translate_chemical_ids
 

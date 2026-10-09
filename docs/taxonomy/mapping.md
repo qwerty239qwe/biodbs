@@ -36,6 +36,9 @@ lineage mapping, and `merge_on_hub` stay in the taxonomy API.
 
 ## Offline / bulk resolution with a taxdump
 
+For full-reference persistence, SQLite export, and coverage limits, see
+[Build Mapping Databases](../getting-started/mapping-databases.md).
+
 ```python
 from biodbs.fetch import ncbi_download_taxdump
 from biodbs.taxonomy import TaxonomyMapper, load_taxdump

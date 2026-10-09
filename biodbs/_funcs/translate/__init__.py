@@ -21,6 +21,7 @@ from biodbs._funcs.translate.proteins import (
     translate_uniprot_to_refseq,
 )
 from biodbs._funcs.translate.taxa import translate_taxon_names
+from biodbs._funcs.translate.chemical_db import build_chemical_mapping_db
 from biodbs._funcs.translate.mappers import GeneMapper, ChemicalMapper, ProteinMapper
 
 __all__ = [
@@ -38,6 +39,7 @@ __all__ = [
     "translate_gene_ids",
     "translate_gene_ids_kegg",
     # Chemical translation
+    "build_chemical_mapping_db",
     "translate_chemical_ids",
     "translate_chemical_ids_kegg",
     "translate_chembl_to_pubchem",
