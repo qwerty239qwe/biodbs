@@ -343,6 +343,26 @@ python -m pytest tests/test_translate/test_quality.py -m integration -q --durati
 
 ## KEGG Translation
 
+KEGG conversion is available through the main translator:
+
+```python
+result = translate_gene_ids(
+    ["hsa:7157"], "kegg_gene", "entrez_id", database="kegg"
+)
+# source_id: hsa:7157; target_id: ncbi-geneid:7157
+```
+
+Use `species` to choose the organism for the `kegg_gene` namespace, or use native
+KEGG organism codes such as `hsa`/`mmu`. External types are `entrez_id`/
+`ncbi-geneid`, `ncbi-proteinid`, and `uniprot_id`/`uniprot`. Results retain KEGG's
+prefixes and `source_id`/`target_id` columns; scalar dictionaries select the first
+mapping. One target type is accepted. Empty inputs make no request unless
+`bulk=True`; other gene backends reject bulk conversion. `GeneMapper` can store
+the backend/species configuration but is not required.
+
+The original helper remains supported with its existing output and empty-input
+whole-database behavior:
+
 `translate_gene_ids_kegg` uses KEGG's `conv` endpoint, which maps between KEGG
 organism-specific gene IDs and external databases.
 

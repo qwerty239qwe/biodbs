@@ -6,8 +6,12 @@ Complete reference for `biodbs.translate` module.
 
 - **Universal ID aliases**: Use `GeneIDType` enum values (e.g. `"gene_symbol"`, `"entrez_id"`)
   instead of database-native field names — the correct name is resolved per backend automatically.
-- **Multiple Target Types**: All main translation functions accept either a single target type
+- **Multiple Target Types**: Gene, protein, and chemical translators accept either a single target type
   or a list. When a list is provided, all target IDs are returned in one call.
+  The KEGG routes currently accept a single target type.
+- **Optional mappers**: Defaults work without mapper objects. See
+  [reusable mappers](../translate/index.md#optional-reusable-mappers) for configuration
+  and compatibility rules.
 
 ```python
 from biodbs.translate import translate_gene_ids, GeneIDType
@@ -26,6 +30,26 @@ result = translate_gene_ids(
     to_type=["ensembl_gene_id", "entrez_id", "hgnc_id"]
 )
 ```
+
+## Mappers
+
+### GeneMapper
+
+::: biodbs._funcs.translate.mappers.GeneMapper
+    options:
+      show_source: false
+
+### ChemicalMapper
+
+::: biodbs._funcs.translate.mappers.ChemicalMapper
+    options:
+      show_source: false
+
+### ProteinMapper
+
+::: biodbs._funcs.translate.mappers.ProteinMapper
+    options:
+      show_source: false
 
 ## Enums
 
@@ -60,7 +84,7 @@ result = translate_gene_ids(
 
 | Function | Description |
 |----------|-------------|
-| [`translate_chemical_ids`](#translate_chemical_ids) | Translate chemical IDs via PubChem |
+| [`translate_chemical_ids`](#translate_chemical_ids) | Translate chemical IDs via PubChem, ChEMBL, or KEGG |
 | [`translate_chemical_ids_kegg`](#translate_chemical_ids_kegg) | Translate chemical IDs using KEGG API |
 | [`translate_chembl_to_pubchem`](#translate_chembl_to_pubchem) | Map ChEMBL IDs to PubChem CIDs |
 | [`translate_pubchem_to_chembl`](#translate_pubchem_to_chembl) | Map PubChem CIDs to ChEMBL IDs |
@@ -75,6 +99,12 @@ result = translate_gene_ids(
 | [`translate_uniprot_to_pdb`](#translate_uniprot_to_pdb) | Map UniProt accessions to PDB IDs |
 | [`translate_uniprot_to_ensembl`](#translate_uniprot_to_ensembl) | Map UniProt accessions to Ensembl gene IDs |
 | [`translate_uniprot_to_refseq`](#translate_uniprot_to_refseq) | Map UniProt accessions to RefSeq protein IDs |
+
+### Taxonomic Name Translation
+
+| Function | Description |
+|----------|-------------|
+| [`translate_taxon_names`](#translate_taxon_names) | Resolve names to NCBI taxids using a configured taxonomy mapper |
 
 ---
 
@@ -171,6 +201,20 @@ result = translate_gene_ids(
     options:
       show_root_heading: true
       show_source: false
+
+---
+
+## Taxonomic Name Translation
+
+### translate_taxon_names
+
+::: biodbs._funcs.translate.taxa.translate_taxon_names
+    options:
+      show_root_heading: true
+      show_source: false
+
+See the [taxonomy mapping guide](../taxonomy/mapping.md) for mapper configuration,
+offline taxdump loading, lineage mapping, and cross-database joins.
 
 ---
 

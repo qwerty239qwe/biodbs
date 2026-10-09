@@ -10,6 +10,19 @@ any two reference databases on it.
   `load_taxdump` (parse `new_taxdump.tar.gz` into an in-memory hub table), and
   `merge_on_hub` (cross-database join). Output is a pandas DataFrame keyed on
   `hub_taxid`.
+- Added `biodbs.translate.translate_taxon_names` (also available at the top level)
+  as a thin wrapper over a configured `TaxonomyMapper.map_names`. Existing
+  taxonomy imports remain unchanged; offline regression checks cover the wrapper.
+- Unify ChEMBL/PubChem and KEGG chemical conversion under `translate_chemical_ids`,
+  and KEGG gene conversion under `translate_gene_ids`. Keep explicit SID/CID types,
+  structure checks, and legacy helper output contracts.
+- Add optional `GeneMapper`, `ChemicalMapper`, and `ProteinMapper` configuration
+  objects. Ordinary calls retain their effective defaults; explicit mapper conflicts
+  raise. Protein helpers share the main translator, with optional `all_matches`
+  and review filters. Main KEGG routes require `bulk=True` for empty-input bulk
+  queries; legacy KEGG wrappers retain their historical whole-database behavior.
+- Allow taxonomic name translation without a mapper using online NCBI resolution;
+  taxdumps are never downloaded automatically.
 - Added the **GBIF** backbone fetcher (`gbif_match_name`/`gbif_match_names`) as the
   all-life canonical-name and synonym authority.
 - Added `ncbi_taxonomy_name_to_id` (name → taxid via E-utilities esearch).

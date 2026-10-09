@@ -17,6 +17,23 @@ df = mapper.map_names(["Escherichia coli", "Bacteroides fragilis"])
 #          name_status, match_type, lineage
 ```
 
+## Translation namespace
+
+Taxonomic name resolution is also available alongside the gene, protein, and
+chemical translators:
+
+```python
+from biodbs.translate import translate_taxon_names
+
+df = translate_taxon_names(["Escherichia coli"], mapper=mapper, source="silva")
+```
+
+This delegates to `mapper.map_names` and returns the same mapping DataFrame.
+Without a mapper, the helper uses online NCBI name-to-taxid resolution only;
+canonical-name/status/rank/lineage enrichment requires a configured mapper.
+Taxdumps are never downloaded automatically. Existing `biodbs.taxonomy` imports remain supported. Taxdump loading,
+lineage mapping, and `merge_on_hub` stay in the taxonomy API.
+
 ## Offline / bulk resolution with a taxdump
 
 ```python

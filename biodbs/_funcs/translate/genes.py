@@ -2,6 +2,7 @@
 
 from typing import List, Dict, Union, Literal, TYPE_CHECKING
 import logging
+import re
 import pandas as pd
 from requests.exceptions import RequestException
 
@@ -10,6 +11,8 @@ from biodbs.fetch.KEGG.funcs import kegg_conv
 from biodbs._funcs.translate._id_types import GeneIDType, TranslationDatabase, resolve_id_type
 from biodbs._funcs._species import Species, resolve_species
 from biodbs.exceptions import APIError
+from biodbs._funcs.translate.mappers import GeneMapper
+from biodbs._funcs.translate._kegg import convert_kegg
 
 logger = logging.getLogger(__name__)
 _EXPECTED_TRANSLATION_ERRORS = (
@@ -28,9 +31,12 @@ def translate_gene_ids(
     ids: List[str],
     from_type: Union[GeneIDType, str],
     to_type: Union[GeneIDType, str, List[Union[GeneIDType, str]]],
-    species: Union[Species, str, int] = Species.HUMAN,
-    database: Union[TranslationDatabase, Literal["ncbi", "ensembl", "uniprot", "biomart", "hgnc"]] = TranslationDatabase.NCBI,
+    species: Union[Species, str, int, None] = None,
+    database: Union[TranslationDatabase, Literal["ncbi", "ensembl", "uniprot", "biomart", "hgnc", "kegg"], None] = None,
     return_dict: bool = False,
+    *,
+    mapper: GeneMapper | None = None,
+    bulk: bool = False,
 ) -> Union[Dict[str, str], Dict[str, Dict[str, str]], "pd.DataFrame"]:
     """Translate gene IDs between different identifier types.
 
@@ -57,6 +63,12 @@ def translate_gene_ids(
               Widest ID-type coverage but less reliable than the other options.
         return_dict: If True, return a dict mapping from_id -> to_id (or dict of to_ids
             when to_type is a list). If False (default), return a DataFrame.
+        mapper: Optional reusable GeneMapper. Omitted species/database settings
+            use its configuration, or human/NCBI without a mapper. Explicit
+            settings conflicting with the mapper raise ValueError.
+        bulk: Allow an empty KEGG input to convert the entire source database.
+            The KEGG backend uses native source_id/target_id DataFrame columns
+            and currently accepts a single target type.
 
     Supported ID types for NCBI:
         - symbol / gene_symbol: Gene symbol (e.g., "TP53")
@@ -159,6 +171,22 @@ def translate_gene_ids(
         # 1              BRCA1  ENSG00000012048            672
         ```
     """
+    if mapper is not None and not isinstance(mapper, GeneMapper):
+        raise TypeError("mapper must be a GeneMapper")
+    if mapper is not None:
+        if database is not None and str(getattr(database, "value", database)).lower() != str(getattr(mapper.database, "value", mapper.database)).lower():
+            raise ValueError("database conflicts with mapper.database")
+        if species is not None and resolve_species(species) != resolve_species(mapper.species):
+            raise ValueError("species conflicts with mapper.species")
+    else:
+        mapper = GeneMapper(
+            database=database if database is not None else TranslationDatabase.NCBI,
+            species=species if species is not None else Species.HUMAN,
+        )
+    return mapper.map(ids, from_type, to_type, return_dict, bulk=bulk)
+
+
+def _translate_gene_ids(ids, from_type, to_type, species, database, return_dict, *, bulk=False):
     # Normalise database: accept TranslationDatabase member or plain string
     if isinstance(database, TranslationDatabase):
         database = database.value   # e.g. "ncbi"
@@ -173,6 +201,21 @@ def translate_gene_ids(
                 f"Valid options: {valid}  "
                 f"(or use TranslationDatabase enum)"
             )
+
+    if database == "kegg":
+        if isinstance(to_type, list):
+            raise ValueError("KEGG gene translation accepts a single target type")
+        aliases = {"entrez_id": "ncbi-geneid", "uniprot_id": "uniprot"}
+        organism = resolve_species(species).kegg_code
+        source = organism if from_type == "kegg_gene" else aliases.get(from_type, from_type)
+        target = organism if to_type == "kegg_gene" else aliases.get(to_type, to_type)
+        external = {"ncbi-geneid", "ncbi-proteinid", "uniprot"}
+        if not ((source in external and re.fullmatch(r"[a-z][a-z0-9]{1,4}", target))
+                or (target in external and re.fullmatch(r"[a-z][a-z0-9]{1,4}", source))):
+            raise ValueError("KEGG gene conversion requires an organism namespace and an external gene/protein ID type")
+        return convert_kegg(ids, source, target, kegg_conv, bulk=bulk, return_dict=return_dict)
+    if bulk:
+        raise ValueError("bulk conversion is only supported by KEGG")
 
     # Resolve species to a Species enum (accepts str common name, KEGG code,
     # scientific name, taxon ID int, or Species member)
@@ -518,12 +561,7 @@ def translate_gene_ids_kegg(
         ```
     """
 
-    if ids:
-        data = kegg_conv(target_db=to_db, source=ids)
-    else:
-        data = kegg_conv(target_db=to_db, source=from_db)
-
-    return data.as_dataframe()
+    return convert_kegg(ids, from_db, to_db, kegg_conv, bulk=True)
 
 
 def _translate_via_ncbi(

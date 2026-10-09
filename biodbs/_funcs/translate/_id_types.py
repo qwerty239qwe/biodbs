@@ -199,6 +199,7 @@ class TranslationDatabase(str, Enum):
         HGNC:    HGNC REST API.  Authoritative for human gene nomenclature;
                  best for translations involving HGNC IDs, approved symbols,
                  aliases, and previous symbols.  **Human only.**
+        KEGG:    KEGG organism gene IDs and external gene/protein identifiers.
 
     Examples:
         >>> from biodbs.translate import TranslationDatabase, translate_gene_ids
@@ -216,3 +217,4 @@ class TranslationDatabase(str, Enum):
     UNIPROT = "uniprot"
     BIOMART = "biomart"
     HGNC    = "hgnc"
+    KEGG    = "kegg"

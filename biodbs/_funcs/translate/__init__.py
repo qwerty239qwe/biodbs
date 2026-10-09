@@ -20,8 +20,13 @@ from biodbs._funcs.translate.proteins import (
     translate_uniprot_to_ensembl,
     translate_uniprot_to_refseq,
 )
+from biodbs._funcs.translate.taxa import translate_taxon_names
+from biodbs._funcs.translate.mappers import GeneMapper, ChemicalMapper, ProteinMapper
 
 __all__ = [
+    "GeneMapper",
+    "ChemicalMapper",
+    "ProteinMapper",
     # Species
     "Species",
     "resolve_species",
@@ -44,4 +49,6 @@ __all__ = [
     "translate_uniprot_to_pdb",
     "translate_uniprot_to_ensembl",
     "translate_uniprot_to_refseq",
+    # Taxonomic name translation
+    "translate_taxon_names",
 ]

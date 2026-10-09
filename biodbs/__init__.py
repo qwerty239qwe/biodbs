@@ -58,6 +58,9 @@ from biodbs import taxonomy
 # Translate functions (ID mapping between databases)
 # =============================================================================
 from biodbs._funcs.translate import (
+    GeneMapper,
+    ChemicalMapper,
+    ProteinMapper,
     Species,
     resolve_species,
     GeneIDType,
@@ -68,6 +71,7 @@ from biodbs._funcs.translate import (
     translate_chemical_ids_kegg,
     translate_chembl_to_pubchem,
     translate_pubchem_to_chembl,
+    translate_taxon_names,
 )
 
 # =============================================================================
@@ -395,12 +399,16 @@ __all__ = [
     # ==========================================================================
     # TRANSLATE FUNCTIONS - ID mapping between databases
     # ==========================================================================
+    "GeneMapper",
+    "ChemicalMapper",
+    "ProteinMapper",
     "translate_gene_ids",
     "translate_gene_ids_kegg",
     "translate_chemical_ids",
     "translate_chemical_ids_kegg",
     "translate_chembl_to_pubchem",
     "translate_pubchem_to_chembl",
+    "translate_taxon_names",
 
     # ==========================================================================
     # ANALYSIS FUNCTIONS - Enrichment analysis, statistics
