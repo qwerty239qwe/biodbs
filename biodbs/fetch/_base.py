@@ -100,7 +100,8 @@ class BaseDataFetcher:
         kwargs_list: Optional[List[dict]] = None,
         rate_limit_per_second: int = 10,
         return_exceptions: bool = False,
-        progress_callback: Optional[Callable[[int, int], None]] = None
+        progress_callback: Optional[Callable[[int, int], None]] = None,
+        max_concurrency: int = 10,
     ) -> List[Any]:
         """
         Execute multiple async/sync function calls with rate limiting.
@@ -112,13 +113,18 @@ class BaseDataFetcher:
             rate_limit_per_second: Maximum number of requests per second
             return_exceptions: If True, exceptions are returned instead of raised
             progress_callback: Optional callback function(completed, total) for progress tracking
+            max_concurrency: Maximum requests in flight, independent of start rate (default 10)
             
         Returns:
             List of results from all function calls
             
         Raises:
-            ValueError: If args_list and kwargs_list have different lengths
+            ValueError: If the rate is not positive or argument lists have different lengths
         """
+        if rate_limit_per_second <= 0:
+            raise ValueError("rate_limit_per_second must be positive")
+        if not isinstance(max_concurrency, int) or max_concurrency <= 0:
+            raise ValueError("max_concurrency must be a positive integer")
         args_list = args_list or []
         kwargs_list = kwargs_list or []
         
@@ -142,22 +148,21 @@ class BaseDataFetcher:
         
         async def limited_gather():
             # Semaphore for concurrent request limiting
-            semaphore = asyncio.Semaphore(rate_limit_per_second)
+            semaphore = asyncio.Semaphore(max_concurrency)
             
-            # Track time for rate limiting
-            last_batch_time = time.time()
+            start_lock = asyncio.Lock()
+            next_start = 0.0
             completed_count = 0
             
-            async def rate_limited_call(index: int, args: tuple, kwargs: dict):
-                nonlocal completed_count, last_batch_time
+            async def rate_limited_call(args: tuple, kwargs: dict):
+                nonlocal completed_count, next_start
                 
                 async with semaphore:
-                    # Rate limiting: ensure we don't exceed requests per second
-                    if index > 0 and index % rate_limit_per_second == 0:
-                        elapsed = time.time() - last_batch_time
-                        if elapsed < 1.0:
-                            await asyncio.sleep(1.0 - elapsed)
-                        last_batch_time = time.time()
+                    async with start_lock:
+                        delay = next_start - time.monotonic()
+                        if delay > 0:
+                            await asyncio.sleep(delay)
+                        next_start = time.monotonic() + 1.0 / rate_limit_per_second
                     
                     # Execute function (handle both sync and async)
                     if is_async:
@@ -174,7 +179,7 @@ class BaseDataFetcher:
             
             # Create all tasks
             tasks = [
-                rate_limited_call(i, args_list[i], kwargs_list[i])
+                rate_limited_call(args_list[i], kwargs_list[i])
                 for i in range(total_tasks)
             ]
             

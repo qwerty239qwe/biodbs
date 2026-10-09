@@ -236,6 +236,7 @@ class KEGG_Fetcher(BaseDataFetcher):
         batch_size: int = DEFAULT_BATCH_SIZE,
         rate_limit_per_second: int = 3,
         get_option: Optional[str] = None,
+        max_concurrency: int = 10,
         **kwargs: Any,
     ) -> Union[KEGGFetchedData, Path]:
         """Fetch data for many entries by batching and concurrent requests.
@@ -256,6 +257,7 @@ class KEGG_Fetcher(BaseDataFetcher):
                 conservative with KEGG).
             get_option: For ``get`` operation, the output format (aaseq,
                 ntseq, image, json, etc.).
+            max_concurrency: Maximum requests in flight (default 10).
             **kwargs: Additional parameters (target_db for conv/link, etc.).
 
         Returns:
@@ -268,6 +270,10 @@ class KEGG_Fetcher(BaseDataFetcher):
             data = fetcher.get_all("get", genes)
             print(len(data.records))
         """
+        if rate_limit_per_second <= 0:
+            raise ValueError("rate_limit_per_second must be positive")
+        if not isinstance(max_concurrency, int) or max_concurrency <= 0:
+            raise ValueError("max_concurrency must be a positive integer")
         if operation not in ("get", "conv", "link", "ddi"):
             raise ValueError(
                 f"get_all only supports operations with dbentries: get, conv, link, ddi. "
@@ -314,6 +320,7 @@ class KEGG_Fetcher(BaseDataFetcher):
             args_list=[(batch,) for batch in batches[1:]],
             rate_limit_per_second=rate_limit_per_second,
             return_exceptions=True,
+            max_concurrency=max_concurrency,
         )
 
         # Collect results

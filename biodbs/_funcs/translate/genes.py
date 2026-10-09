@@ -2,6 +2,7 @@
 
 from typing import List, Dict, Union, Literal, TYPE_CHECKING
 import logging
+import re
 import pandas as pd
 from requests.exceptions import RequestException
 
@@ -10,6 +11,8 @@ from biodbs.fetch.KEGG.funcs import kegg_conv
 from biodbs._funcs.translate._id_types import GeneIDType, TranslationDatabase, resolve_id_type
 from biodbs._funcs._species import Species, resolve_species
 from biodbs.exceptions import APIError
+from biodbs._funcs.translate.mappers import GeneMapper
+from biodbs._funcs.translate._kegg import convert_kegg
 
 logger = logging.getLogger(__name__)
 _EXPECTED_TRANSLATION_ERRORS = (
@@ -28,9 +31,12 @@ def translate_gene_ids(
     ids: List[str],
     from_type: Union[GeneIDType, str],
     to_type: Union[GeneIDType, str, List[Union[GeneIDType, str]]],
-    species: Union[Species, str, int] = Species.HUMAN,
-    database: Union[TranslationDatabase, Literal["ncbi", "ensembl", "uniprot", "biomart", "hgnc"]] = TranslationDatabase.NCBI,
+    species: Union[Species, str, int, None] = None,
+    database: Union[TranslationDatabase, Literal["ncbi", "ensembl", "uniprot", "biomart", "hgnc", "kegg"], None] = None,
     return_dict: bool = False,
+    *,
+    mapper: GeneMapper | None = None,
+    bulk: bool = False,
 ) -> Union[Dict[str, str], Dict[str, Dict[str, str]], "pd.DataFrame"]:
     """Translate gene IDs between different identifier types.
 
@@ -57,6 +63,12 @@ def translate_gene_ids(
               Widest ID-type coverage but less reliable than the other options.
         return_dict: If True, return a dict mapping from_id -> to_id (or dict of to_ids
             when to_type is a list). If False (default), return a DataFrame.
+        mapper: Optional reusable GeneMapper. Omitted species/database settings
+            use its configuration, or human/NCBI without a mapper. Explicit
+            settings conflicting with the mapper raise ValueError.
+        bulk: Allow an empty KEGG input to convert the entire source database.
+            The KEGG backend uses native source_id/target_id DataFrame columns
+            and currently accepts a single target type.
 
     Supported ID types for NCBI:
         - symbol / gene_symbol: Gene symbol (e.g., "TP53")
@@ -96,7 +108,8 @@ def translate_gene_ids(
         - entrez_id: NCBI Gene ID
         - ensembl_gene_id: Ensembl stable gene ID
         - uniprot_id → uniprot_ids field (first accession returned)
-        - refseq_mrna / refseq_protein → refseq_accession field (first returned)
+        - refseq_mrna → refseq_accession field (first returned)
+        - refseq_protein is not provided by HGNC; use NCBI or UniProt.
 
     Returns:
         When to_type is a string:
@@ -158,6 +171,22 @@ def translate_gene_ids(
         # 1              BRCA1  ENSG00000012048            672
         ```
     """
+    if mapper is not None and not isinstance(mapper, GeneMapper):
+        raise TypeError("mapper must be a GeneMapper")
+    if mapper is not None:
+        if database is not None and str(getattr(database, "value", database)).lower() != str(getattr(mapper.database, "value", mapper.database)).lower():
+            raise ValueError("database conflicts with mapper.database")
+        if species is not None and resolve_species(species) != resolve_species(mapper.species):
+            raise ValueError("species conflicts with mapper.species")
+    else:
+        mapper = GeneMapper(
+            database=database if database is not None else TranslationDatabase.NCBI,
+            species=species if species is not None else Species.HUMAN,
+        )
+    return mapper.map(ids, from_type, to_type, return_dict, bulk=bulk)
+
+
+def _translate_gene_ids(ids, from_type, to_type, species, database, return_dict, *, bulk=False):
     # Normalise database: accept TranslationDatabase member or plain string
     if isinstance(database, TranslationDatabase):
         database = database.value   # e.g. "ncbi"
@@ -173,6 +202,21 @@ def translate_gene_ids(
                 f"(or use TranslationDatabase enum)"
             )
 
+    if database == "kegg":
+        if isinstance(to_type, list):
+            raise ValueError("KEGG gene translation accepts a single target type")
+        aliases = {"entrez_id": "ncbi-geneid", "uniprot_id": "uniprot"}
+        organism = resolve_species(species).kegg_code
+        source = organism if from_type == "kegg_gene" else aliases.get(from_type, from_type)
+        target = organism if to_type == "kegg_gene" else aliases.get(to_type, to_type)
+        external = {"ncbi-geneid", "ncbi-proteinid", "uniprot"}
+        if not ((source in external and re.fullmatch(r"[a-z][a-z0-9]{1,4}", target))
+                or (target in external and re.fullmatch(r"[a-z][a-z0-9]{1,4}", source))):
+            raise ValueError("KEGG gene conversion requires an organism namespace and an external gene/protein ID type")
+        return convert_kegg(ids, source, target, kegg_conv, bulk=bulk, return_dict=return_dict)
+    if bulk:
+        raise ValueError("bulk conversion is only supported by KEGG")
+
     # Resolve species to a Species enum (accepts str common name, KEGG code,
     # scientific name, taxon ID int, or Species member)
     species_obj = resolve_species(species)
@@ -183,6 +227,10 @@ def translate_gene_ids(
     # Handle multiple target types
     if isinstance(to_type, list):
         to_type = [resolve_id_type(t, database) for t in to_type]
+        if database == "hgnc":
+            return _translate_via_hgnc(
+                ids, from_type, to_type, species_obj.common_name, return_dict
+            )
         return _translate_multiple_targets(
             ids, from_type, to_type, species_obj.common_name, database, return_dict
         )
@@ -215,12 +263,12 @@ def _translate_multiple_targets(
 ) -> Union[Dict[str, Dict[str, str]], "pd.DataFrame"]:
     """Translate gene IDs to multiple target types."""
     # Collect results for each target type
-    all_results: Dict[str, Dict[str, str]] = {id_val: {} for id_val in ids}
+    all_results = {id_val: dict.fromkeys(to_types) for id_val in ids}
 
     for target_type in to_types:
         try:
             result = translate_gene_ids(
-                ids, from_type, target_type, species, database, return_dict=True
+                list(all_results), from_type, target_type, species, database, return_dict=True
             )
             for from_id, to_id in result.items():
                 if from_id in all_results:
@@ -237,12 +285,13 @@ def _translate_multiple_targets(
 
     # Convert to DataFrame
     records = []
-    for from_id, targets in all_results.items():
+    for from_id in ids:
+        targets = all_results[from_id]
         record = {from_type: from_id}
         record.update(targets)
         records.append(record)
 
-    return pd.DataFrame(records)
+    return pd.DataFrame(records, columns=list(dict.fromkeys([from_type, *to_types])))
 
 
 def _translate_via_biomart(
@@ -274,7 +323,7 @@ def _translate_via_biomart(
         for _, row in df.iterrows():
             from_val = row.get(from_type)
             to_val = row.get(to_type)
-            if from_val and to_val:
+            if pd.notna(from_val) and pd.notna(to_val) and from_val != "" and to_val != "":
                 mapping[from_val] = to_val
         return mapping
 
@@ -339,11 +388,10 @@ def _translate_via_ensembl(
        Uses ``lookup/id?expand=1`` to navigate the gene → transcript → translation
        tree, preferring the canonical transcript where applicable.
 
-    3. **External → Ensembl-stable** (symbol → Ensembl gene ID):
-       Uses ``xrefs/symbol``.  This endpoint always returns Ensembl gene IDs; a
-       warning is emitted if a non-gene Ensembl type was requested.
+    3. **External → stable/external** (symbol → requested ID type):
+       Uses ``xrefs/symbol`` to find a gene, then follows the stable-ID path
+       when a transcript, protein, or external ID was requested.
     """
-    import warnings
     from biodbs.fetch.ensembl.funcs import (
         ensembl_get_xrefs,
         ensembl_get_xrefs_symbol,
@@ -355,6 +403,8 @@ def _translate_via_ensembl(
     )
 
     ENSEMBL_STABLE = {"ensembl_gene_id", "ensembl_transcript_id", "ensembl_protein_id"}
+    if from_type == to_type and from_type in ENSEMBL_STABLE:
+        return dict(zip(ids, ids)) if return_dict else pd.DataFrame({from_type: ids})
 
     # External DB names that carry protein/transcript-level xrefs directly
     # (no need to chain through the gene for these)
@@ -368,7 +418,7 @@ def _translate_via_ensembl(
 
     if from_type in ENSEMBL_STABLE:
 
-        for id_val in ids:
+        for id_val in dict.fromkeys(ids):
             to_val = None
             try:
                 # ── Ensembl → Ensembl (hierarchy navigation) ────────────────
@@ -436,33 +486,28 @@ def _translate_via_ensembl(
 
     else:
         # ── External → Ensembl stable ID ────────────────────────────────────
-        # xrefs/symbol always returns Ensembl gene IDs regardless of to_type.
-        if to_type not in ENSEMBL_STABLE:
-            warnings.warn(
-                f"Ensembl REST symbol lookup always returns Ensembl gene IDs; "
-                f"cannot translate directly to {to_type!r}. "
-                f"The result column will contain Ensembl gene IDs instead. "
-                f"To get {to_type!r} output use database=TranslationDatabase.NCBI "
-                f"or database=TranslationDatabase.UNIPROT.",
-                UserWarning,
-                stacklevel=3,
-            )
-        for id_val in ids:
+        # Resolve the symbol to a gene, then reuse the stable-ID translation path.
+        for id_val in dict.fromkeys(ids):
             try:
                 data = ensembl_get_xrefs_symbol(ensembl_species, id_val)
-                ensembl_id = data.results[0].get("id") if data.results else None
-                results.append({from_type: id_val, to_type: ensembl_id})
+                ensembl_id = next((xref.get("id") for xref in data.results
+                                   if xref.get("type", "gene") == "gene" and xref.get("id")), None)
+                to_val = ensembl_id
+                if ensembl_id and to_type != "ensembl_gene_id":
+                    to_val = _translate_via_ensembl(
+                        [ensembl_id], "ensembl_gene_id", to_type, species, True
+                    ).get(ensembl_id)
+                results.append({from_type: id_val, to_type: to_val})
             except _EXPECTED_TRANSLATION_ERRORS as exc:
                 logger.debug("Failed to translate Ensembl symbol %s", id_val, exc_info=exc)
                 results.append({from_type: id_val, to_type: None})
 
-    df = pd.DataFrame(results)
-
+    by_id = dict(zip(dict.fromkeys(ids), results))
     if return_dict:
-        if df.empty:
-            return {}
-        return dict(zip(df[from_type], df[to_type]))
+        return {id_val: record[to_type] for id_val, record in by_id.items()}
 
+    df = pd.DataFrame([by_id[id_val] for id_val in ids],
+                      columns=list(dict.fromkeys([from_type, to_type])))
     return df
 
 
@@ -516,12 +561,7 @@ def translate_gene_ids_kegg(
         ```
     """
 
-    if ids:
-        data = kegg_conv(target_db=to_db, source=ids)
-    else:
-        data = kegg_conv(target_db=to_db, source=from_db)
-
-    return data.as_dataframe()
+    return convert_kegg(ids, from_db, to_db, kegg_conv, bulk=True)
 
 
 def _translate_via_ncbi(
@@ -607,15 +647,15 @@ def _hgnc_extract_field(entry, field: str):
 def _translate_via_hgnc(
     ids: List[str],
     from_type: str,
-    to_type: str,
+    to_type: Union[str, List[str]],
     species: str,
     return_dict: bool,
 ) -> Union[Dict[str, str], "pd.DataFrame"]:
     """Translate gene IDs using the HGNC REST API.
 
-    HGNC covers **human genes only**.  Each ID is looked up with a single
-    ``/fetch/{from_type}/{id}`` call; the target field is extracted from
-    the first returned :class:`HGNCEntry`.
+    HGNC covers **human genes only**. Each unique input is fetched once per
+    call; all requested target fields are extracted from that entry. Duplicate
+    input rows remain in DataFrame output. No cache persists between calls.
 
     Supports translation between any pair of::
 
@@ -633,27 +673,25 @@ def _translate_via_hgnc(
         )
 
     fetcher = HGNC_Fetcher()
-    results = []
+    to_types = list(dict.fromkeys(to_type)) if isinstance(to_type, list) else [to_type]
+    mappings = {}
 
-    for id_val in ids:
-        to_val = None
+    for id_val in dict.fromkeys(ids):
+        targets = dict.fromkeys(to_types)
         try:
             data = fetcher.fetch(from_type, id_val)
             if data.results:
-                to_val = _hgnc_extract_field(data.results[0], to_type)
+                targets = {target: _hgnc_extract_field(data.results[0], target)
+                           for target in to_types}
         except _EXPECTED_TRANSLATION_ERRORS as exc:
             logger.debug("Failed to translate HGNC ID %s", id_val, exc_info=exc)
-        results.append({from_type: id_val, to_type: to_val})
-
-    df = pd.DataFrame(results)
+        mappings[id_val] = targets
 
     if return_dict:
-        if df.empty:
-            return {}
-        return {
-            row[from_type]: row[to_type]
-            for _, row in df.iterrows()
-            if row[to_type] is not None
-        }
+        if isinstance(to_type, list):
+            return mappings
+        return {id_val: targets[to_type] for id_val, targets in mappings.items()
+                if targets[to_type] is not None}
 
-    return df
+    return pd.DataFrame([{from_type: id_val, **mappings[id_val]} for id_val in ids],
+                        columns=list(dict.fromkeys([from_type, *to_types])))

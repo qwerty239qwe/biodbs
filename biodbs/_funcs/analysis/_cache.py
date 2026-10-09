@@ -1290,6 +1290,8 @@ def get_cached_pathways(
     cache_key: str,
     cache_dir: Optional[str] = None,
     max_age: Optional[float] = None,
+    *,
+    backend: Union[str, StorageBackend] = StorageBackend.SQLITE,
 ) -> Optional[Dict[str, Tuple[str, FrozenSet[str]]]]:
     """Get cached pathway data (backwards-compatible function).
 
@@ -1297,12 +1299,13 @@ def get_cached_pathways(
         cache_key: Unique key for the cached data (e.g., "kegg_hsa").
         cache_dir: Directory for cache files.
         max_age: Maximum age in seconds (not used with new system).
+        backend: Storage backend (default sqlite).
 
     Returns:
         Cached pathway data or None if not found/expired.
     """
-    if cache_dir:
-        mgr = PathwayDBManager(storage_path=cache_dir)
+    if cache_dir or backend != StorageBackend.SQLITE:
+        mgr = PathwayDBManager(storage_path=cache_dir, backend=backend)
     else:
         mgr = _get_default_manager()
 
@@ -1314,6 +1317,8 @@ def cache_pathways(
     data: Dict[str, Tuple[str, FrozenSet[str]]],
     cache_dir: Optional[str] = None,
     expiry: Optional[float] = None,
+    *,
+    backend: Union[str, StorageBackend] = StorageBackend.SQLITE,
 ) -> bool:
     """Cache pathway data (backwards-compatible function).
 
@@ -1322,13 +1327,14 @@ def cache_pathways(
         data: Pathway data to cache (pathway_id -> (name, gene_set)).
         cache_dir: Directory for cache files.
         expiry: Expiration time in seconds.
+        backend: Storage backend (default sqlite).
 
     Returns:
         True if caching succeeded.
     """
     try:
-        if cache_dir:
-            mgr = PathwayDBManager(storage_path=cache_dir)
+        if cache_dir or backend != StorageBackend.SQLITE:
+            mgr = PathwayDBManager(storage_path=cache_dir, backend=backend)
         else:
             mgr = _get_default_manager()
 
@@ -1351,19 +1357,22 @@ def cache_pathways(
 def clear_cache(
     cache_key: Optional[str] = None,
     cache_dir: Optional[str] = None,
+    *,
+    backend: Union[str, StorageBackend] = StorageBackend.SQLITE,
 ) -> bool:
     """Clear cached data (backwards-compatible function).
 
     Args:
         cache_key: Specific cache key to clear (None = clear all).
         cache_dir: Directory for cache files.
+        backend: Storage backend (default sqlite; use json for GO caches).
 
     Returns:
         True if clearing succeeded.
     """
     try:
-        if cache_dir:
-            mgr = PathwayDBManager(storage_path=cache_dir)
+        if cache_dir or backend != StorageBackend.SQLITE:
+            mgr = PathwayDBManager(storage_path=cache_dir, backend=backend)
         else:
             mgr = _get_default_manager()
 

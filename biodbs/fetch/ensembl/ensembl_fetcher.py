@@ -1,6 +1,7 @@
 """Ensembl REST API fetcher following the standardized pattern."""
 
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
+from biodbs.fetch._rate_limit import get_http_session
 from biodbs.data.Ensembl._data_model import (
     EnsemblModel,
     EnsemblEndpoint,
@@ -93,11 +94,6 @@ class Ensembl_Fetcher(BaseDataFetcher):
             if data_manager_kws
             else None
         )
-        self._session = requests.Session()
-        self._session.headers.update({
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        })
 
     def _make_request(
         self,
@@ -119,9 +115,9 @@ class Ensembl_Fetcher(BaseDataFetcher):
 
         if is_batch and request_body:
             headers["Content-Type"] = "application/json"
-            response = requests.post(url, json=request_body, params=query_params, headers=headers)
+            response = get_http_session().post(url, json=request_body, params=query_params, headers=headers, timeout=30)
         else:
-            response = requests.get(url, params=query_params, headers=headers)
+            response = get_http_session().get(url, params=query_params, headers=headers, timeout=30)
 
         return response
 

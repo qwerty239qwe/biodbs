@@ -82,7 +82,7 @@ class FakeGene:
         self.symbol = symbol
         self.ensembl_gene_ids = ["ENSG00000141510"]
         self.swiss_prot_accessions = ["P04637"]
-        self.transcripts = [type("Transcript", (), {"accession_version": "NM_000546.6"})()]
+        self.transcripts = [type("Transcript", (), {"accession_version": "NM_000546.6", "protein": None})()]
 
 
 class FakeGenes:

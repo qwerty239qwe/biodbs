@@ -259,6 +259,13 @@ class AnnotationSearchModel(QuickGOBaseModel):
 
     Supports filtering by GO terms, gene products, taxonomy, evidence, etc.
     """
+    @field_validator("limit")
+    @classmethod
+    def validate_annotation_limit(cls, v):
+        if v is not None and v > 200:
+            raise ValueError("annotation search limit cannot exceed 200")
+        return v
+
     # GO term filters
     goId: Optional[Union[str, List[str]]] = None
     goUsage: Optional[GOUsage] = None
@@ -463,6 +470,10 @@ class QuickGOModel(BaseModel):
     @model_validator(mode="after")
     def validate_category_requirements(self):
         cat = QuickGOCategory(self.category) if isinstance(self.category, str) else self.category
+
+        if (cat == QuickGOCategory.annotation and self.endpoint == "search"
+                and self.limit is not None and self.limit > 200):
+            raise ValueError("annotation search limit cannot exceed 200")
 
         if cat == QuickGOCategory.ontology:
             # Ontology endpoints require ontology type

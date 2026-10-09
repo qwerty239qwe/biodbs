@@ -21,6 +21,7 @@ class TestUniProtFetcherBasic:
         assert fetcher._api_config.RATE_LIMIT == 10
 
 
+@pytest.mark.integration
 class TestUniProtFetcherEntryAPI:
     """API integration tests for UniProt entry retrieval."""
 
@@ -62,6 +63,7 @@ class TestUniProtFetcherEntryAPI:
         assert len(result) == 0
 
 
+@pytest.mark.integration
 class TestUniProtFetcherSearchAPI:
     """API integration tests for UniProt search."""
 
@@ -95,6 +97,7 @@ class TestUniProtFetcherSearchAPI:
         assert len(result) > 0
 
 
+@pytest.mark.integration
 class TestUniProtFetcherIDMappingAPI:
     """API integration tests for UniProt ID mapping."""
 
@@ -117,6 +120,7 @@ class TestUniProtFetcherIDMappingAPI:
         assert mapping == {}
 
 
+@pytest.mark.integration
 class TestUniProtFetcherConvenienceMethods:
     """Tests for UniProt fetcher convenience methods."""
 
@@ -148,6 +152,7 @@ class TestUniProtFetcherConvenienceMethods:
         assert seqs["P04637"].startswith("MEEP")
 
 
+@pytest.mark.integration
 class TestUniProtConvenienceFunctions:
     """Tests for UniProt convenience functions."""
 

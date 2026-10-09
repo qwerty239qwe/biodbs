@@ -127,6 +127,45 @@ class TestRateLimiter:
 
 
 class TestRetryWithBackoff:
+    @pytest.mark.parametrize("status", [429, 500, 502, 503, 504])
+    @patch("biodbs.fetch._rate_limit.time.sleep")
+    def test_real_http_error_retries_until_success(self, mock_sleep, status):
+        attempts = []
+
+        @retry_with_backoff(max_retries=2, initial_delay=0.01)
+        def request():
+            attempts.append(1)
+            response = requests.Response()
+            response.status_code = status if len(attempts) < 3 else 200
+            response.raise_for_status()
+            return response
+
+        assert request().status_code == 200
+        assert len(attempts) == 3
+        assert [call.args[0] for call in mock_sleep.call_args_list] == [0.01, 0.02]
+
+    @pytest.mark.parametrize("status,expected_attempts", [(503, 3), (404, 1), (400, 1), (None, 1)])
+    @patch("biodbs.fetch._rate_limit.time.sleep")
+    def test_real_http_error_exhaustion_and_non_retryable_errors(
+        self, mock_sleep, status, expected_attempts
+    ):
+        attempts = []
+        response = requests.Response() if status is not None else None
+        if response is not None:
+            response.status_code = status
+        error = requests.HTTPError("failed", response=response)
+
+        @retry_with_backoff(max_retries=2, initial_delay=0.01)
+        def request():
+            attempts.append(1)
+            raise error
+
+        with pytest.raises(requests.HTTPError) as caught:
+            request()
+        assert caught.value is error
+        assert len(attempts) == expected_attempts
+        assert mock_sleep.call_count == expected_attempts - 1
+
     @patch("biodbs.fetch._rate_limit.time.sleep")
     def test_success_no_retry(self, mock_sleep):
         @retry_with_backoff(max_retries=3)
@@ -197,7 +236,7 @@ class TestRetryWithBackoff:
 
 
 class TestRequestWithRetry:
-    @patch("biodbs.fetch._rate_limit.requests.get")
+    @patch("biodbs.fetch._rate_limit.requests.Session.get")
     @patch("biodbs.fetch._rate_limit.time.sleep")
     def test_successful_get(self, mock_sleep, mock_get):
         mock_resp = MagicMock()
@@ -206,7 +245,7 @@ class TestRequestWithRetry:
         resp = request_with_retry("https://example.com/api", rate_limit=False)
         assert resp.status_code == 200
 
-    @patch("biodbs.fetch._rate_limit.requests.get")
+    @patch("biodbs.fetch._rate_limit.requests.Session.get")
     @patch("biodbs.fetch._rate_limit.time.sleep")
     def test_rate_limit_retry(self, mock_sleep, mock_get):
         mock_429 = MagicMock()
@@ -219,7 +258,7 @@ class TestRequestWithRetry:
         resp = request_with_retry("https://example.com/api", rate_limit=False)
         assert resp.status_code == 200
 
-    @patch("biodbs.fetch._rate_limit.requests.get")
+    @patch("biodbs.fetch._rate_limit.requests.Session.get")
     @patch("biodbs.fetch._rate_limit.time.sleep")
     def test_timeout_retry(self, mock_sleep, mock_get):
         mock_200 = MagicMock()

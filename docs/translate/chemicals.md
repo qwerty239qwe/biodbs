@@ -2,13 +2,15 @@
 
 Translate between chemical identifiers using PubChem, KEGG, and ChEMBL.
 
+For a full offline ChEMBL/PubChem CID reference, use the path-based
+[`build_chemical_mapping_db`](../getting-started/mapping-databases.md#full-chemblpubchem-cid-reference)
+builder. Online translation functions below still query their existing backends.
+
 ## Quick Start
 
 ```python
 from biodbs.translate import (
     translate_chemical_ids,
-    translate_chembl_to_pubchem,
-    translate_pubchem_to_chembl,
 )
 
 # Compound names to PubChem CIDs
@@ -19,9 +21,30 @@ result = translate_chemical_ids(
 )
 ```
 
+## Build an Offline Chemical Reference
+
+```python
+from biodbs.translate import build_chemical_mapping_db
+
+path = build_chemical_mapping_db("mapping.db", source="unichem")
+```
+
+This builds the full published UniChem ChEMBL/PubChem **CID** crosswalk in
+`chemical_mapping(chembl_id, pubchem_cid)`, with indexes for both query directions,
+distinct one-to-many pairs, and provenance metadata. It returns a `Path` and
+preserves unrelated tables. Existing builder tables raise `ValueError`, so use a
+new file for updates. Only the `"unichem"` source is supported; not every compound
+has a published match.
+
+After building, query the saved file using SQLite; no network is needed. See the
+[offline query examples](../getting-started/mapping-databases.md#full-chemblpubchem-cid-reference).
+The online translation functions below do not automatically use this database.
+
 ## translate_chemical_ids
 
-Translate between chemical identifier types using PubChem.
+Translate between chemical identifier types using PubChem, ChEMBL, or KEGG.
+Existing inputs retain the PubChem default; explicit cross-database namespaces
+select their route automatically. A mapper is optional.
 
 ```python
 from biodbs.translate import translate_chemical_ids
@@ -44,10 +67,55 @@ result = translate_chemical_ids(
 | `from_type` | str | required | Source ID type (cid, name, smiles, inchikey) |
 | `to_type` | str or List[str] | required | Target ID type(s). Pass a list for multiple targets. |
 | `return_dict` | bool | False | Return dict instead of DataFrame |
+| `database` | str or None | None | Keyword-only backend: auto, pubchem, chembl, kegg |
+| `mapper` | ChemicalMapper or None | None | Optional reusable backend configuration |
+| `bulk` | bool | False | Explicit whole-database KEGG conversion for empty input |
+
+### Unified Cross-Database Translation
+
+```python
+from biodbs.translate import translate_chemical_ids
+
+forward = translate_chemical_ids(["CHEMBL25"], "chembl_id", "cid", return_dict=True)
+# {'CHEMBL25': 2244}
+reverse = translate_chemical_ids([2244], "cid", "chembl_id", return_dict=True)
+# {2244: 'CHEMBL25'}
+
+kegg = translate_chemical_ids(
+    ["cpd:C00022"], "kegg_compound", "pubchem_sid", database="kegg"
+)
+# source_id / target_id columns; PubChem values retain the pubchem: SID prefix
+```
+
+`chembl_id` can also be combined with PubChem property targets such as `formula`
+or `inchikey`. ChEMBL/PubChem matching keeps the structure checks described below;
+generic cross-reference numbers are not treated as CIDs. Repeated ChEMBL inputs
+are resolved once, and properties for reverse mappings are batched by unique CID.
+
+The KEGG route accepts one target type and requires a KEGG compound/drug namespace
+on one side. Types are `kegg_compound`/`compound`, `kegg_drug`/`drug`, `pubchem_sid`,
+and `chebi`. `cid` is rejected by this route. Prefixed source IDs and target IDs
+are preserved; dictionary output selects the first match per source. Empty inputs
+make no request unless `bulk=True`. Legacy `translate_chemical_ids_kegg` still
+interprets empty input as a whole-database query.
+
+The old ChEMBL helpers remain compatibility wrappers with their original columns
+(`chembl_id`/`pubchem_cid`) and dictionary defaults.
 
 ### Multiple Target Types
 
 Get multiple ID types in one call (more efficient than separate calls):
+
+Target properties are fetched together in batches of up to **100 unique CIDs**.
+Repeated inputs are resolved once, and aliases sharing a CID reuse its properties.
+Name/SMILES/InChIKey inputs first require a CID lookup. Responses are matched by
+CID, not row position; missing or failed batch members fall back to individual
+requests so invalid compounds do not discard valid mappings. Rate limits, server
+outages, and timeouts do not trigger a per-compound retry storm. DataFrames preserve
+input order and duplicate rows.
+Dictionaries retain the original input keys, including string CIDs, and use
+`None` for unresolved mappings. Name searches select the first returned CID;
+use structure identifiers when names are ambiguous.
 
 ```python
 result = translate_chemical_ids(
@@ -131,8 +199,17 @@ result = translate_chemical_ids_kegg(
 |------|-------------|
 | `compound` | KEGG Compound |
 | `drug` | KEGG Drug |
-| `pubchem` | PubChem CID |
+| `pubchem` | PubChem Substance ID (SID), **not** Compound ID (CID) |
 | `chebi` | ChEBI ID |
+
+KEGG's `pubchem:` identifiers are SIDs, as specified in the
+[KEGG API manual](https://www.kegg.jp/kegg/rest/keggapi.html). Do not pass them to
+`translate_chemical_ids(..., from_type="cid")` without resolving the SID to a CID.
+
+ChEMBL-to-PubChem mapping resolves the molecule's standard InChIKey, rather than
+assuming a generic PubChem cross-reference is a CID. The reverse mapping verifies
+the returned molecule's standard InChIKey before accepting its ChEMBL ID. Missing
+or mismatched structures remain unresolved.
 
 ## Cross-Database Translation
 
@@ -145,7 +222,7 @@ result = translate_chembl_to_pubchem(
     chembl_ids=["CHEMBL25", "CHEMBL521"],  # Aspirin, Caffeine
     return_dict=True
 )
-# {'CHEMBL25': 2244, 'CHEMBL521': 2519}
+# {'CHEMBL25': 2244, 'CHEMBL521': 3672}
 ```
 
 ### PubChem to ChEMBL
@@ -154,17 +231,21 @@ result = translate_chembl_to_pubchem(
 from biodbs.translate import translate_pubchem_to_chembl
 
 result = translate_pubchem_to_chembl(
-    cids=[2244, 2519],
+    cids=[2244, 3672],
     return_dict=True
 )
-# {2244: 'CHEMBL25', 2519: 'CHEMBL521'}
+# {2244: 'CHEMBL25', 3672: 'CHEMBL521'}
 ```
+
+Expected lookup failures, including upstream server errors, currently also produce
+`None` and are logged at DEBUG level. Do not interpret every `None` as proof that
+no mapping exists; use the fetch helpers directly when service failures must raise.
 
 ## Examples
 
 ### Build Compound Table
 
-Using multiple target types (recommended - single request):
+Using multiple target types (shares the property lookup for each compound):
 
 ```python
 from biodbs.translate import translate_chemical_ids

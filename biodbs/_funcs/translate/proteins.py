@@ -11,6 +11,7 @@ from biodbs.fetch.uniprot.funcs import (
     uniprot_map_ids,
 )
 from biodbs.exceptions import APIError
+from biodbs._funcs.translate.mappers import ProteinMapper
 
 logger = logging.getLogger(__name__)
 _EXPECTED_TRANSLATION_ERRORS = (
@@ -26,8 +27,12 @@ def translate_protein_ids(
     ids: List[str],
     from_type: str,
     to_type: Union[str, List[str]],
-    organism: int = 9606,
+    organism: int | None = None,
     return_dict: bool = False,
+    *,
+    mapper: ProteinMapper | None = None,
+    reviewed_only: bool | None = None,
+    all_matches: bool = False,
 ) -> Union[Dict[str, str], Dict[str, Dict[str, str]], "pd.DataFrame"]:
     """Translate protein/gene IDs using UniProt ID mapping service.
 
@@ -59,6 +64,12 @@ def translate_protein_ids(
             Only used for Gene_Name -> UniProt mapping.
         return_dict: If True, return dict mapping from_id -> to_id (or dict of to_ids
             when to_type is a list). If False, return DataFrame.
+        mapper: Optional ProteinMapper. Omitted organism/review settings use
+            its configuration, or human/reviewed-only without a mapper.
+            Explicit conflicting settings raise ValueError.
+        reviewed_only: Review filter for gene-name lookup (effective default True).
+        all_matches: Keep lists of target IDs in dictionaries instead of selecting
+            one match. General single-target DataFrames already retain all hits.
 
     Returns:
         When to_type is a string:
@@ -110,12 +121,33 @@ def translate_protein_ids(
         # 1  P00533    1956  ENSG00000146648      EGFR
         ```
     """
+    if mapper is not None and not isinstance(mapper, ProteinMapper):
+        raise TypeError("mapper must be a ProteinMapper")
+    if mapper is not None:
+        if organism is not None and organism != mapper.organism:
+            raise ValueError("organism conflicts with mapper.organism")
+        if reviewed_only is not None and reviewed_only != mapper.reviewed_only:
+            raise ValueError("reviewed_only conflicts with mapper.reviewed_only")
+    else:
+        mapper = ProteinMapper(
+            organism=organism if organism is not None else 9606,
+            reviewed_only=reviewed_only if reviewed_only is not None else True,
+        )
+    return mapper.map(ids, from_type, to_type, return_dict, all_matches=all_matches)
+
+
+def _translate_protein_ids(
+    ids, from_type, to_type, organism, return_dict, *, reviewed_only=True, all_matches=False,
+):
     if not ids:
         return {} if return_dict else pd.DataFrame()
 
     # Handle multiple target types
     if isinstance(to_type, list):
-        return _translate_protein_multiple_targets(ids, from_type, to_type, organism, return_dict)
+        return _translate_protein_multiple_targets(
+            ids, from_type, to_type, organism, return_dict,
+            reviewed_only=reviewed_only, all_matches=all_matches and return_dict,
+        )
 
     # ── Gene_Name ─────────────────────────────────────────────────────────────
     # UniProt ID mapping only allows Gene_Name → UniProtKB (full entry).
@@ -123,20 +155,20 @@ def translate_protein_ids(
     if from_type == "Gene_Name":
         if to_type in ("UniProtKB", "UniProtKB_AC-ID"):
             # Optimised path: search-based gene → accession lookup
-            mapping = gene_to_uniprot(ids, organism=organism, reviewed_only=True)
+            mapping = gene_to_uniprot(ids, organism=organism, reviewed_only=reviewed_only)
             if return_dict:
-                return mapping
+                return {k: [v] for k, v in mapping.items()} if all_matches else mapping
             records = [{"from": k, "to": v} for k, v in mapping.items()]
             return pd.DataFrame(records)
         else:
             # Two-step: Gene_Name → UniProt accession → to_type
-            acc_map = gene_to_uniprot(ids, organism=organism, reviewed_only=True)
+            acc_map = gene_to_uniprot(ids, organism=organism, reviewed_only=reviewed_only)
             uniprot_ids = [acc_map[g] for g in ids if g in acc_map]
             if not uniprot_ids:
                 return {} if return_dict else pd.DataFrame(columns=["from", "to"])
             target_map = uniprot_map_ids(uniprot_ids, from_db="UniProtKB_AC-ID", to_db=to_type)
             mapping = {
-                g: target_map[acc][0]
+                g: target_map[acc] if all_matches and return_dict else target_map[acc][0]
                 for g in ids
                 if (acc := acc_map.get(g)) and target_map.get(acc)
             }
@@ -149,7 +181,7 @@ def translate_protein_ids(
     if from_type in ("UniProtKB", "UniProtKB_AC-ID") and to_type == "Gene_Name":
         mapping = uniprot_to_gene(ids)
         if return_dict:
-            return mapping
+            return {k: [v] for k, v in mapping.items()} if all_matches else mapping
         records = [{"from": k, "to": v} for k, v in mapping.items()]
         return pd.DataFrame(records)
 
@@ -162,14 +194,14 @@ def translate_protein_ids(
         gene_to_acc = {g: accs[0] for g, accs in raw.items() if accs}
         if to_type in ("UniProtKB", "UniProtKB_AC-ID"):
             if return_dict:
-                return gene_to_acc
+                return raw if all_matches else gene_to_acc
             records = [{"from": k, "to": v} for k, v in gene_to_acc.items()]
             return pd.DataFrame(records)
         # Step 2: UniProt accession → to_type
         uniprot_ids = list(gene_to_acc.values())
         target_map = uniprot_map_ids(uniprot_ids, from_db="UniProtKB_AC-ID", to_db=to_type)
         mapping = {
-            g: target_map[acc][0]
+            g: target_map[acc] if all_matches and return_dict else target_map[acc][0]
             for g in ids
             if (acc := gene_to_acc.get(g)) and target_map.get(acc)
         }
@@ -185,6 +217,8 @@ def translate_protein_ids(
     mapping_result = uniprot_map_ids(ids, from_db=from_type, to_db=effective_to)
 
     if return_dict:
+        if all_matches:
+            return mapping_result
         return {k: v[0] if v else None for k, v in mapping_result.items()}
 
     records = []
@@ -204,15 +238,19 @@ def _translate_protein_multiple_targets(
     to_types: List[str],
     organism: int,
     return_dict: bool,
+    *,
+    reviewed_only: bool = True,
+    all_matches: bool = False,
 ) -> Union[Dict[str, Dict[str, str]], "pd.DataFrame"]:
     """Translate protein IDs to multiple target types."""
     # Collect results for each target type
-    all_results: Dict[str, Dict[str, str]] = {id_val: {} for id_val in ids}
+    all_results = {id_val: dict.fromkeys(to_types) for id_val in ids}
 
     for target_type in to_types:
         try:
             result = translate_protein_ids(
-                ids, from_type, target_type, organism, return_dict=True
+                list(all_results), from_type, target_type, organism, return_dict=True,
+                reviewed_only=reviewed_only, all_matches=all_matches,
             )
             for from_id, to_id in result.items():
                 if from_id in all_results:
@@ -229,12 +267,13 @@ def _translate_protein_multiple_targets(
 
     # Convert to DataFrame
     records = []
-    for from_id, targets in all_results.items():
+    for from_id in ids:
+        targets = all_results[from_id]
         record = {"from": from_id}
         record.update(targets)
         records.append(record)
 
-    return pd.DataFrame(records)
+    return pd.DataFrame(records, columns=list(dict.fromkeys(["from", *to_types])))
 
 
 def translate_gene_to_uniprot(
@@ -264,8 +303,9 @@ def translate_gene_to_uniprot(
         # {'TP53': 'P04637', 'BRCA1': 'P38398', 'EGFR': 'P00533'}
         ```
     """
-    mapping = gene_to_uniprot(
-        gene_names, organism=organism, reviewed_only=reviewed_only
+    mapping = translate_protein_ids(
+        gene_names, "Gene_Name", "UniProtKB_AC-ID", organism, True,
+        reviewed_only=reviewed_only,
     )
 
     if return_dict:
@@ -295,7 +335,7 @@ def translate_uniprot_to_gene(
         # {'P04637': 'TP53', 'P00533': 'EGFR'}
         ```
     """
-    mapping = uniprot_to_gene(accessions)
+    mapping = translate_protein_ids(accessions, "UniProtKB_AC-ID", "Gene_Name", return_dict=True)
 
     if return_dict:
         return mapping
@@ -326,7 +366,9 @@ def translate_uniprot_to_pdb(
         # {'P04637': ['1A1U', '1AIE', '1C26', '1DT7', ...]}
         ```
     """
-    mapping = uniprot_map_ids(accessions, from_db="UniProtKB_AC-ID", to_db="PDB")
+    mapping = translate_protein_ids(
+        accessions, "UniProtKB_AC-ID", "PDB", return_dict=True, all_matches=True
+    )
 
     if return_dict:
         return mapping
@@ -362,14 +404,13 @@ def translate_uniprot_to_ensembl(
         # {'P04637': 'ENSG00000141510', 'P00533': 'ENSG00000146648'}
         ```
     """
-    mapping = uniprot_map_ids(accessions, from_db="UniProtKB_AC-ID", to_db="Ensembl")
+    mapping = translate_protein_ids(accessions, "UniProtKB_AC-ID", "Ensembl", return_dict=True)
 
     if return_dict:
-        return {k: v[0] if v else None for k, v in mapping.items()}
+        return mapping
 
     records = []
-    for acc, ensembl_ids in mapping.items():
-        ensembl_id = ensembl_ids[0] if ensembl_ids else None
+    for acc, ensembl_id in mapping.items():
         records.append({"uniprot_accession": acc, "ensembl_id": ensembl_id})
 
     return pd.DataFrame(records)
@@ -395,8 +436,8 @@ def translate_uniprot_to_refseq(
         # {'P04637': ['NP_000537.3', 'NP_001119584.1', ...]}
         ```
     """
-    mapping = uniprot_map_ids(
-        accessions, from_db="UniProtKB_AC-ID", to_db="RefSeq_Protein"
+    mapping = translate_protein_ids(
+        accessions, "UniProtKB_AC-ID", "RefSeq_Protein", return_dict=True, all_matches=True
     )
 
     if return_dict:

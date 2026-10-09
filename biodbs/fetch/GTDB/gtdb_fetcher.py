@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from collections import Counter, defaultdict
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin
 
 from biodbs.data.GTDB import GTDBFile, GTDBFileListData, GTDBTableData, GTDBTextData
 from biodbs.exceptions import APIValidationError, raise_for_status
+from biodbs.fetch._download import download_binary
 from biodbs.fetch._rate_limit import get_rate_limiter, request_with_retry
 
 _BASE_URL = "https://data.gtdb.ecogenomic.org/releases/"
@@ -79,6 +81,24 @@ class GTDB_Fetcher:
         """Fetch GTDB metadata table for bac120 or ar53."""
         return self.get_table(self._find_release_file(release, domain, "metadata", ".tsv"))
 
+    def ncbi_crosswalk(self, domain: str = "bac120", release: str = "latest") -> dict[str, int]:
+        """Map GTDB species names to their majority-vote NCBI taxid.
+
+        Derived from the GTDB metadata table (columns ``gtdb_taxonomy`` and
+        ``ncbi_taxid``). The metadata file is large; call this once and reuse the
+        returned mapping.
+        """
+        # ponytail: majority vote per species; good enough for a name->taxid hub join.
+        votes: dict[str, Counter] = defaultdict(Counter)
+        for row in self.get_metadata(domain, release):
+            lineage = str(row.get("gtdb_taxonomy", ""))
+            species = lineage.rsplit("s__", 1)[-1].strip() if "s__" in lineage else ""
+            taxid_raw = str(row.get("ncbi_taxid", "")).strip()
+            if not species or not taxid_raw.isdigit():
+                continue
+            votes[species][int(taxid_raw)] += 1
+        return {species: counter.most_common(1)[0][0] for species, counter in votes.items()}
+
     def get_tree(self, domain: str = "bac120", release: str = "latest") -> GTDBTextData:
         """Fetch GTDB tree text for bac120 or ar53."""
         return self.get_text(self._find_release_file(release, domain, "tree", ".tree"))
@@ -88,17 +108,7 @@ class GTDB_Fetcher:
         target = Path(dest)
         if target.is_dir() or str(dest).endswith(("/", "\\")):
             target = target / Path(path_or_url.rstrip("/")).name
-        if target.exists() and not overwrite:
-            return target
-        target.parent.mkdir(parents=True, exist_ok=True)
-        url = self._url(path_or_url)
-        response = request_with_retry(url, stream=True)
-        raise_for_status(response, "GTDB", url=url)
-        with target.open("wb") as handle:
-            for chunk in response.iter_content(chunk_size=1024 * 1024):
-                if chunk:
-                    handle.write(chunk)
-        return target
+        return download_binary(self._url(path_or_url), target, "GTDB", overwrite=overwrite)
 
     def download_taxonomy(
         self,

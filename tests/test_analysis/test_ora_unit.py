@@ -267,6 +267,22 @@ class TestGetKeggPathways:
 # =============================================================================
 
 class TestGetGoTerms:
+    @pytest.mark.parametrize("name_fields", [{}, {"goName": None}, {"goName": ""},
+                                             {"goName": "apoptotic process"}])
+    @pytest.mark.filterwarnings("error:Cache write error")
+    @patch.object(_ora_mod, "quickgo_search_annotations_all")
+    def test_missing_name_is_cacheable_and_second_call_uses_cache(self, mock_qgo, tmp_path, name_fields):
+        mock_qgo.return_value = _mock_quickgo_data([
+            {"goId": "GO:0006915", "geneProductId": f"UniProtKB:{gene}", **name_fields}
+            for gene in ("P04637", "P38398")
+        ])
+        expected_name = name_fields.get("goName") or "GO:0006915"
+        for _ in range(2):
+            result = _get_go_terms(Species.HUMAN, min_term_size=1, cache_dir=str(tmp_path))
+            assert result["GO:0006915"].name == expected_name
+            assert result["GO:0006915"].genes == frozenset({"P04637", "P38398"})
+        mock_qgo.assert_called_once()
+
     @patch.object(_ora_mod, "get_cached_pathways")
     def test_cache_hit(self, mock_cache):
         mock_cache.return_value = {

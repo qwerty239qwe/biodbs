@@ -1,6 +1,7 @@
 """Offline tests for QuickGO fetcher network and pagination behavior."""
 
 import pytest
+from types import SimpleNamespace
 
 from biodbs.data.QuickGO.data import QuickGOFetchedData
 from biodbs.fetch.QuickGO.quickgo_fetcher import QuickGO_Fetcher
@@ -20,14 +21,14 @@ class DummyResponse:
 def test_quickgo_get_json_and_download_headers(monkeypatch):
     calls = []
 
-    def fake_get(url, params=None, headers=None):
+    def fake_get(url, params=None, headers=None, timeout=None):
         calls.append({"url": url, "params": params, "headers": headers})
         return DummyResponse(
             json_data={"results": [{"id": "GO:0006915"}], "numberOfHits": 1},
             headers={"Content-Type": "application/json"},
         )
 
-    monkeypatch.setattr("biodbs.fetch.QuickGO.quickgo_fetcher.requests.get", fake_get)
+    monkeypatch.setattr("biodbs.fetch.QuickGO.quickgo_fetcher.get_http_session", lambda: SimpleNamespace(get=fake_get))
     data = QuickGO_Fetcher().get(
         category="ontology", endpoint="search", query="apoptosis", limit=1
     )
@@ -36,14 +37,14 @@ def test_quickgo_get_json_and_download_headers(monkeypatch):
     assert calls[0]["url"].endswith("/ontology/go/search")
     assert calls[0]["params"]["query"] == "apoptosis"
 
-    def fake_tsv_get(url, params=None, headers=None):
+    def fake_tsv_get(url, params=None, headers=None, timeout=None):
         calls.append({"url": url, "params": params, "headers": headers})
         return DummyResponse(
             text="Gene\tGO\nTP53\tGO:0006915\n",
             headers={"Content-Type": "text/tsv"},
         )
 
-    monkeypatch.setattr("biodbs.fetch.QuickGO.quickgo_fetcher.requests.get", fake_tsv_get)
+    monkeypatch.setattr("biodbs.fetch.QuickGO.quickgo_fetcher.get_http_session", lambda: SimpleNamespace(get=fake_tsv_get))
     tsv = QuickGO_Fetcher().get(
         category="annotation",
         endpoint="downloadSearch",
@@ -56,10 +57,10 @@ def test_quickgo_get_json_and_download_headers(monkeypatch):
 
 def test_quickgo_fetch_page_uses_text_for_non_json(monkeypatch):
     monkeypatch.setattr(
-        "biodbs.fetch.QuickGO.quickgo_fetcher.requests.get",
-        lambda url, params=None: DummyResponse(
+        "biodbs.fetch.QuickGO.quickgo_fetcher.get_http_session",
+        lambda: SimpleNamespace(get=lambda url, params=None, timeout=None: DummyResponse(
             text="Gene\tGO\nTP53\tGO:0006915\n", headers={"Content-Type": "text/tsv"}
-        ),
+        )),
     )
 
     data = QuickGO_Fetcher()._fetch_page(

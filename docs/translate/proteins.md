@@ -7,12 +7,12 @@ Translate between protein identifiers using UniProt ID mapping.
 ```python
 from biodbs.translate import (
     translate_protein_ids,
-    translate_gene_to_uniprot,
-    translate_uniprot_to_gene,
 )
 
 # Gene symbols to UniProt
-mapping = translate_gene_to_uniprot(["TP53", "BRCA1", "EGFR"])
+mapping = translate_protein_ids(
+    ["TP53", "BRCA1", "EGFR"], "Gene_Name", "UniProtKB_AC-ID", return_dict=True
+)
 # {'TP53': 'P04637', 'BRCA1': 'P38398', 'EGFR': 'P00533'}
 ```
 
@@ -81,10 +81,44 @@ result = translate_protein_ids(
 | `to_type` | str or List[str] | required | Target ID type(s). Pass a list for multiple targets. |
 | `organism` | int | 9606 | NCBI taxonomy ID (for Gene_Name mapping) |
 | `return_dict` | bool | False | Return dict instead of DataFrame |
+| `mapper` | ProteinMapper or None | None | Keyword-only reusable organism/review configuration |
+| `reviewed_only` | bool or None | None (effective True) | Gene-name search review filter |
+| `all_matches` | bool | False | Preserve lists of matches in dictionary output |
+
+### Unified Convenience Conversions
+
+The main translator covers gene-name-to-UniProt, UniProt-to-gene-name, PDB,
+Ensembl, and RefSeq conversions. Existing convenience functions remain supported;
+their historical output column names and scalar/list choices are unchanged.
+
+```python
+mapping = translate_protein_ids(
+    ["P04637"], "UniProtKB_AC-ID", "PDB", return_dict=True, all_matches=True
+)
+# {'P04637': ['1TUP', '2OCJ', ...]}
+
+mouse = translate_protein_ids(
+    ["Trp53"], "Gene_Name", "UniProtKB_AC-ID", organism=10090,
+    reviewed_only=False, return_dict=True,
+)
+```
+
+`all_matches=True` preserves the target-stage mapping lists, including empty lists
+returned by UniProt. It does not change the gene-name lookup's choice of accession
+or the default primary-accession choice in chained GeneID conversions. General
+single-target DataFrames already expand all returned target hits. Without this
+option, scalar/nested dictionaries continue selecting the first target match.
 
 ### Multiple Target Types
 
 Get multiple ID types in one call:
+
+Each target uses its own conversion, potentially including a mapping job,
+polling, and result-page requests; one function call is not one HTTP request.
+All result pages are read. Multi-target DataFrames retain duplicate input rows
+and leave missing target values empty. Scalar/nested dictionaries select the
+first returned mapping; use `all_matches=True` or `uniprot_map_ids` for target-stage
+one-to-many matches.
 
 ```python
 result = translate_protein_ids(

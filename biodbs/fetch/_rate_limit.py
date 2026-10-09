@@ -25,6 +25,15 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
+_http_local = threading.local()
+
+
+def get_http_session() -> requests.Session:
+    """Reuse pooled connections within a thread, never across worker threads."""
+    if not hasattr(_http_local, "session"):
+        _http_local.session = requests.Session()
+    return _http_local.session
+
 
 class RateLimiter:
     """Thread-safe rate limiter that enforces requests per second limits.
@@ -187,7 +196,7 @@ def retry_with_backoff(
                 try:
                     return func(*args, **kwargs)
                 except requests.exceptions.HTTPError as e:
-                    status_code = e.response.status_code if e.response else None
+                    status_code = e.response.status_code if e.response is not None else None
                     if status_code not in retry_on or attempt == max_retries:
                         raise
 
@@ -303,20 +312,21 @@ def request_with_retry(
 
             # Make request
             if method.upper() == "GET":
-                response = requests.get(
+                response = get_http_session().get(
                     url, params=params, headers=headers, timeout=timeout, stream=stream
                 )
             elif method.upper() == "POST":
-                response = requests.post(
+                response = get_http_session().post(
                     url,
                     params=params,
                     headers=headers,
                     data=data,
                     json=json,
                     timeout=timeout,
+                    stream=stream,
                 )
             else:
-                response = requests.request(
+                response = get_http_session().request(
                     method,
                     url,
                     params=params,
@@ -324,10 +334,12 @@ def request_with_retry(
                     data=data,
                     json=json,
                     timeout=timeout,
+                    stream=stream,
                 )
 
             # Check for rate limiting response
             if response.status_code == 429:
+                response.close()
                 if attempt == max_retries:
                     retry_after_val = None
                     raw = response.headers.get("Retry-After")
@@ -359,12 +371,16 @@ def request_with_retry(
 
             # Check for server errors
             if response.status_code >= 500:
+                try:
+                    response_text = response.text[:500] if response.text else ""
+                finally:
+                    response.close()
                 if attempt == max_retries:
                     raise APIServerError(
                         service=host,
                         status_code=response.status_code,
                         url=url,
-                        response_text=response.text[:500] if response.text else "",
+                        response_text=response_text,
                     )
                 logger.warning(
                     f"Server error ({response.status_code}), retrying in {delay:.1f}s "

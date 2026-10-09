@@ -110,7 +110,7 @@ class TestHGNCIdMap:
     def test_list_fields_mapped(self):
         assert HGNC_ID_MAP[GeneIDType.UNIPROT_ID] == "uniprot_ids"
         assert HGNC_ID_MAP[GeneIDType.REFSEQ_MRNA] == "refseq_accession"
-        assert HGNC_ID_MAP[GeneIDType.REFSEQ_PROTEIN] == "refseq_accession"
+        assert GeneIDType.REFSEQ_PROTEIN not in HGNC_ID_MAP
 
     def test_hgnc_in_translation_database_enum(self):
         assert TranslationDatabase.HGNC.value == "hgnc"

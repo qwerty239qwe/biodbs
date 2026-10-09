@@ -128,14 +128,16 @@ print(limiter.get_rate("rest.uniprot.org"))  # 10 requests/sec
 
 ## Error Handling
 
-biodbs uses standard Python exceptions:
+biodbs raises `APIError` subclasses for HTTP and network failures, and
+`ValueError` for invalid input:
 
 ```python
 from biodbs.fetch import uniprot_get_entry
+from biodbs.exceptions import APIError
 
 try:
     entry = uniprot_get_entry("INVALID_ID")
-except ConnectionError as e:
+except APIError as e:
     print(f"API error: {e}")
 except ValueError as e:
     print(f"Invalid input: {e}")
@@ -146,8 +148,11 @@ except ValueError as e:
 API calls automatically retry on transient failures:
 
 - **429 Too Many Requests** - Waits and retries with backoff
-- **500-504 Server Errors** - Retries up to 3 times
-- **Timeouts** - Retries with increased timeout
+- **HTTP 5xx Server Errors** - Retries up to 3 times (4 attempts in total)
+- **Timeouts** - Retries with increasing backoff; the timeout stays unchanged
+
+The `retry_with_backoff` decorator retries HTTP 429, 500, 502, 503, and 504 by
+default. Other HTTP errors, such as 400 and 404, are raised immediately.
 
 ## Pydantic Models
 
@@ -172,6 +177,10 @@ entry.model_dump_json()        # JSON string
 ## Batch Processing
 
 For large queries, use batch methods available on the [Fetcher classes](../api/fetch.md#fetcher-classes):
+
+Methods using `schedule_process` space call starts evenly at the requested rate
+and support both synchronous and asynchronous functions. The rate must be
+positive; zero or negative values raise `ValueError`.
 
 ```python
 from biodbs.fetch.uniprot import UniProt_Fetcher

@@ -1,11 +1,11 @@
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
+from biodbs.fetch._rate_limit import get_http_session
 from biodbs.exceptions import raise_for_status
 from biodbs.data.QuickGO._data_model import QuickGOModel, QuickGOCategory
 from biodbs.data.QuickGO.data import QuickGOFetchedData, QuickGODataManager
 from typing import Dict, Any, List, Literal, Optional, Union
 from pathlib import Path
 import logging
-import requests
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ class QuickGO_Fetcher(BaseDataFetcher):
         ```
     """
 
-    DEFAULT_LIMIT = 100
+    DEFAULT_LIMIT = 200
 
     def __init__(self, **data_manager_kws: Any):
         """Initialize QuickGO fetcher.
@@ -135,15 +135,15 @@ class QuickGO_Fetcher(BaseDataFetcher):
         Returns:
             QuickGOFetchedData with parsed results.
         """
-        is_valid, err_msg = self._namespace.validate(
+        request_namespace = QuickGONameSpace()
+        is_valid, err_msg = request_namespace.validate(
             category=category, endpoint=endpoint, **kwargs
         )
         if not is_valid:
             raise ValueError(err_msg)
 
-        self._api_config.update_params(**self._namespace.valid_params)
-        url = self._api_config.api_url
-        query_params = self._namespace.valid_params.get("_query_params", {})
+        url = _build_quickgo_url(request_namespace.valid_params)
+        query_params = request_namespace.valid_params.get("_query_params", {})
         download_format = kwargs.get("downloadFormat")
 
         # Set Accept header for download requests
@@ -156,7 +156,7 @@ class QuickGO_Fetcher(BaseDataFetcher):
             }
             headers["Accept"] = accept_map.get(download_format, "text/tsv")
 
-        response = requests.get(url, params=query_params, headers=headers)
+        response = get_http_session().get(url, params=query_params, headers=headers, timeout=30)
         if response.status_code != 200:
             raise_for_status(response, "QuickGO", url=url)
 
@@ -179,7 +179,7 @@ class QuickGO_Fetcher(BaseDataFetcher):
         download_format: Optional[str] = None,
     ) -> QuickGOFetchedData:
         """Thread-safe fetch for a single page."""
-        response = requests.get(url, params=query_params)
+        response = get_http_session().get(url, params=query_params, timeout=30)
         if response.status_code != 200:
             raise_for_status(response, "QuickGO", url=url)
 
@@ -201,6 +201,7 @@ class QuickGO_Fetcher(BaseDataFetcher):
         limit_per_page: int = DEFAULT_LIMIT,
         max_records: Optional[int] = None,
         rate_limit_per_second: int = 5,
+        max_concurrency: int = 10,
         **kwargs: Any,
     ) -> Union[QuickGOFetchedData, Path]:
         """Fetch multiple pages of results concurrently.
@@ -212,14 +213,21 @@ class QuickGO_Fetcher(BaseDataFetcher):
             method: ``"concat"`` returns a single QuickGOFetchedData.
                 ``"stream_to_storage"`` streams each batch to storage and
                 returns the output file Path.
-            limit_per_page: Records per request (default 100, max 10000).
+            limit_per_page: Records per request (default 200; annotation search max 200).
             max_records: Total records to fetch. None means fetch all.
-            rate_limit_per_second: Max concurrent requests per second.
+            rate_limit_per_second: Maximum request starts per second.
+            max_concurrency: Maximum requests in flight (default 10).
             **kwargs: Forwarded to the API (goId, taxonId, etc.).
 
         Returns:
             Combined QuickGOFetchedData or Path to output file.
         """
+        if rate_limit_per_second <= 0:
+            raise ValueError("rate_limit_per_second must be positive")
+        if not isinstance(max_concurrency, int) or max_concurrency <= 0:
+            raise ValueError("max_concurrency must be a positive integer")
+        if max_records is not None and max_records < 0:
+            raise ValueError("max_records must be non-negative")
         if endpoint == "downloadSearch":
             raise ValueError(
                 "downloadSearch doesn't support pagination. Use get() instead."
@@ -234,18 +242,21 @@ class QuickGO_Fetcher(BaseDataFetcher):
         kwargs["limit"] = limit_per_page
         kwargs["page"] = 1
 
-        is_valid, err_msg = self._namespace.validate(
+        request_namespace = QuickGONameSpace()
+        is_valid, err_msg = request_namespace.validate(
             category=category, endpoint=endpoint, **kwargs
         )
         if not is_valid:
             raise ValueError(err_msg)
 
-        self._api_config.update_params(**self._namespace.valid_params)
-        base_url = self._api_config.api_url
-        base_query_params = self._namespace.valid_params.get("_query_params", {})
+        base_url = _build_quickgo_url(request_namespace.valid_params)
+        base_query_params = request_namespace.valid_params.get("_query_params", {})
         download_format = kwargs.get("downloadFormat")
 
         # First request to discover total
+        if max_records == 0:
+            empty = QuickGOFetchedData({}, endpoint=endpoint, download_format=download_format)
+            return self._finalise_quickgo(method, [empty], category, endpoint, 0)
         first_params = {**base_query_params, "limit": limit_per_page, "page": 1}
         first_page = self._fetch_page(base_url, first_params, endpoint, download_format)
 
@@ -263,7 +274,7 @@ class QuickGO_Fetcher(BaseDataFetcher):
 
         # Compute remaining pages
         if first_count >= target:
-            return self._finalise_quickgo(method, [first_page], category, endpoint)
+            return self._finalise_quickgo(method, [first_page], category, endpoint, target)
 
         # QuickGO uses 1-based page numbers
         remaining_pages_needed = (target - first_count + limit_per_page - 1) // limit_per_page
@@ -284,6 +295,7 @@ class QuickGO_Fetcher(BaseDataFetcher):
             args_list=[(p,) for p in page_numbers],
             rate_limit_per_second=rate_limit_per_second,
             return_exceptions=True,
+            max_concurrency=max_concurrency,
         )
 
         # Collect results

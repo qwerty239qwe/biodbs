@@ -14,7 +14,9 @@ from biodbs.fetch.pubchem.funcs import (
 
 from biodbs.fetch.KEGG.funcs import kegg_conv
 from biodbs.fetch.ChEMBL.funcs import chembl_get_molecule, chembl_search_molecules
-from biodbs.exceptions import APIError
+from biodbs.exceptions import APIError, APIRateLimitError, APIServerError, APITimeoutError
+from biodbs._funcs.translate.mappers import ChemicalMapper
+from biodbs._funcs.translate._kegg import convert_kegg
 
 logger = logging.getLogger(__name__)
 _EXPECTED_TRANSLATION_ERRORS = (
@@ -31,10 +33,18 @@ def translate_chemical_ids(
     from_type: str,
     to_type: Union[str, List[str]],
     return_dict: bool = False,
+    *,
+    database: str | None = None,
+    mapper: ChemicalMapper | None = None,
+    bulk: bool = False,
 ) -> Union[Dict[str, str], Dict[str, Dict[str, str]], "pd.DataFrame"]:
     """Translate chemical/compound IDs between different identifier types.
 
-    Uses PubChem for ID conversion.
+    Existing ID types use PubChem by default. Explicit ChEMBL and KEGG types
+    also support cross-database conversion without requiring a mapper.
+
+    Resolves duplicate inputs once, then fetches properties in batches of up to
+    100 unique CIDs. Matches response records by CID and preserves input rows.
 
     Supported ID types:
         - cid: PubChem Compound ID
@@ -43,15 +53,25 @@ def translate_chemical_ids(
         - inchikey: InChIKey
         - inchi: InChI string
         - formula: Molecular formula
+        - chembl_id: ChEMBL molecule ID, matched through structure identifiers
+        - kegg_compound / kegg_drug, pubchem_sid, chebi: KEGG conversion namespaces
 
     Args:
         ids: List of compound identifiers to translate.
-        from_type: Source ID type ("cid", "name", "smiles", "inchikey").
+        from_type: Source ID type (cid, name, smiles, inchikey, chembl_id),
+            or a KEGG conversion namespace listed above.
         to_type: Target ID type(s). Can be a single string or a list of strings.
             When a list is provided, multiple target IDs are returned.
-            Valid types: "cid", "name", "smiles", "inchikey", "inchi", "formula".
+            Valid PubChem/ChEMBL targets: cid, name, smiles, inchikey, inchi,
+            formula, chembl_id. KEGG accepts a single conversion namespace.
         return_dict: If True, return dict mapping from_id -> to_id (or dict of to_ids
             when to_type is a list).
+        database: Optional backend (auto, pubchem, chembl, kegg). None uses
+            the mapper's backend, or auto routing when no mapper is supplied.
+        mapper: Optional reusable ChemicalMapper. Conflicting database settings
+            raise ValueError. Existing calls do not need a mapper.
+        bulk: Explicitly convert an entire KEGG source database when ids is
+            empty. Other backends reject bulk conversion.
 
     Returns:
         When to_type is a string:
@@ -59,6 +79,8 @@ def translate_chemical_ids(
         When to_type is a list:
             Dict mapping source IDs to dicts of {target_type: target_id}, or
             DataFrame with from_type column and one column per target type.
+        KEGG uses native source_id/target_id DataFrame columns and retains ID
+        prefixes. Its scalar dictionary selects the first mapping per source.
 
     Example:
         Names to CIDs:
@@ -101,199 +123,158 @@ def translate_chemical_ids(
         # 0  aspirin  2244  CC(=O)OC1=CC=CC=C1C(=O)O  BSYNRYMUTXBXSQ-UHFFFAOYSA-N
         ```
     """
-    # Supported from_types
-    valid_from_types = {"cid", "name", "smiles", "inchikey"}
-    if from_type not in valid_from_types:
-        raise ValueError(f"Unsupported from_type: {from_type}. Valid types: {valid_from_types}")
+    if mapper is not None and not isinstance(mapper, ChemicalMapper):
+        raise TypeError("mapper must be a ChemicalMapper")
+    if mapper is not None and database is not None and database.lower() != mapper.database.lower():
+        raise ValueError("database conflicts with mapper.database")
+    selected = mapper if mapper is not None else ChemicalMapper(database=database or "auto")
+    return selected.map(ids, from_type, to_type, return_dict, bulk=bulk)
 
-    # Handle multiple target types
-    if isinstance(to_type, list):
-        return _translate_chemical_multiple_targets(ids, from_type, to_type, return_dict)
 
-    # Map to_type to PubChem property names (for request)
-    property_map = {
-        "cid": "CID",
-        "smiles": "CanonicalSMILES",
-        "inchikey": "InChIKey",
-        "inchi": "InChI",
-        "formula": "MolecularFormula",
-        "name": "IUPACName",
-    }
+def _translate_chemical_ids(ids, from_type, to_type, return_dict=False, *, database="auto", bulk=False):
+    multiple = isinstance(to_type, list)
+    to_types = to_type if multiple else [to_type]
+    kegg_types = {"kegg_compound", "kegg_drug", "compound", "drug", "pubchem_sid", "chebi"}
+    if database.lower() == "auto":
+        database = ("kegg" if from_type in kegg_types or any(t in kegg_types for t in to_types)
+                    else "chembl" if from_type == "chembl_id" or "chembl_id" in to_types
+                    else "pubchem")
+    database = database.lower()
+    if database == "kegg":
+        aliases = {"kegg_compound": "compound", "kegg_drug": "drug", "pubchem_sid": "pubchem"}
+        if multiple:
+            raise ValueError("KEGG chemical translation accepts a single target type")
+        source, target = aliases.get(from_type, from_type), aliases.get(to_type, to_type)
+        if source not in {"compound", "drug", "pubchem", "chebi"} or target not in {"compound", "drug", "pubchem", "chebi"}:
+            raise ValueError("Unsupported KEGG chemical ID type; PubChem mappings use pubchem_sid, not cid")
+        if source not in {"compound", "drug"} and target not in {"compound", "drug"}:
+            raise ValueError("KEGG conversion requires a KEGG compound or drug namespace")
+        return convert_kegg(ids, source, target, kegg_conv, bulk=bulk, return_dict=return_dict)
+    if database not in {"pubchem", "chembl"}:
+        raise ValueError(f"Unsupported database: {database!r}")
+    if bulk:
+        raise ValueError("bulk conversion is only supported by KEGG")
+    if database == "pubchem" and (from_type == "chembl_id" or "chembl_id" in to_types):
+        raise ValueError("ChEMBL ID conversion requires the chembl or auto backend")
+    if from_type not in {"cid", "name", "smiles", "inchikey", "chembl_id"}:
+        raise ValueError(f"Unsupported from_type: {from_type}")
+    for target in to_types:
+        if target not in _CHEMICAL_PROPERTIES:
+            raise ValueError(f"Unsupported to_type: {target}")
 
-    # PubChem API returns different keys than requested - map response keys
-    response_key_map = {
-        "CanonicalSMILES": ["CanonicalSMILES", "ConnectivitySMILES", "SMILES"],
-        "IsomericSMILES": ["IsomericSMILES", "SMILES"],
-        "InChIKey": ["InChIKey"],
-        "InChI": ["InChI"],
-        "MolecularFormula": ["MolecularFormula"],
-        "IUPACName": ["IUPACName", "Title"],
-        "CID": ["CID"],
-    }
-
-    if to_type not in property_map:
-        raise ValueError(f"Unsupported to_type: {to_type}. Valid types: {set(property_map.keys())}")
-
-    results = []
-
-    for id_val in ids:
-        try:
-            # First, get the CID based on from_type
-            if from_type == "cid":
-                cid = int(id_val)
-            elif from_type == "name":
-                data = pubchem_search_by_name(id_val)
-                cids = data.get_cids()
-                cid = cids[0] if cids else None
-            elif from_type == "smiles":
-                data = pubchem_search_by_smiles(id_val)
-                cids = data.get_cids()
-                cid = cids[0] if cids else None
-            elif from_type == "inchikey":
-                data = pubchem_search_by_inchikey(id_val)
-                cids = data.get_cids()
-                cid = cids[0] if cids else None
-
-            if cid is None:
-                results.append({from_type: id_val, to_type: None})
-                continue
-
-            # Now get the target property
-            if to_type == "cid":
-                to_val = cid
-            else:
-                prop_name = property_map[to_type]
-                prop_data = pubchem_get_properties(cid, properties=[prop_name])
-                prop_results = prop_data.results
-                to_val = None
-                if prop_results:
-                    result_dict = prop_results[0]
-                    # Try each possible response key
-                    for key in response_key_map.get(prop_name, [prop_name]):
-                        if key in result_dict:
-                            to_val = result_dict[key]
-                            break
-
-            results.append({from_type: id_val, to_type: to_val, "cid": cid})
-
-        except _EXPECTED_TRANSLATION_ERRORS as exc:
-            logger.debug("Failed to translate chemical ID %s", id_val, exc_info=exc)
-            results.append({from_type: id_val, to_type: None})
-
-    df = pd.DataFrame(results)
-
+    records = _chemical_records(ids, from_type, to_types)
     if return_dict:
-        return dict(zip(df[from_type], df[to_type]))
+        return {
+            source: ({target: record.get(target) for target in to_types}
+                     if multiple else record.get(to_type))
+            for source, record in zip(ids, records)
+        }
+    columns = ([from_type, "cid", *to_types] if multiple
+               else [from_type, to_type, "cid"])
+    return pd.DataFrame(records, columns=list(dict.fromkeys(columns)))
 
-    return df
+
+_CHEMICAL_PROPERTIES = {
+    "cid": "CID", "smiles": "CanonicalSMILES", "inchikey": "InChIKey",
+    "inchi": "InChI", "formula": "MolecularFormula", "name": "IUPACName",
+    "chembl_id": "InChIKey",
+}
+_CHEMICAL_RESPONSE_KEYS = {
+    "smiles": ("CanonicalSMILES", "ConnectivitySMILES", "SMILES"),
+    "name": ("IUPACName", "Title"),
+}
 
 
-def _translate_chemical_multiple_targets(
-    ids: List[str],
-    from_type: str,
-    to_types: List[str],
-    return_dict: bool,
-) -> Union[Dict[str, Dict[str, str]], "pd.DataFrame"]:
-    """Translate chemical IDs to multiple target types."""
-    # Map to_type to PubChem property names
-    property_map = {
-        "cid": "CID",
-        "smiles": "CanonicalSMILES",
-        "inchikey": "InChIKey",
-        "inchi": "InChI",
-        "formula": "MolecularFormula",
-        "name": "IUPACName",
+def _chemical_records(ids, from_type, to_types):
+    """Resolve each source once and fetch properties for up to 100 unique CIDs."""
+    searches = {
+        "name": pubchem_search_by_name, "smiles": pubchem_search_by_smiles,
+        "inchikey": pubchem_search_by_inchikey,
     }
-
-    response_key_map = {
-        "CanonicalSMILES": ["CanonicalSMILES", "ConnectivitySMILES", "SMILES"],
-        "IsomericSMILES": ["IsomericSMILES", "SMILES"],
-        "InChIKey": ["InChIKey"],
-        "InChI": ["InChI"],
-        "MolecularFormula": ["MolecularFormula"],
-        "IUPACName": ["IUPACName", "Title"],
-        "CID": ["CID"],
-    }
-
-    valid_to_types = set(property_map.keys())
-    for tt in to_types:
-        if tt not in valid_to_types:
-            raise ValueError(f"Unsupported to_type: {tt}. Valid types: {valid_to_types}")
-
-    results = []
-
-    for id_val in ids:
-        record = {from_type: id_val}
-        cid = None
+    resolved = {}
+    for source in dict.fromkeys(ids):
         try:
-            # First, get the CID based on from_type
             if from_type == "cid":
-                cid = int(id_val)
-            elif from_type == "name":
-                data = pubchem_search_by_name(id_val)
-                cids = data.get_cids()
+                cid = int(source)
+            elif from_type == "chembl_id":
+                molecules = chembl_get_molecule(source).results
+                structures = (molecules[0].get("molecule_structures") or {}) if molecules else {}
+                key = structures.get("standard_inchi_key")
+                cids = pubchem_search_by_inchikey(key).get_cids() if key else []
                 cid = cids[0] if cids else None
-            elif from_type == "smiles":
-                data = pubchem_search_by_smiles(id_val)
-                cids = data.get_cids()
-                cid = cids[0] if cids else None
-            elif from_type == "inchikey":
-                data = pubchem_search_by_inchikey(id_val)
-                cids = data.get_cids()
-                cid = cids[0] if cids else None
-
-            if cid is None:
-                for tt in to_types:
-                    record[tt] = None
-                results.append(record)
-                continue
-
-            record["cid"] = cid
-
-            # Get all target properties in one request if possible
-            props_to_fetch = [
-                property_map[tt] for tt in to_types
-                if tt != "cid" and tt in property_map
-            ]
-
-            if props_to_fetch:
-                prop_data = pubchem_get_properties(cid, properties=props_to_fetch)
-                prop_results = prop_data.results
-                result_dict = prop_results[0] if prop_results else {}
-
-                for tt in to_types:
-                    if tt == "cid":
-                        record[tt] = cid
-                    else:
-                        prop_name = property_map[tt]
-                        to_val = None
-                        for key in response_key_map.get(prop_name, [prop_name]):
-                            if key in result_dict:
-                                to_val = result_dict[key]
-                                break
-                        record[tt] = to_val
             else:
-                # Only cid was requested
-                for tt in to_types:
-                    record[tt] = cid if tt == "cid" else None
-
+                cids = searches[from_type](source).get_cids()
+                cid = cids[0] if cids else None
+            resolved[source] = cid
         except _EXPECTED_TRANSLATION_ERRORS as exc:
-            logger.debug("Failed to translate chemical ID %s", id_val, exc_info=exc)
-            for tt in to_types:
-                record[tt] = cid if (tt == "cid" and cid is not None) else record.get(tt)
+            logger.debug("Failed to resolve chemical ID %s", source, exc_info=exc)
+            resolved[source] = None
 
-        results.append(record)
+    cids = list(dict.fromkeys(cid for cid in resolved.values() if cid is not None))
+    properties = list(dict.fromkeys(
+        _CHEMICAL_PROPERTIES[target] for target in to_types if target != "cid"
+    ))
+    fetched = {}
 
-    df = pd.DataFrame(results)
+    def fetch_batch(batch):
+        try:
+            rows = pubchem_get_properties(
+                batch[0] if len(batch) == 1 else batch, properties=properties,
+            ).results
+            for row in rows:
+                # PubChem includes CID. Legacy single-record responses are unambiguous.
+                cid = row.get("CID", batch[0] if len(batch) == 1 and len(rows) == 1 else None)
+                if cid in batch:
+                    fetched[cid] = row
+        except (APIRateLimitError, APIServerError, APITimeoutError, RequestException) as exc:
+            # A service outage is not compound-specific: don't fan out retries.
+            logger.debug("Chemical property service unavailable for %s", batch, exc_info=exc)
+            return
+        except _EXPECTED_TRANSLATION_ERRORS as exc:
+            logger.debug("Failed to fetch chemical properties for %s", batch, exc_info=exc)
+            if isinstance(exc.__cause__, RequestException):
+                return
+        if len(batch) > 1:
+            # A missing/invalid CID must not discard other compounds in the batch.
+            for cid in batch:
+                if cid not in fetched:
+                    fetch_batch([cid])
 
-    if return_dict:
-        result_dict = {}
-        for _, row in df.iterrows():
-            from_id = row[from_type]
-            result_dict[from_id] = {tt: row.get(tt) for tt in to_types}
-        return result_dict
+    if properties:
+        for offset in range(0, len(cids), 100):
+            fetch_batch(cids[offset:offset + 100])
 
-    return df
+    chembl_ids = {}
+    if "chembl_id" in to_types:
+        for cid, row in fetched.items():
+            matched_id = None
+            key = row.get("InChIKey")
+            if key:
+                try:
+                    molecules = chembl_search_molecules(key, limit=1).results
+                    if molecules:
+                        mol = molecules[0]
+                        matched_key = (mol.get("molecule_structures") or {}).get("standard_inchi_key")
+                        if matched_key == key:
+                            matched_id = mol.get("molecule_chembl_id")
+                except _EXPECTED_TRANSLATION_ERRORS as exc:
+                    logger.debug("Failed to resolve ChEMBL ID for CID %s", cid, exc_info=exc)
+            chembl_ids[cid] = matched_id
+
+    records = []
+    for source in ids:
+        cid = resolved[source]
+        row = fetched.get(cid, {})
+        record = {from_type: source, "cid": cid}
+        for target in to_types:
+            if target == "chembl_id":
+                record[target] = chembl_ids.get(cid)
+                continue
+            keys = _CHEMICAL_RESPONSE_KEYS.get(target, (_CHEMICAL_PROPERTIES[target],))
+            record[target] = (cid if target == "cid" else
+                              next((row[key] for key in keys if key in row), None))
+        records.append(record)
+    return records
 
 
 def translate_chemical_ids_kegg(
@@ -308,7 +289,7 @@ def translate_chemical_ids_kegg(
     Supported databases:
         - compound: KEGG Compound
         - drug: KEGG Drug
-        - pubchem: PubChem CID
+        - pubchem: PubChem Substance ID (SID), not Compound ID (CID)
         - chebi: ChEBI ID
 
     Args:
@@ -336,12 +317,7 @@ def translate_chemical_ids_kegg(
         ```
     """
     
-    if ids:
-        data = kegg_conv(target_db=to_db, source=ids)
-    else:
-        data = kegg_conv(target_db=to_db, source=from_db)
-
-    return data.as_dataframe()
+    return convert_kegg(ids, from_db, to_db, kegg_conv, bulk=True)
 
 
 def translate_chembl_to_pubchem(
@@ -367,48 +343,8 @@ def translate_chembl_to_pubchem(
         ```
     """
 
-    results = []
-    for chembl_id in chembl_ids:
-        try:
-            data = chembl_get_molecule(chembl_id)
-            if data.results:
-                mol = data.results[0]
-                # ChEMBL stores cross-references
-                xrefs = mol.get("cross_references", [])
-                pubchem_cid = None
-                for xref in xrefs:
-                    if xref.get("xref_src") == "PubChem":
-                        pubchem_cid = xref.get("xref_id")
-                        break
-                # Also try molecule_structures for InChIKey lookup
-                if not pubchem_cid:
-                    structs = mol.get("molecule_structures", {})
-                    inchikey = structs.get("standard_inchi_key") if structs else None
-                    if inchikey:
-                        try:
-                            search_data = pubchem_search_by_inchikey(inchikey)
-                            cids = search_data.get_cids()
-                            pubchem_cid = cids[0] if cids else None
-                        except _EXPECTED_TRANSLATION_ERRORS as exc:
-                            logger.debug(
-                                "Failed PubChem InChIKey lookup for %s",
-                                chembl_id,
-                                exc_info=exc,
-                            )
-
-                results.append({"chembl_id": chembl_id, "pubchem_cid": pubchem_cid})
-            else:
-                results.append({"chembl_id": chembl_id, "pubchem_cid": None})
-        except _EXPECTED_TRANSLATION_ERRORS as exc:
-            logger.debug("Failed to translate ChEMBL ID %s", chembl_id, exc_info=exc)
-            results.append({"chembl_id": chembl_id, "pubchem_cid": None})
-
-    df = pd.DataFrame(results)
-
-    if return_dict:
-        return dict(zip(df["chembl_id"], df["pubchem_cid"]))
-
-    return df
+    result = translate_chemical_ids(chembl_ids, "chembl_id", "cid", return_dict)
+    return result if return_dict else result.rename(columns={"cid": "pubchem_cid"})
 
 
 def translate_pubchem_to_chembl(
@@ -434,32 +370,9 @@ def translate_pubchem_to_chembl(
         ```
     """
 
-    results = []
-    for cid in cids:
-        try:
-            # Get InChIKey from PubChem
-            prop_data = pubchem_get_properties(cid, properties=["InChIKey"])
-            if prop_data.results:
-                inchikey = prop_data.results[0].get("InChIKey")
-                if inchikey:
-                    # Search ChEMBL by InChIKey (structure search)
-                    search_data = chembl_search_molecules(inchikey, limit=1)
-                    if search_data.results:
-                        chembl_id = search_data.results[0].get("molecule_chembl_id")
-                        results.append({"pubchem_cid": cid, "chembl_id": chembl_id})
-                    else:
-                        results.append({"pubchem_cid": cid, "chembl_id": None})
-                else:
-                    results.append({"pubchem_cid": cid, "chembl_id": None})
-            else:
-                results.append({"pubchem_cid": cid, "chembl_id": None})
-        except _EXPECTED_TRANSLATION_ERRORS as exc:
-            logger.debug("Failed to translate PubChem CID %s", cid, exc_info=exc)
-            results.append({"pubchem_cid": cid, "chembl_id": None})
-
-    df = pd.DataFrame(results)
-
+    result = translate_chemical_ids(cids, "cid", "chembl_id", return_dict)
     if return_dict:
-        return dict(zip(df["pubchem_cid"], df["chembl_id"]))
-
-    return df
+        return result
+    # Keep the legacy column order and the original input values (including strings).
+    result["cid"] = cids
+    return result.loc[:, ["cid", "chembl_id"]].rename(columns={"cid": "pubchem_cid"})

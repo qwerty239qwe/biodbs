@@ -1,7 +1,7 @@
 """ID translation functions for biodbs.
 
 This module provides convenience functions for translating between different
-biological identifier systems (gene IDs, chemical IDs, protein IDs).
+biological identifier systems (gene IDs, chemical IDs, protein IDs, taxonomic names).
 
 Usage:
     from biodbs.translate import translate_gene_ids, translate_chemical_ids
@@ -35,6 +35,9 @@ Usage:
 """
 
 from biodbs._funcs.translate import (
+    GeneMapper,
+    ChemicalMapper,
+    ProteinMapper,
     # Species
     Species,
     resolve_species,
@@ -45,6 +48,7 @@ from biodbs._funcs.translate import (
     translate_gene_ids,
     translate_gene_ids_kegg,
     # Chemical translation
+    build_chemical_mapping_db,
     translate_chemical_ids,
     translate_chemical_ids_kegg,
     translate_chembl_to_pubchem,
@@ -56,9 +60,14 @@ from biodbs._funcs.translate import (
     translate_uniprot_to_pdb,
     translate_uniprot_to_ensembl,
     translate_uniprot_to_refseq,
+    # Taxonomic name translation
+    translate_taxon_names,
 )
 
 __all__ = [
+    "GeneMapper",
+    "ChemicalMapper",
+    "ProteinMapper",
     # Species
     "Species",
     "resolve_species",
@@ -69,6 +78,7 @@ __all__ = [
     "translate_gene_ids",
     "translate_gene_ids_kegg",
     # Chemical translation
+    "build_chemical_mapping_db",
     "translate_chemical_ids",
     "translate_chemical_ids_kegg",
     "translate_chembl_to_pubchem",
@@ -80,4 +90,6 @@ __all__ = [
     "translate_uniprot_to_pdb",
     "translate_uniprot_to_ensembl",
     "translate_uniprot_to_refseq",
+    # Taxonomic name translation
+    "translate_taxon_names",
 ]

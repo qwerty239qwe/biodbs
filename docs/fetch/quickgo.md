@@ -83,9 +83,17 @@ annotations = quickgo_download_annotations(
 # Get all annotations (paginated)
 all_annotations = quickgo_search_annotations_all(
     taxon_id=9606,
-    aspect="biological_process"
+    aspect="biological_process",
+    limit_per_page=200,
+    rate_limit_per_second=5,
+    max_concurrency=10,
 )
 ```
+
+Paginated fetching defaults to 200 records per page. Annotation search rejects
+larger pages locally, matching QuickGO's 200-record maximum. Request starts are
+paced independently of the number of requests in flight. `max_records` caps the
+returned rows, including when the first page alone fills the cap.
 
 ### Gene Product Info
 

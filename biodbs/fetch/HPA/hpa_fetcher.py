@@ -242,6 +242,7 @@ class HPA_Fetcher(BaseDataFetcher):
         ensembl_ids: List[str],
         format: str = "json",
         rate_limit_per_second: int = 5,
+        max_concurrency: int = 10,
     ) -> HPAFetchedData:
         """Get data for multiple genes by Ensembl IDs.
 
@@ -249,10 +250,15 @@ class HPA_Fetcher(BaseDataFetcher):
             ensembl_ids: List of Ensembl gene IDs.
             format: Output format.
             rate_limit_per_second: Rate limit for API calls.
+            max_concurrency: Maximum requests in flight (default 10).
 
         Returns:
             Combined HPAFetchedData.
         """
+        if rate_limit_per_second <= 0:
+            raise ValueError("rate_limit_per_second must be positive")
+        if not isinstance(max_concurrency, int) or max_concurrency <= 0:
+            raise ValueError("max_concurrency must be a positive integer")
         if not ensembl_ids:
             return HPAFetchedData([], format=format, query_type="entry")
 
@@ -271,6 +277,7 @@ class HPA_Fetcher(BaseDataFetcher):
             args_list=[(ens_id,) for ens_id in ensembl_ids[1:]],
             rate_limit_per_second=rate_limit_per_second,
             return_exceptions=True,
+            max_concurrency=max_concurrency,
         )
 
         # Combine results

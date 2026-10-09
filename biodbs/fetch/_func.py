@@ -188,6 +188,7 @@ from biodbs.fetch.NCBI.funcs import (
     ncbi_symbol_to_id,
     ncbi_id_to_symbol,
     ncbi_get_taxonomy,
+    ncbi_taxonomy_name_to_id,
     ncbi_translate_gene_ids,
 )
 
@@ -317,6 +318,7 @@ from biodbs.fetch.GTDB.funcs import (
     gtdb_get_version,
     gtdb_list_release_files,
     gtdb_list_releases,
+    gtdb_ncbi_crosswalk,
 )
 
 # =============================================================================
@@ -389,6 +391,14 @@ from biodbs.fetch.uniprot.funcs import (
     uniprot_to_gene,
     uniprot_get_sequences,
     uniprot_map_ids,
+)
+
+# =============================================================================
+# GBIF functions
+# =============================================================================
+from biodbs.fetch.GBIF.funcs import (
+    gbif_match_name,
+    gbif_match_names,
 )
 
 __all__ = [
@@ -495,6 +505,7 @@ __all__ = [
     "ncbi_symbol_to_id",
     "ncbi_id_to_symbol",
     "ncbi_get_taxonomy",
+    "ncbi_taxonomy_name_to_id",
     "ncbi_translate_gene_ids",
     "ncbi_download_blast_database",
     "ncbi_download_taxdump",
@@ -591,6 +602,7 @@ __all__ = [
     "gtdb_download_taxonomy",
     "gtdb_download_metadata",
     "gtdb_download_tree",
+    "gtdb_ncbi_crosswalk",
     # PR2
     "pr2_list_releases",
     "pr2_list_assets",
@@ -628,4 +640,7 @@ __all__ = [
     "uniprot_to_gene",
     "uniprot_get_sequences",
     "uniprot_map_ids",
+    # GBIF
+    "gbif_match_name",
+    "gbif_match_names",
 ]

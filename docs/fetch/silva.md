@@ -16,8 +16,9 @@ print(files.names())
 To browse into a subdirectory:
 
 ```python
-qiime2 = fetcher.list_current_files("QIIME2")        # -> ['2025.7']
-ssu = fetcher.list_current_files("QIIME2/2025.7/SSU") # -> marker regions
+qiime2 = fetcher.list_current_files("QIIME2")
+release = next(entry.name for entry in qiime2 if entry.is_dir)
+ssu = fetcher.list_current_files(f"QIIME2/{release}/SSU") # -> marker regions
 ```
 
 `list_current_files()` returns immediate directories and downloadable files.
@@ -27,9 +28,9 @@ URLs and have `is_dir=False`. Walk down to a leaf directory to discover the exac
 classifier filenames, then pass the nested path to `download_classifier`:
 
 ```python
-leaves = fetcher.list_current_files("QIIME2/2025.7/taxonomic-weights")
+leaves = fetcher.list_current_files(f"QIIME2/{release}/taxonomic-weights")
 for f in leaves:
-    print(f.name, f.is_dir)  # SILVA_138.2_..._human-oral.qza  False
+    print(f.name, f.is_dir)
 ```
 
 ## Version, README, Citation
@@ -60,18 +61,11 @@ SILVA nests classifier files by release and marker, so `filename` is the full
 path **below** the classifier directory:
 
 ```python
-# a taxonomic-weight classifier
+# Select a published human-oral classifier from the listing above.
+classifier = leaves.filter("*human-oral.qza")[0]
 path = fetcher.download_classifier(
     kind="qiime2",
-    filename="2025.7/taxonomic-weights/SILVA_138.2_Ref_NR99_taxonomic-weight_human-oral.qza",
-    dest="data/silva",
-)
-
-# a weighted region classifier
-path = fetcher.download_classifier(
-    kind="qiime2",
-    filename="2025.7/SSU/V4V5-515f-926r/weighted/human-oral/"
-             "SILVA138.2_SSURef_NR99_weighted_classifier_V4V5-515f-926r_human-oral.qza",
+    filename=f"{release}/taxonomic-weights/{classifier.name}",
     dest="data/silva",
 )
 ```
@@ -85,7 +79,9 @@ Supported classifier/resource directories:
 - `exports`
 
 Browse the SILVA site (e.g. `current-release/QIIME2/...`) to find the exact
-nested path for the classifier you need.
+nested path for the classifier you need. Do not hard-code a release folder under
+`current`: old release folders can disappear when SILVA publishes a new release.
+For reproducible analyses, record the exact release and use its archived files.
 
 ## Convenience Functions
 
@@ -99,4 +95,3 @@ files = silva_list_current_files()
 ## Notes
 
 Many SILVA release assets are large. The normal offline test suite does not download release archives or classifier files.
-

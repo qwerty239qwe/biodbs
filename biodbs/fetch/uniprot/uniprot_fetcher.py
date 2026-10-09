@@ -525,35 +525,31 @@ class UniProt_Fetcher(BaseDataFetcher):
         if not results_url:
             raise ConnectionError("Failed to get results URL from ID mapping")
 
-        # Get results using the redirect URL
-        results_response = request_with_retry(
-            url=results_url,
-            method="GET",
-            headers={"Accept": "application/json"},
-            max_retries=3,
-            rate_limit=True,
-        )
-
-        if results_response.status_code != 200:
-            raise_for_status(results_response, "UniProt", url=results_url)
-
-        results_data = results_response.json()
-
-        # Parse results into mapping
+        # Follow every result page; missing inputs keep an empty list.
         mapping: Dict[str, List[str]] = {id_: [] for id_ in ids}
-        for result in results_data.get("results", []):
-            from_id = result.get("from")
-            to_entry = result.get("to")
-            if from_id and to_entry:
-                if isinstance(to_entry, dict):
-                    # UniProtKB entry
-                    to_id = to_entry.get("primaryAccession", to_entry.get("id"))
-                else:
-                    to_id = str(to_entry)
-                if to_id and from_id in mapping:
-                    mapping[from_id].append(to_id)
+        while results_url:
+            results_response = request_with_retry(
+                url=results_url,
+                method="GET",
+                headers={"Accept": "application/json"},
+                max_retries=3,
+                rate_limit=True,
+            )
+            if results_response.status_code != 200:
+                raise_for_status(results_response, "UniProt", url=results_url)
+            for result in results_response.json().get("results", []):
+                from_id = result.get("from")
+                to_entry = result.get("to")
+                if from_id and to_entry:
+                    if isinstance(to_entry, dict):
+                        to_id = to_entry.get("primaryAccession", to_entry.get("id"))
+                    else:
+                        to_id = str(to_entry)
+                    if to_id and from_id in mapping:
+                        mapping[from_id].append(to_id)
+            results_url = results_response.links.get("next", {}).get("url")
 
-        return mapping
+        return {id_: list(dict.fromkeys(values)) for id_, values in mapping.items()}
 
     # ----- Convenience Methods -----
 

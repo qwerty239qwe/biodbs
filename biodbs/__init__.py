@@ -1,7 +1,7 @@
 """biodbs - Biological Database Access Library.
 
 This library provides easy access to various biological databases through
-four main namespaces:
+five main namespaces:
 
 1. biodbs.fetch - Data fetching functions (low-level API wrappers)
    from biodbs.fetch import pubchem_get_compound, kegg_get, ensembl_lookup
@@ -15,13 +15,16 @@ four main namespaces:
 4. biodbs.graph - Knowledge graph construction and analysis
    from biodbs.graph import KnowledgeGraph, build_disease_graph, to_networkx
 
+5. biodbs.taxonomy - Canonical / cross-database taxon mapping (NCBI taxid hub)
+   from biodbs.taxonomy import TaxonomyMapper, merge_on_hub
+
 All functions are also available at the top level for convenience:
    from biodbs import pubchem_get_compound, translate_gene_ids, ora_kegg
 """
 
 # Keep in sync with pyproject.toml [project].version — guarded by
 # tests/test_version_matches_pyproject.py so drift fails CI.
-__version__ = "0.4.1"
+__version__ = "0.5.0"
 
 # =============================================================================
 # Exceptions (custom error hierarchy for API errors)
@@ -49,11 +52,15 @@ from biodbs import fetch
 from biodbs import translate
 from biodbs import analysis
 from biodbs import graph
+from biodbs import taxonomy
 
 # =============================================================================
 # Translate functions (ID mapping between databases)
 # =============================================================================
 from biodbs._funcs.translate import (
+    GeneMapper,
+    ChemicalMapper,
+    ProteinMapper,
     Species,
     resolve_species,
     GeneIDType,
@@ -62,8 +69,10 @@ from biodbs._funcs.translate import (
     translate_gene_ids_kegg,
     translate_chemical_ids,
     translate_chemical_ids_kegg,
+    build_chemical_mapping_db,
     translate_chembl_to_pubchem,
     translate_pubchem_to_chembl,
+    translate_taxon_names,
 )
 
 # =============================================================================
@@ -116,6 +125,18 @@ from biodbs._funcs.graph import (
     get_graph_statistics,
 )
 
+# =============================================================================
+# Taxonomy functions (canonical / cross-database taxon mapping)
+# =============================================================================
+from biodbs._funcs.taxonomy import (
+    MAPPING_COLUMNS,
+    TaxonRecord,
+    TaxonomyMapper,
+    merge_on_hub,
+    NCBITaxonomy,
+    load_taxdump,
+)
+
 
 __all__ = [
     # Submodules
@@ -123,6 +144,7 @@ __all__ = [
     "translate",
     "analysis",
     "graph",
+    "taxonomy",
 
     # ==========================================================================
     # EXCEPTIONS - Custom error hierarchy
@@ -370,14 +392,25 @@ __all__ = [
     "clinvar_link_pubmed",
 
     # ==========================================================================
+    # GBIF FUNCTIONS - Backbone taxonomy name matching (canonical names + synonyms)
+    # ==========================================================================
+    "gbif_match_name",
+    "gbif_match_names",
+
+    # ==========================================================================
     # TRANSLATE FUNCTIONS - ID mapping between databases
     # ==========================================================================
+    "GeneMapper",
+    "ChemicalMapper",
+    "ProteinMapper",
     "translate_gene_ids",
     "translate_gene_ids_kegg",
     "translate_chemical_ids",
     "translate_chemical_ids_kegg",
+    "build_chemical_mapping_db",
     "translate_chembl_to_pubchem",
     "translate_pubchem_to_chembl",
+    "translate_taxon_names",
 
     # ==========================================================================
     # ANALYSIS FUNCTIONS - Enrichment analysis, statistics
@@ -424,4 +457,14 @@ __all__ = [
     "get_connected_component",
     "find_hub_nodes",
     "get_graph_statistics",
+
+    # ==========================================================================
+    # TAXONOMY FUNCTIONS - Canonical / cross-database taxon mapping
+    # ==========================================================================
+    "MAPPING_COLUMNS",
+    "TaxonRecord",
+    "TaxonomyMapper",
+    "merge_on_hub",
+    "NCBITaxonomy",
+    "load_taxdump",
 ]

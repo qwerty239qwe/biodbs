@@ -45,10 +45,14 @@ table = fetcher.get_table("ftp/some_file.tsv")
 ## Download Files
 
 ```python
-path = fetcher.download_file("ftp/16S_rRNA_refseq/example.fasta", dest="data/homd")
+path = fetcher.download_file("ftp/16S_rRNA_refseq/example.fasta", dest="data/homd/")
 ```
 
-Existing files are kept by default. Use `overwrite=True` to download again. Large files are streamed to disk.
+Existing files are kept by default. Use `overwrite=True` to download again.
+Files stream to a temporary `.part` file and replace the destination only after
+success. Failed transfers remove the temporary file and preserve any existing
+destination. A trailing separator makes `dest` a directory even if it does not
+exist yet.
 
 ## 16S RefSeq (HOMD and MOMD)
 
@@ -60,12 +64,12 @@ Existing files are kept by default. Use `overwrite=True` to download again. Larg
 files = fetcher.list_16s_refseq(version="15.22")
 
 # unaligned FASTA + QIIME taxonomy for a pinned HOMD release
-homd_fasta = fetcher.download_16s_refseq("data/homd", version="15.22")
-homd_taxonomy = fetcher.download_16s_taxonomy("data/homd", version="15.22")
+homd_fasta = fetcher.download_16s_refseq("data/homd/", version="15.22")
+homd_taxonomy = fetcher.download_16s_taxonomy("data/homd/", version="15.22")
 
 # the same for a MOMD release
-momd_fasta = fetcher.download_16s_refseq("data/momd", version="5.1", source="momd")
-momd_taxonomy = fetcher.download_16s_taxonomy("data/momd", version="5.1", source="momd")
+momd_fasta = fetcher.download_16s_refseq("data/momd/", version="5.1", source="momd")
+momd_taxonomy = fetcher.download_16s_taxonomy("data/momd/", version="5.1", source="momd")
 ```
 
 Without `filename`, `download_16s_refseq` selects the unaligned `.fasta` reference

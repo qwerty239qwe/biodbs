@@ -75,14 +75,14 @@ unchanged — so existing code keeps working.
 |-----------------|---------|------|---------|--------------|------|
 | `gene_symbol` | `external_gene_name` | `symbol` | `Gene_Name` | `HGNC` | `symbol` |
 | `ensembl_gene_id` | `ensembl_gene_id` | `ensembl_gene_id` | `Ensembl` | `ensembl_gene_id` | `ensembl_gene_id` |
-| `ensembl_transcript_id` | `ensembl_transcript_id` | — | — | — | — |
-| `ensembl_protein_id` | `ensembl_peptide_id` | — | — | — | — |
+| `ensembl_transcript_id` | `ensembl_transcript_id` | — | — | `ensembl_transcript_id` | — |
+| `ensembl_protein_id` | `ensembl_peptide_id` | — | — | `ensembl_protein_id` | — |
 | `entrez_id` | `entrezgene_id` | `gene_id` | `GeneID` | `EntrezGene` | `entrez_id` |
 | `hgnc_id` | `hgnc_id` | — | — | — | `hgnc_id` |
 | `hgnc_symbol` | `hgnc_symbol` | — | — | — | `symbol` |
 | `uniprot_id` | `uniprot_gn_id` | `uniprot` | `UniProtKB_AC-ID` | `Uniprot_gn` | `uniprot_ids` |
 | `refseq_mrna` | `refseq_mrna` | `refseq_accession` | — | `RefSeq_mRNA` | `refseq_accession` |
-| `refseq_protein` | `refseq_peptide` | `refseq_accession` | `RefSeq_Protein` | `RefSeq_peptide` | `refseq_accession` |
+| `refseq_protein` | `refseq_peptide` | `refseq_protein` | `RefSeq_Protein` | `RefSeq_peptide` | — |
 | `pdb_id` | — | — | `PDB` | — | — |
 
 !!! note "Native strings are always accepted"
@@ -130,11 +130,27 @@ Supported ID types (universal alias → native):
 | `ensembl_gene_id` | `ensembl_gene_id` |
 | `entrez_id` | `gene_id` |
 | `uniprot_id` | `uniprot` |
-| `refseq_mrna` / `refseq_protein` | `refseq_accession` |
+| `refseq_mrna` | `refseq_accession` |
+| `refseq_protein` | `refseq_protein` |
+
+Explicit-ID queries follow all result pages. RefSeq inputs are queried separately
+per unique accession because batched Datasets reports do not identify which
+accession matched each gene. This avoids guessing associations, but costs more
+requests than a symbol/Entrez batch.
+
+Current Datasets gene reports provide transcript/protein counts, not their
+accessions; RefSeq **output** mappings can therefore be missing. Use UniProt for
+RefSeq protein output, or BioMart/Ensembl for transcript output.
 
 ### Ensembl REST
 
 Uses the Ensembl `/xrefs` endpoint. Natural choice when starting from Ensembl IDs.
+
+Symbol inputs are resolved to a gene, then translated to the requested target
+namespace. Transcript/protein output follows the canonical transcript when
+available, otherwise the first transcript. Same-type stable-ID conversions return
+the input unchanged without a request; this does not validate that the ID exists.
+Repeated inputs share one lookup within a single-target call.
 
 ```python
 result = translate_gene_ids(
@@ -190,7 +206,7 @@ reliable than the other options for simple symbol translations.
 result = translate_gene_ids(
     ["TP53", "BRCA1"],
     from_type="gene_symbol",        # resolves to "external_gene_name"
-    to_type="ensembl_transcript_id", # unique to BioMart
+    to_type="ensembl_transcript_id",
     database="biomart",
 )
 ```
@@ -240,7 +256,10 @@ Supported ID types (universal alias → native):
 | `entrez_id` | `entrez_id` |
 | `ensembl_gene_id` | `ensembl_gene_id` |
 | `uniprot_id` | `uniprot_ids` |
-| `refseq_mrna` / `refseq_protein` | `refseq_accession` |
+| `refseq_mrna` | `refseq_accession` |
+
+HGNC does not provide RefSeq protein identifiers. Requesting the universal
+`refseq_protein` alias raises `ValueError`; use `database="uniprot"` instead.
 
 ## Multiple Target Types
 
@@ -253,7 +272,7 @@ result = translate_gene_ids(
     to_type=["ensembl_gene_id", "entrez_id", "hgnc_id"],
     database="biomart",
 )
-#   gene_symbol    ensembl_gene_id  entrez_id     hgnc_id
+#   external_gene_name    ensembl_gene_id  entrezgene_id     hgnc_id
 # 0        TP53  ENSG00000141510       7157  HGNC:11998
 # 1       BRCA1  ENSG00000012048        672   HGNC:1100
 # 2        EGFR  ENSG00000146648       1956   HGNC:3236
@@ -265,10 +284,84 @@ result = translate_gene_ids(
     to_type=["ensembl_gene_id", "entrez_id"],
     return_dict=True,
 )
-# {'TP53': {'ensembl_gene_id': 'ENSG00000141510', 'entrez_id': '7157'}, ...}
+# {'TP53': {'ensembl_gene_id': 'ENSG00000141510', 'gene_id': '7157'}, ...}
+```
+
+Output columns and nested dictionary keys use database-native names, not the
+universal aliases. Multiple-target DataFrames preserve input order and duplicate
+rows, with missing mappings represented as empty values. Dictionaries necessarily
+collapse duplicate input keys.
+
+HGNC fetches each unique input once and extracts all targets from that record.
+Other gene backends currently execute a separate conversion for each target.
+
+## Accuracy and Performance Checks
+
+`tests/test_translate/test_quality.py` checks exact reference IDs, namespaces,
+input-key association, missing values, duplicate rows, and pagination. Its live
+tests cover human/mouse genes, RefSeq input mapping, protein accessions, aspirin,
+caffeine, and the ChEMBL–PubChem aspirin round trip. These are reference checks,
+not an estimate of accuracy for every organism or ambiguous identifier.
+
+Offline performance checks assert request counts rather than flaky time limits.
+For two unique HGNC inputs repeated in a batch, with two target types:
+
+| Input rows | Lookups before | Lookups after | Median offline processing after |
+|------------|----------------|---------------|---------------------------------|
+| 20 | 40 | 2 | 0.22 ms |
+| 200 | 400 | 2 | 0.43 ms |
+| 2,000 | 4,000 | 2 | 0.69 ms |
+
+Measurements are five-run medians on the development machine, using mocked
+responses with no network delay. The optimized output also retains every input
+row; the previous multi-target output collapsed duplicates. Fully unique HGNC
+inputs still require one lookup each. No persistent cache or new dependency was
+added.
+
+In the 2026-10-03 nine-case live reference run, Ensembl took 121.6 seconds; the
+other eight cases took 0.8–6.6 seconds each. These are individual observations, not latency
+guarantees or a throughput benchmark. Service latency, retries, and rate limits
+can dominate large online jobs.
+
+Scalar dictionaries and multi-target output can select one ID from a one-to-many
+mapping. BioMart dictionaries retain the last non-missing match; most other
+backends select the first. Use full mapping tables or the list-valued UniProt
+fetch helpers when all isoforms/cross-references matter. Pin source releases for
+reproducible analyses.
+
+Run the offline checks without network access:
+
+```bash
+python -m pytest tests/test_translate tests/test_taxonomy -m "not integration" -q
+```
+
+Run the reference checks against live APIs:
+
+```bash
+python -m pytest tests/test_translate/test_quality.py -m integration -q --durations=20
 ```
 
 ## KEGG Translation
+
+KEGG conversion is available through the main translator:
+
+```python
+result = translate_gene_ids(
+    ["hsa:7157"], "kegg_gene", "entrez_id", database="kegg"
+)
+# source_id: hsa:7157; target_id: ncbi-geneid:7157
+```
+
+Use `species` to choose the organism for the `kegg_gene` namespace, or use native
+KEGG organism codes such as `hsa`/`mmu`. External types are `entrez_id`/
+`ncbi-geneid`, `ncbi-proteinid`, and `uniprot_id`/`uniprot`. Results retain KEGG's
+prefixes and `source_id`/`target_id` columns; scalar dictionaries select the first
+mapping. One target type is accepted. Empty inputs make no request unless
+`bulk=True`; other gene backends reject bulk conversion. `GeneMapper` can store
+the backend/species configuration but is not required.
+
+The original helper remains supported with its existing output and empty-input
+whole-database behavior:
 
 `translate_gene_ids_kegg` uses KEGG's `conv` endpoint, which maps between KEGG
 organism-specific gene IDs and external databases.

@@ -214,8 +214,7 @@ class NCBI_Fetcher(BaseDataFetcher):
         if types:
             params["types"] = types
 
-        data = self._make_request(endpoint, params=params)
-        return NCBIGeneFetchedData(data, query_ids=gene_ids)
+        return self._get_gene_reports(endpoint, params, gene_ids)
 
     def get_genes_by_symbol(
         self,
@@ -253,8 +252,7 @@ class NCBI_Fetcher(BaseDataFetcher):
         if returned_content:
             params["returned_content"] = returned_content
 
-        data = self._make_request(endpoint, params=params)
-        return NCBIGeneFetchedData(data, query_ids=symbols)
+        return self._get_gene_reports(endpoint, params, symbols)
 
     def get_genes_by_accession(
         self,
@@ -282,8 +280,25 @@ class NCBI_Fetcher(BaseDataFetcher):
         if returned_content:
             params["returned_content"] = returned_content
 
+        return self._get_gene_reports(endpoint, params, accessions)
+
+    def _get_gene_reports(self, endpoint, params, query_ids):
+        """Read every page for explicit-ID queries without losing total counts."""
         data = self._make_request(endpoint, params=params)
-        return NCBIGeneFetchedData(data, query_ids=accessions)
+        reports = list(data.get("reports", []))
+        warnings = list(data.get("warnings", []))
+        token = data.get("next_page_token")
+        seen = set()
+        while token:
+            if token in seen:
+                raise ConnectionError("NCBI returned a repeated gene-report page token")
+            seen.add(token)
+            page = self._make_request(endpoint, params={**params, "page_token": token})
+            reports.extend(page.get("reports", []))
+            warnings.extend(page.get("warnings", []))
+            token = page.get("next_page_token")
+        return NCBIGeneFetchedData({**data, "reports": reports, "warnings": warnings,
+                                   "next_page_token": None}, query_ids=query_ids)
 
     def get_genes_by_taxon(
         self,
@@ -561,6 +576,40 @@ class NCBI_Fetcher(BaseDataFetcher):
         target = dest_path / filename if dest_path.is_dir() or dest_path.suffix == "" else dest_path
         url = f"{_TAXDUMP_URL}{filename}"
         return download_binary(url, target, "NCBI", overwrite=overwrite, md5_url=f"{url}.md5")
+
+    _ESEARCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+
+    def taxonomy_name_to_id(self, names: List[str]) -> Dict[str, int]:
+        """Resolve scientific names to NCBI taxonomy IDs via E-utilities esearch.
+
+        Args:
+            names: Scientific names, e.g. ``["Escherichia coli"]``.
+
+        Returns:
+            Mapping of each resolved name to its taxid. Names with no hit are omitted.
+        """
+        resolved: Dict[str, int] = {}
+        for name in names:
+            params = {
+                "db": "taxonomy",
+                "term": f"{name}[Scientific Name]",
+                "retmode": "json",
+                "retmax": "1",
+            }
+            if self._api_config.has_api_key:
+                params["api_key"] = self._api_config._api_key
+            response = request_with_retry(
+                url=self._ESEARCH_URL,
+                method="GET",
+                params=params,
+                rate_limit=True,
+            )
+            if response.status_code != 200:
+                raise_for_status(response, "NCBI", url=self._ESEARCH_URL)
+            idlist = response.json().get("esearchresult", {}).get("idlist", [])
+            if idlist:
+                resolved[name] = int(idlist[0])
+        return resolved
 
 
 if __name__ == "__main__":

@@ -15,10 +15,16 @@ def _get_fetcher() -> MIDORI2_Fetcher:
 
 
 def midori2_build_url(
-    gene: str, version: str, kind: str = "fasta", unique: bool = True, species: bool = False
+    gene: str,
+    version: str,
+    kind: str = "fasta",
+    unique: bool = True,
+    species: bool = False,
 ) -> str:
-    """Build a MIDORI2 download URL."""
-    return _get_fetcher().build_url(gene, version, kind=kind, unique=unique, species=species)
+    """Resolve the Zenodo ZIP URL containing a MIDORI2 file (network required)."""
+    return _get_fetcher().build_url(
+        gene, version, kind=kind, unique=unique, species=species
+    )
 
 
 def midori2_download(
@@ -32,5 +38,11 @@ def midori2_download(
 ) -> Path:
     """Download a MIDORI2 reference file."""
     return _get_fetcher().download(
-        gene, dest, version, kind=kind, unique=unique, species=species, overwrite=overwrite
+        gene,
+        dest,
+        version,
+        kind=kind,
+        unique=unique,
+        species=species,
+        overwrite=overwrite,
     )

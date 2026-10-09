@@ -6,6 +6,9 @@ import pytest
 
 from biodbs.exceptions import APIError
 from biodbs.fetch._download import download_binary
+from biodbs.fetch.GTDB.gtdb_fetcher import GTDB_Fetcher
+from biodbs.fetch.HOMD.homd_fetcher import HOMD_Fetcher
+from biodbs.fetch.GreenGenes.greengenes_fetcher import GreenGenes_Fetcher
 
 
 class Response:
@@ -14,6 +17,7 @@ class Response:
 
     def __init__(self, chunks):
         self.chunks = chunks
+        self.closed = False
 
     def iter_content(self, chunk_size=1024 * 1024):
         yield from self.chunks
@@ -23,7 +27,49 @@ class Response:
         return b"".join(self.chunks).decode()
 
     def close(self):
-        pass
+        self.closed = True
+
+
+@pytest.mark.parametrize("fetcher_class", [GTDB_Fetcher, HOMD_Fetcher, GreenGenes_Fetcher])
+@pytest.mark.parametrize("overwrite", [False, True])
+def test_fetcher_download_is_atomic_and_can_retry(fetcher_class, overwrite, tmp_path, monkeypatch):
+    target = tmp_path / "taxonomy.tsv"
+    if overwrite:
+        target.write_bytes(b"original")
+
+    def broken_chunks():
+        yield b"partial"
+        raise OSError("connection dropped")
+
+    broken = Response(broken_chunks())
+    complete = Response([b"complete"])
+    responses = iter([broken, complete])
+    calls = []
+
+    def request(url, stream=False):
+        calls.append((url, stream))
+        return next(responses)
+
+    # Exercise both the old direct path and the shared helper without networking.
+    monkeypatch.setattr(f"{fetcher_class.__module__}.request_with_retry", request)
+    monkeypatch.setattr("biodbs.fetch._download.request_with_retry", request)
+    fetcher = fetcher_class()
+    with pytest.raises(OSError, match="connection dropped"):
+        fetcher.download_file("taxonomy.tsv", target, overwrite=overwrite)
+    if overwrite:
+        assert target.read_bytes() == b"original"
+    else:
+        assert not target.exists()
+    assert not list(tmp_path.glob("*.part"))
+    assert broken.closed
+
+    assert fetcher.download_file("taxonomy.tsv", target, overwrite=overwrite) == target
+    assert target.read_bytes() == b"complete"
+    assert complete.closed
+    assert fetcher.download_file("taxonomy.tsv", target) == target
+    assert len(calls) == 2
+    assert all(stream for _, stream in calls)
+    assert not list(tmp_path.glob("*.part"))
 
 
 def test_download_binary_replaces_target_only_after_success(tmp_path, monkeypatch):

@@ -198,7 +198,8 @@ class PubChem_Fetcher(BaseDataFetcher):
         if identifiers is not None and not isinstance(identifiers, list):
             identifiers = [identifiers]
 
-        is_valid, err_msg = self._namespace.validate(
+        request_namespace = PUGRestNameSpaceValidator()
+        is_valid, err_msg = request_namespace.validate(
             domain=domain,
             namespace=namespace,
             identifiers=identifiers,
@@ -212,9 +213,8 @@ class PubChem_Fetcher(BaseDataFetcher):
         if not is_valid:
             raise ValueError(err_msg)
 
-        self._api_config.update_params(**self._namespace.valid_params)
-        url = self._api_config.api_url
-        query_params = self._namespace.valid_params.get("_query_params", {})
+        url = _build_pug_rest_url(request_namespace.valid_params)
+        query_params = request_namespace.valid_params.get("_query_params", {})
 
         # Determine if binary response expected
         is_binary = output.upper() in ["PNG", "SDF"]
@@ -255,6 +255,7 @@ class PubChem_Fetcher(BaseDataFetcher):
         rate_limit_per_second: int = 5,
         operation: Optional[str] = None,
         properties: Optional[List[str]] = None,
+        max_concurrency: int = 10,
         **kwargs: Any,
     ) -> Union[PUGRestFetchedData, Path]:
         """Fetch data for many identifiers by batching.
@@ -271,11 +272,18 @@ class PubChem_Fetcher(BaseDataFetcher):
             rate_limit_per_second: Max requests per second.
             operation: Operation to perform.
             properties: Properties for property operation.
+            max_concurrency: Maximum requests in flight (default 10).
             **kwargs: Additional parameters.
 
         Returns:
             Combined PUGRestFetchedData or Path to output file.
         """
+        if batch_size <= 0:
+            raise ValueError("batch_size must be positive")
+        if rate_limit_per_second <= 0:
+            raise ValueError("rate_limit_per_second must be positive")
+        if not isinstance(max_concurrency, int) or max_concurrency <= 0:
+            raise ValueError("max_concurrency must be a positive integer")
         if method == "stream_to_storage" and self._data_manager is None:
             raise ValueError(
                 "stream_to_storage requires storage_path in PubChem_Fetcher constructor"
@@ -326,6 +334,7 @@ class PubChem_Fetcher(BaseDataFetcher):
             args_list=[(batch,) for batch in batches[1:]],
             rate_limit_per_second=rate_limit_per_second,
             return_exceptions=True,
+            max_concurrency=max_concurrency,
         )
 
         # Collect results
@@ -568,7 +577,8 @@ class PubChem_Fetcher(BaseDataFetcher):
         Returns:
             PUGViewFetchedData with hierarchical annotation data.
         """
-        is_valid, err_msg = self._view_namespace.validate(
+        request_namespace = PUGViewNameSpaceValidator()
+        is_valid, err_msg = request_namespace.validate(
             record_type=record_type,
             record_id=record_id,
             heading=heading,
@@ -577,9 +587,8 @@ class PubChem_Fetcher(BaseDataFetcher):
         if not is_valid:
             raise ValueError(err_msg)
 
-        self._view_api_config.update_params(**self._view_namespace.valid_params)
-        url = self._view_api_config.api_url
-        query_params = self._view_namespace.valid_params.get("_query_params", {})
+        url = _build_pug_view_url(request_namespace.valid_params)
+        query_params = request_namespace.valid_params.get("_query_params", {})
 
         response = request_with_retry(url, params=query_params)
         if response.status_code == 404:

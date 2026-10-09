@@ -29,11 +29,14 @@ fasta = fetcher.list_files("gg_13_8_otus/rep_set").filter("*.fasta")
 ```python
 path = fetcher.download_file(
     "gg_13_8_otus/taxonomy/99_otu_taxonomy.txt",
-    dest="data/greengenes",
+    dest="data/greengenes/",
 )
 ```
 
-Existing files are kept by default (`overwrite=True` to refetch). Files stream to disk.
+Existing files are kept by default (`overwrite=True` to refetch). Files stream to
+a temporary `.part` file and replace the destination only after success. Failed
+transfers remove the temporary file and preserve any existing destination. A
+trailing separator makes `dest` a directory even if it does not exist yet.
 
 ## Convenience Functions
 
@@ -42,5 +45,5 @@ from biodbs.fetch import greengenes_list_releases, greengenes_list_files, greeng
 
 releases = greengenes_list_releases()
 files = greengenes_list_files("gg_13_8_otus/rep_set")
-path = greengenes_download_file("gg_13_8_otus/rep_set/99_otus.fasta", dest="data/greengenes")
+path = greengenes_download_file("gg_13_8_otus/rep_set/99_otus.fasta", dest="data/greengenes/")
 ```

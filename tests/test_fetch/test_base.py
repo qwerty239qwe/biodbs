@@ -1,5 +1,8 @@
 """Tests for biodbs.fetch._base module."""
 
+import asyncio
+from types import SimpleNamespace
+
 import pytest
 from pydantic import BaseModel
 from biodbs.fetch._base import BaseAPIConfig, NameSpace, BaseDataFetcher
@@ -108,6 +111,60 @@ class TestNameSpace:
 
 
 class TestBaseDataFetcher:
+    def test_schedule_process_spaces_every_start(self, monkeypatch):
+        clock = [100.0]
+        starts = []
+        progress = []
+        real_sleep = asyncio.sleep
+
+        async def sleep(delay):
+            clock[0] += delay
+            await real_sleep(0)
+
+        async def fetch(index):
+            starts.append(clock[0])
+            await real_sleep(0)
+            return index
+
+        # Keep asyncio's own clock intact while controlling the scheduler clock.
+        monkeypatch.setattr("biodbs.fetch._base.time", SimpleNamespace(
+            time=lambda: clock[0], monotonic=lambda: clock[0],
+        ))
+        monkeypatch.setattr("biodbs.fetch._base.asyncio.sleep", sleep)
+        fetcher = BaseDataFetcher(None, None, {})
+        results = fetcher.schedule_process(
+            fetch, args_list=[(i,) for i in range(6)], rate_limit_per_second=2,
+            progress_callback=lambda done, total: progress.append((done, total)),
+        )
+        assert results == list(range(6))
+        assert starts == pytest.approx([100 + i * 0.5 for i in range(6)])
+        assert progress == [(i, 6) for i in range(1, 7)]
+
+    @pytest.mark.parametrize("rate", [0, -1])
+    def test_schedule_process_rejects_non_positive_rate(self, rate):
+        fetcher = BaseDataFetcher(None, None, {})
+        with pytest.raises(ValueError, match="positive"):
+            fetcher.schedule_process(lambda: None, rate_limit_per_second=rate)
+
+    @pytest.mark.parametrize("is_async", [False, True])
+    def test_schedule_process_preserves_results_and_exceptions(self, is_async):
+        def fetch(index):
+            if index == 1:
+                raise ValueError("failed request")
+            return index
+
+        async def async_fetch(index):
+            return fetch(index)
+
+        fetcher = BaseDataFetcher(None, None, {})
+        results = fetcher.schedule_process(
+            async_fetch if is_async else fetch,
+            args_list=[(i,) for i in range(3)], rate_limit_per_second=100,
+            return_exceptions=True,
+        )
+        assert results[0] == 0 and results[2] == 2
+        assert isinstance(results[1], ValueError)
+
     def test_get_raises(self):
         config = BaseAPIConfig(url_format="https://example.com")
         ns = NameSpace(_TestModel)

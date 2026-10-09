@@ -837,7 +837,7 @@ class TestFDAFetcherValidation:
 class TestEnsemblFetcherMocked:
     """Test Ensembl fetcher with mocked HTTP."""
 
-    @patch("biodbs.fetch.ensembl.ensembl_fetcher.requests")
+    @patch("biodbs.fetch.ensembl.ensembl_fetcher.get_http_session")
     def test_get_lookup_success(self, mock_requests):
         """Test successful gene lookup."""
         mock_resp = _mock_response(
@@ -848,8 +848,8 @@ class TestEnsemblFetcherMocked:
                 "biotype": "protein_coding",
             },
         )
-        mock_requests.get.return_value = mock_resp
-        mock_requests.post.return_value = mock_resp
+        mock_requests.return_value.get.return_value = mock_resp
+        mock_requests.return_value.post.return_value = mock_resp
 
         from biodbs.fetch.ensembl.ensembl_fetcher import Ensembl_Fetcher
 
@@ -859,12 +859,12 @@ class TestEnsemblFetcherMocked:
         )
         assert result is not None
 
-    @patch("biodbs.fetch.ensembl.ensembl_fetcher.requests")
+    @patch("biodbs.fetch.ensembl.ensembl_fetcher.get_http_session")
     def test_get_404_returns_empty(self, mock_requests):
         """Test 404 returns empty result for Ensembl."""
         mock_resp = _mock_response(404, text="Not Found")
-        mock_requests.get.return_value = mock_resp
-        mock_requests.post.return_value = mock_resp
+        mock_requests.return_value.get.return_value = mock_resp
+        mock_requests.return_value.post.return_value = mock_resp
 
         from biodbs.fetch.ensembl.ensembl_fetcher import Ensembl_Fetcher
 
@@ -876,14 +876,14 @@ class TestEnsemblFetcherMocked:
         # 404 returns EnsemblFetchedData({}) which wraps empty dict as single result
         assert result.results == [{}]
 
-    @patch("biodbs.fetch.ensembl.ensembl_fetcher.requests")
+    @patch("biodbs.fetch.ensembl.ensembl_fetcher.get_http_session")
     def test_get_400_raises_validation_error(self, mock_requests):
         """Test 400 raises APIValidationError for Ensembl."""
         mock_resp = _mock_response(
             400, text="Bad Request: invalid identifier"
         )
-        mock_requests.get.return_value = mock_resp
-        mock_requests.post.return_value = mock_resp
+        mock_requests.return_value.get.return_value = mock_resp
+        mock_requests.return_value.post.return_value = mock_resp
 
         from biodbs.fetch.ensembl.ensembl_fetcher import Ensembl_Fetcher
 
@@ -891,12 +891,12 @@ class TestEnsemblFetcherMocked:
         with pytest.raises(APIValidationError):
             fetcher.get(endpoint="lookup/id", id="ENSG00000141510")
 
-    @patch("biodbs.fetch.ensembl.ensembl_fetcher.requests")
+    @patch("biodbs.fetch.ensembl.ensembl_fetcher.get_http_session")
     def test_get_server_error(self, mock_requests):
         """Test 500 raises APIServerError."""
         mock_resp = _mock_response(500, text="Internal Server Error")
-        mock_requests.get.return_value = mock_resp
-        mock_requests.post.return_value = mock_resp
+        mock_requests.return_value.get.return_value = mock_resp
+        mock_requests.return_value.post.return_value = mock_resp
 
         from biodbs.fetch.ensembl.ensembl_fetcher import Ensembl_Fetcher
 
@@ -904,12 +904,12 @@ class TestEnsemblFetcherMocked:
         with pytest.raises(APIServerError):
             fetcher.get(endpoint="lookup/id", id="ENSG00000141510")
 
-    @patch("biodbs.fetch.ensembl.ensembl_fetcher.requests")
+    @patch("biodbs.fetch.ensembl.ensembl_fetcher.get_http_session")
     def test_get_rate_limit_error(self, mock_requests):
         """Test 429 raises APIRateLimitError."""
         mock_resp = _mock_response(429, text="Too Many Requests")
-        mock_requests.get.return_value = mock_resp
-        mock_requests.post.return_value = mock_resp
+        mock_requests.return_value.get.return_value = mock_resp
+        mock_requests.return_value.post.return_value = mock_resp
 
         from biodbs.fetch.ensembl.ensembl_fetcher import Ensembl_Fetcher
 
@@ -917,15 +917,15 @@ class TestEnsemblFetcherMocked:
         with pytest.raises(APIRateLimitError):
             fetcher.get(endpoint="lookup/id", id="ENSG00000141510")
 
-    @patch("biodbs.fetch.ensembl.ensembl_fetcher.requests")
+    @patch("biodbs.fetch.ensembl.ensembl_fetcher.get_http_session")
     def test_get_fasta_content_type(self, mock_requests):
         """Test fasta content type returns text-based result."""
         mock_resp = _mock_response(
             200, text=">ENST00000269305\nATGGAGGAGCCGCAGTCAG"
         )
         mock_resp.text = ">ENST00000269305\nATGGAGGAGCCGCAGTCAG"
-        mock_requests.get.return_value = mock_resp
-        mock_requests.post.return_value = mock_resp
+        mock_requests.return_value.get.return_value = mock_resp
+        mock_requests.return_value.post.return_value = mock_resp
 
         from biodbs.fetch.ensembl.ensembl_fetcher import Ensembl_Fetcher
 
