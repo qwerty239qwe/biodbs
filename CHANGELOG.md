@@ -31,6 +31,14 @@ any two reference databases on it.
 
 ### Reliability fixes
 
+- Fix MIDORI2 downloads after the upstream migration to Zenodo, resolving explicit
+  releases from both the current and legacy archives. Preserve legacy version
+  spellings and explicit direct-file mirrors. Verify the published bundle MD5,
+  extract only the requested gzip file atomically, and remove temporary files;
+  failed overwrites preserve existing output. Default `build_url` now requires a
+  metadata lookup and returns the containing ZIP URL. Each uncached download needs
+  temporary space for the full bundle plus the requested file. Add offline and
+  bounded-download live regression checks; see the [MIDORI2 guide](docs/fetch/midori2.md).
 - Surface Ensembl and ChEMBL/PubChem outages in live translator-quality checks
   before translators convert them to missing mappings. Keep exact-ID assertions
   strict for successful responses and add offline guard regression cases.
